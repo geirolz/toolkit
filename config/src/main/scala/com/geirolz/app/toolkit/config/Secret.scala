@@ -1,4 +1,4 @@
-package com.geirolz.fpmicroservice.toolkit.config
+package com.geirolz.app.toolkit.config
 
 import cats.Show
 import pureconfig.ConfigReader
@@ -11,19 +11,16 @@ class Secret(private val value: Array[Byte]) {
 
   override def toString: String = Secret.placeHolder
 }
-object Secret extends SecretCatsInstances with SecretPureconfigInstances {
+object Secret {
 
-  val placeHolder = "** MASKED **"
+  private val placeHolder = "** MASKED **"
 
   def apply(value: String): Secret =
     new Secret(value.getBytes(StandardCharsets.UTF_8))
 
-}
-private sealed trait SecretCatsInstances {
   implicit val showInstanceForSecretString: Show[Secret] =
     _ => Secret.placeHolder
-}
-private sealed trait SecretPureconfigInstances {
+
   implicit val configReaderForSecretString: ConfigReader[Secret] =
     ConfigReader.stringConfigReader
       .map(str => new Secret(str.getBytes(StandardCharsets.UTF_8)))

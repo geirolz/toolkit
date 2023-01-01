@@ -1,10 +1,12 @@
 import sbt.project
 
-val prjName                     = "fp-microservice-toolkit"
-val org                         = "com.github.geirolz"
-lazy val scala213               = "2.13.8"
-lazy val scala31                = "3.1.3"
-lazy val supportedScalaVersions = List(scala213, scala31)
+lazy val prjName                = "app-toolkit"
+lazy val prjPackageName         = prjName.replaceAll("[^\\p{Alpha}\\d]+", ".")
+lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
+lazy val org                    = "com.github.geirolz"
+lazy val scala213               = "2.13.10"
+lazy val scala32                = "3.2.1"
+lazy val supportedScalaVersions = List(scala213, scala32)
 
 //## global project to no publish ##
 val copyReadMe = taskKey[Unit]("Copy generated README to main folder.")
@@ -13,7 +15,6 @@ lazy val root: Project = project
   .settings(
     inThisBuild(
       List(
-        organization := org,
         homepage := Some(url(s"https://github.com/geirolz/$prjName")),
         licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
         developers := List(
@@ -30,21 +31,18 @@ lazy val root: Project = project
   .settings(baseSettings)
   .settings(noPublishSettings)
   .settings(
-    name := prjName,
-    description := "A functional and type safe models layer separator",
-    organization := org,
     crossScalaVersions := Nil
   )
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config)
+  .aggregate(app, docs, config)
 
 lazy val docs: Project =
   project
     .in(file("docs"))
     .enablePlugins(MdocPlugin)
-    .dependsOn(core, config)
+    .dependsOn(app, config)
     .settings(
       baseSettings,
       noPublishSettings,
@@ -63,9 +61,9 @@ lazy val docs: Project =
       )
     )
 
-lazy val core: Project =
+lazy val app: Project =
   buildModule(
-    prjModuleName = "core",
+    prjModuleName = "app",
     toPublish     = true,
     folder        = "."
   ).settings(
@@ -108,6 +106,10 @@ lazy val noPublishSettings: Seq[Def.Setting[_]] = Seq(
 )
 
 lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
+  // project
+  name := prjName,
+  description := prjDescription,
+  organization := org,
   // scala
   crossScalaVersions := supportedScalaVersions,
   scalaVersion := supportedScalaVersions.head,
