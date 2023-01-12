@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.testing
 
-import com.geirolz.app.toolkit.AppInfo
+import com.geirolz.app.toolkit.BasicAppInfo
 
 import java.time.LocalDateTime
 
@@ -12,8 +12,12 @@ case class TestAppInfo(
   sbtVersion: String,
   javaVersion: Option[String],
   builtOn: LocalDateTime
-) extends AppInfo[String] {
-  override val buildRefName: String = AppInfo.genBuildRefName(this)
+) extends BasicAppInfo[String] {
+  override val buildRefName: String = BasicAppInfo.genBuildRefName(
+    name    = name,
+    version = version,
+    builtOn = builtOn
+  )
 }
 
 object TestAppInfo {

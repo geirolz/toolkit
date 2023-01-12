@@ -1,15 +1,10 @@
-# app-toolkit
-A small toolkit to build functional app with managed resources
-
-Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example) 
-```scala
 package com.geirolz.example.app
 
 import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.{App, AppResources}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.examples.app.service.UserService
-import com.geirolz.examples.app.model.*
+import com.geirolz.example.app.service.UserService
+import com.geirolz.example.app.model.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -35,4 +30,3 @@ object Main extends IOApp {
       })
       .use(_.run.as(ExitCode.Success))
 }
-```

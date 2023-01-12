@@ -36,7 +36,7 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(app, docs, config)
+  .aggregate(app, docs, config, example)
 
 lazy val docs: Project =
   project
@@ -79,13 +79,41 @@ lazy val config: Project =
     libraryDependencies ++= ProjectDependencies.Config.dedicated
   )
 
+lazy val example: Project = {
+  val appPackage: String = "com.geirolz.example.app"
+  buildModule(
+    prjModuleName = "example",
+    toPublish     = false,
+    folder        = "."
+  )
+    .enablePlugins(BuildInfoPlugin)
+    .settings(
+      Compile / mainClass := Some(s"$appPackage.Main"),
+      libraryDependencies ++= ProjectDependencies.Examples.dedicated,
+      buildInfoKeys ++= List[BuildInfoKey](
+        name,
+        description,
+        version,
+        scalaVersion,
+        sbtVersion,
+        buildInfoBuildNumber
+      ),
+      buildInfoOptions ++= List(
+        BuildInfoOption.BuildTime,
+        BuildInfoOption.PackagePrivate,
+        BuildInfoOption.ConstantValue
+      ),
+      buildInfoPackage := appPackage
+    )
+    .dependsOn(app, config)
+}
+
 //=============================== MODULES UTILS ===============================
 def buildModule(prjModuleName: String, toPublish: Boolean, folder: String): Project = {
-  val keys       = prjModuleName.split("-")
-  val id         = keys.reduce(_ + _.capitalize)
-  val docName    = keys.mkString(" ")
-  val prjFile    = file(s"$folder/$prjModuleName")
-  val docNameStr = s"$prjName $docName"
+  val keys    = prjModuleName.split("-")
+  val id      = keys.reduce(_ + _.capitalize)
+  val docName = keys.mkString(" ")
+  val prjFile = file(s"$folder/$prjModuleName")
 
   Project(id, prjFile)
     .settings(

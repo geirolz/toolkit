@@ -1,15 +1,22 @@
 package com.geirolz.app.toolkit
 
 import cats.{Parallel, Show}
-import cats.effect.{Async, Resource}
+import cats.effect.{Async, Resource, Spawn}
 import cats.effect.implicits.monadCancelOps_
+import cats.effect.kernel.MonadCancel
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
-trait App[F[_], APP_INFO <: AppInfo[?], LOGGER_T[_[_]], CONFIG] {
+trait App[F[_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 
   val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG]
 
   val logic: Resource[F, Unit]
+
+  def run(implicit F: MonadCancel[F, Throwable]): F[Unit] =
+    logic.use_
+
+  def runForever(implicit F: Spawn[F]): F[Nothing] =
+    logic.useForever
 }
 object App {
 
@@ -20,12 +27,14 @@ object App {
 
   final class AppBuilderRuntimeSelected[F[_]: Async: Parallel] {
 
-    def withResources[APP_INFO <: AppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
+    def withResources[APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
       resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG]
     ): AppBuilder[F, APP_INFO, LOGGER_T, CONFIG, Unit] =
       withResourcesLoader(AppResources.pureLoader(resources))
 
-    def withResourcesLoader[APP_INFO <: AppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
+    def withResourcesLoader[APP_INFO <: BasicAppInfo[?], LOGGER_T[
+      _[_]
+    ]: LoggerAdapter, CONFIG: Show](
       resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG]
     ): AppBuilder[F, APP_INFO, LOGGER_T, CONFIG, Unit] =
       new AppBuilder(
@@ -34,7 +43,7 @@ object App {
       )
   }
 
-  class AppBuilder[F[_]: Async: Parallel, APP_INFO <: AppInfo[?], LOGGER_T[
+  class AppBuilder[F[_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
     resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG],
@@ -90,7 +99,7 @@ object App {
       } yield App.of(appResources, appProvServices)
   }
 
-  def of[F[_]: Async: Parallel, APP_INFO <: AppInfo[?], LOGGER_T[
+  def of[F[_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
