@@ -74,7 +74,7 @@ object App {
       for {
         // -------------------- RESOURCES -------------------
         appResources <- Resource.eval(resourcesLoader.load)
-        resLogger = LoggerAdapter[LOGGER_T].toFramework(appResources.logger).mapK(Resource.liftK[F])
+        resLogger = LoggerAdapter[LOGGER_T].toToolkit(appResources.logger).mapK(Resource.liftK[F])
 
         // ------------------- DEPENDENCIES -----------------
         _              <- resLogger.info("Building services environment...")
@@ -96,7 +96,7 @@ object App {
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
     appProvServices: List[Resource[F, Unit]]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = {
-    val toolkitLogger = LoggerAdapter[LOGGER_T].toFramework[F](appResources.logger)
+    val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
     new App[F, APP_INFO, LOGGER_T, CONFIG] {
       override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
       override val logic: Resource[F, Unit] = {

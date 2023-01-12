@@ -88,13 +88,13 @@ object AppResources {
       for {
         // --------------------- LOGGER --------------------
         appLogger <- this.loggerBuilder
-        frameworkLogger = LoggerAdapter[LOGGER_T].toFramework[F](appLogger)
+        tkLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appLogger)
 
         // ----------------- CONFIGURATION ------------------
-        _         <- frameworkLogger.info("Loading configuration...")
+        _         <- tkLogger.info("Loading configuration...")
         appConfig <- this.configLoader
-        _         <- frameworkLogger.info("Configuration successfully loaded.")
-        _         <- frameworkLogger.info(appConfig.show)
+        _         <- tkLogger.info("Configuration successfully loaded.")
+        _         <- tkLogger.info(appConfig.show)
 
         // ---------------- GROUP APP RESOURCES --------------
         appResources = AppResources(
