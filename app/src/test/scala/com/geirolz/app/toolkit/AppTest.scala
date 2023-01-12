@@ -28,7 +28,7 @@ class AppTest extends munit.CatsEffectSuite {
           )
           .logic(_.dependencies.set(1))
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.logic.traceAsAppRuntime.use_
+      _   <- app.compiledRun_.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -100,7 +100,7 @@ class AppTest extends munit.CatsEffectSuite {
             )
           )
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.logic.traceAsAppRuntime.use_
+      _   <- app.compiledRun_.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -142,7 +142,7 @@ class AppTest extends munit.CatsEffectSuite {
           )
           .provideOne(_ => Resource.sleep[IO](1.second).trace(LabeledResource.resource("1")))
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.logic.traceAsAppRuntime.use_
+      _   <- app.compiledRun_.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -179,7 +179,7 @@ class AppTest extends munit.CatsEffectSuite {
     for {
       case implicit0(logger: EventLogger[IO]) <- EventLogger.create[IO]
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.logic.traceAsAppRuntime.use_
+      _   <- app.compiledRun_.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -213,7 +213,7 @@ class AppTest extends munit.CatsEffectSuite {
     for {
       case implicit0(logger: EventLogger[IO]) <- EventLogger.create[IO]
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.logic.traceAsAppRuntime.attempt.use_
+      _   <- app.compiledRun_.traceAsAppRuntime.attempt.use_
 
       // assert
       _ <- assertIO(

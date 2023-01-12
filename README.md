@@ -26,26 +26,15 @@ object Main extends IOApp {
         AppResources
           .loader[IO, AppInfo](AppInfo.fromBuildInfo)
           .withLogger(ToolkitLogger.console[IO](_))
+          .withConfigLoader(_ => IO(ConfigSource.default.loadOrThrow[AppConfig]))
       )
       .dependsOn(AppDependencyServices.make(_))
-      .logic(deps => {
-
-        val logger                       = deps.resources.logger
-        val userService: UserService[IO] = deps.dependencies.userService
-
-        for {
-          userToSave <- IO.pure(User(UserId(1), "Foo"))
-          _          <- userService.addUser(userToSave)
-          _          <- logger.info(s"Saved user [$userToSave]")
-          user       <- userService.findUser(UserId(1))
-          _          <- logger.info(s"Fetching result [$user]")
-        } yield ()
-      })
+      .provideOne(deps => AppHttpService.make(deps.resources.config))
       .use(app =>
         app
           .preRun(_.logger.info("CUSTOM PRE-RUN"))
           .onFinalize(_.logger.info("CUSTOM END"))
-          .run
+          .runForever
           .as(ExitCode.Success)
       )
 }

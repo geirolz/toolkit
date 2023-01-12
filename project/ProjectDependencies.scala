@@ -3,7 +3,7 @@ import sbt._
 object ProjectDependencies {
 
   private val catsVersion        = "2.9.0"
-  private val catsEffectVersion  = "3.4.3"
+  private val catsEffectVersion  = "3.4.4"
   private val refinedVersion     = "0.10.1"
   private val circeVersion       = "0.14.3"
   private val pureConfigVersion  = "0.17.2"
@@ -11,6 +11,7 @@ object ProjectDependencies {
   private val munitEffectVersion = "1.0.7"
   private val slf4Version        = "2.0.5"
   private val log4catsVersion    = "2.5.0"
+  private val http4sVersion      = "0.23.17"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -40,14 +41,17 @@ object ProjectDependencies {
 
   object Config {
     lazy val dedicated: Seq[ModuleID] = Seq(
-      "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion,
-      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
-      "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion
+      "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
     )
   }
 
   object Examples {
-    lazy val dedicated: Seq[ModuleID] = Nil
+    lazy val dedicated: Seq[ModuleID] = Seq(
+      "org.http4s" %% "http4s-dsl" % http4sVersion,
+      "org.http4s" %% "http4s-ember-server" % http4sVersion,
+      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
+      "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion
+    )
   }
 
   object Plugins {

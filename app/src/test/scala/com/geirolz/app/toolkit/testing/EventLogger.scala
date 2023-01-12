@@ -22,7 +22,7 @@ object EventLogger {
     Ref.of(List.empty[Event]).map(new EventLogger(_))
   }
 
-  implicit class appLoaderResOps[F[_]: MonadCancelThrow: EventLogger, LOGGER_T[
+  implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger, LOGGER_T[
     _[_]
   ], APP_INFO <: BasicAppInfo[
     ?
