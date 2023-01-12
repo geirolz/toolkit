@@ -1,27 +1,34 @@
 pull_request_rules:
-  - name: automatic merge for main when CI passes and 1 reviews and not WIP
+  - name: automatic merge for master when CI passes and 1 reviews and not WIP
     conditions:
       - "#approved-reviews-by>=1"
-      - check-success=build (2.13.6)
+      - check-success=codecov/patch
+      - check-success=codecov/project
+      - check-success=build (Scala2_13)
+      - check-success=build (Scala3_2)
       - base=main
       - label!=work-in-progress
     actions:
       merge:
         method: rebase
         priority: high
-  - name: automatic merge for main when CI passes and author is steward
+  - name: automatic merge for master when CI passes and author is steward
     conditions:
       - author=scala-steward
-      - check-success=build (2.13.6)
+      - check-success=build (Scala2_13)
+      - check-success=build (Scala3_2)
       - base=main
     actions:
       merge:
         method: rebase
-  - name: automatic merge for main when CI passes and author is dependabot
+        priority: medium
+  - name: automatic merge for master when CI passes and author is dependabot
     conditions:
-      - author=dependabot
-      - check-success=build (2.13.6)
+      - author=dependabot[bot]
+      - check-success=build (Scala2_13)
+      - check-success=build (Scala3_2)
       - base=main
     actions:
       merge:
         method: rebase
+        priority: medium
