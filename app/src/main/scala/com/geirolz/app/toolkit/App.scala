@@ -1,9 +1,10 @@
 package com.geirolz.app.toolkit
 
-import cats.{Parallel, Show}
+import cats.{Applicative, ApplicativeError, Parallel, Show}
 import cats.effect.{Async, Resource, Spawn}
 import cats.effect.implicits.monadCancelOps_
 import cats.effect.kernel.MonadCancel
+import cats.effect.kernel.Resource.ExitCase
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
 trait App[F[_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
@@ -12,10 +13,55 @@ trait App[F[_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 
   val logic: Resource[F, Unit]
 
-  def run(implicit F: MonadCancel[F, Throwable]): F[Unit] =
+  final def map(f: Resource[F, Unit] => Resource[F, Unit]): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    App.of(resources, f(logic))
+
+  final def preRun(
+    f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    map(_.preAllocate(f(resources)))
+
+  final def onFinalize(f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit])(implicit
+    F: Applicative[F]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    map(_.onFinalize(f(resources)))
+
+  final def onFinalizeCase(f: (AppResources[APP_INFO, LOGGER_T[F], CONFIG], ExitCase) => F[Unit])(
+    implicit F: Applicative[F]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    map(_.onFinalizeCase(ec => f(resources, ec)))
+
+  final def onError(f: (AppResources[APP_INFO, LOGGER_T[F], CONFIG], Throwable) => F[Unit])(implicit
+    F: Applicative[F]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    onFinalizeCase { case (res, ec) =>
+      ec match {
+        case ExitCase.Errored(e) => f(res, e)
+        case _                   => F.unit
+      }
+    }
+
+  final def onCancel(f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit])(implicit
+    F: Applicative[F]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    onFinalizeCase { case (res, ec) =>
+      ec match {
+        case ExitCase.Canceled => f(res)
+        case _                 => F.unit
+      }
+    }
+
+  final def handleErrorWith[E](
+    f: (AppResources[APP_INFO, LOGGER_T[F], CONFIG], E) => F[Unit]
+  )(implicit
+    F: ApplicativeError[F, E]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] =
+    map(_.handleErrorWith[Unit, E](e => Resource.eval(f(resources, e))))
+
+  final def run(implicit F: MonadCancel[F, Throwable]): F[Unit] =
     logic.use_
 
-  def runForever(implicit F: Spawn[F]): F[Nothing] =
+  final def runForever(implicit F: Spawn[F]): F[Nothing] =
     logic.useForever
 }
 object App {
@@ -96,31 +142,38 @@ object App {
           servicesBuilder(AppDependencies(appResources, appDepServices))
         )
         _ <- resLogger.info("App successfully built.")
-      } yield App.of(appResources, appProvServices)
+      } yield App.fromServices(appResources, appProvServices)
   }
 
-  def of[F[_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
+  def fromServices[F[_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
     appProvServices: List[Resource[F, Unit]]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = {
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
-    new App[F, APP_INFO, LOGGER_T, CONFIG] {
-      override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
-      override val logic: Resource[F, Unit] = {
-        val info = resources.info
-        Resource
-          .eval[F, Unit](
-            toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
-              appProvServices
-                .parTraverse[F, Unit](_.use_)
-                .onCancel(toolkitLogger.info(s"${info.name} was stopped."))
-                .onError(e => toolkitLogger.error(e)(s"${info.name} was stopped due an error."))
-                .void
-          )
-          .onFinalize(toolkitLogger.info(s"Shutting down ${info.name}..."))
-      }
+    val logic: Resource[F, Unit] = {
+      val info = appResources.info
+      Resource
+        .eval[F, Unit](
+          toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
+            appProvServices
+              .parTraverse[F, Unit](_.use_)
+              .onCancel(toolkitLogger.info(s"${info.name} was stopped."))
+              .onError(e => toolkitLogger.error(e)(s"${info.name} was stopped due an error."))
+              .void
+        )
+        .onFinalize(toolkitLogger.info(s"Shutting down ${info.name}..."))
     }
+
+    App.of(appResources, logic)
+  }
+
+  def of[F[_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG](
+    appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
+    appLogic: Resource[F, Unit]
+  ): App[F, APP_INFO, LOGGER_T, CONFIG] = new App[F, APP_INFO, LOGGER_T, CONFIG] {
+    override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
+    override val logic: Resource[F, Unit]                               = appLogic
   }
 }
