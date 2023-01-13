@@ -4,10 +4,9 @@ A small toolkit to build functional app with managed resources
 Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example) 
 
 - `dependsOn` let you define the app dependencies expressed by a `Resource[F, DEPENDENCIES]`
-- `logic` let you define the app logic expressed by an `F[Unit]`
-- `provideOne` let you define the app logic expressed by an `Resource[F, Unit]`
-- `provide` let you define the app provided services expressed by a `List[Resource[F, Unit]]` which will be run in parallel
-- `provideF` let you define the app provided services expressed by a `F[List[Resource[F, Unit]]]` which will be run in parallel
+- `provideOne` let you define the app logic expressed by an `F[?]`
+- `provide` let you define the app provided services expressed by a `List[F[?]]` which will be run in parallel
+- `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
 
 ```scala
 package com.geirolz.example.app
@@ -29,12 +28,24 @@ object Main extends IOApp {
           .withConfigLoader(_ => IO(ConfigSource.default.loadOrThrow[AppConfig]))
       )
       .dependsOn(AppDependencyServices.make(_))
-      .provideOne(deps => AppHttpService.make(deps.resources.config))
+      .provide(deps =>
+        List(
+          // HTTP server
+          AppHttpServer.make(deps.resources.config).useForever,
+
+          // Kafka consumer
+          deps.dependencies.kafkaConsumer
+            .consumeFrom("test-topic")
+            .evalTap(record => deps.resources.logger.info(s"Received record $record"))
+            .compile
+            .drain
+        )
+      )
       .use(app =>
         app
           .preRun(_.logger.info("CUSTOM PRE-RUN"))
           .onFinalize(_.logger.info("CUSTOM END"))
-          .runForever
+          .run
           .as(ExitCode.Success)
       )
 }

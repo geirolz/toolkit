@@ -4,7 +4,7 @@ import cats.{Monad, Show}
 import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
 import com.geirolz.app.toolkit.novalues.NoConfig
 
-case class AppResources[APP_INFO <: BasicAppInfo[?], LOGGER, CONFIG](
+case class  AppResources[APP_INFO <: BasicAppInfo[?], LOGGER, CONFIG](
   info: APP_INFO,
   logger: LOGGER,
   config: CONFIG

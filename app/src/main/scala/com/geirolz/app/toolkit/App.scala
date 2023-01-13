@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit
 import cats.{Applicative, ApplicativeError, Parallel, Show}
 import cats.effect.{Async, Resource}
 import cats.effect.implicits.monadCancelOps_
-import cats.effect.kernel.{MonadCancel, Spawn}
+import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource.ExitCase
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
@@ -12,24 +12,15 @@ trait App[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
   // ------------------- DEFINITION ------------------
   val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG]
 
-  val logic: AppServiceRunner[F] => Resource[F, Unit]
+  val logic: Resource[F, Unit]
 
   // ---------------------- RUN ----------------------
-  final def compiledRun_(implicit F: MonadCancel[F, Throwable]): Resource[F, Unit] =
-    logic(AppServiceRunner.run_[F])
-
-  final def compiledRunForever(implicit F: Spawn[F]): Resource[F, Unit] =
-    logic(AppServiceRunner.runForever[F])
-
   final def run(implicit F: MonadCancel[F, Throwable]): F[Unit] =
-    compiledRun_.use_
-
-  final def runForever(implicit F: Spawn[F]): F[Nothing] =
-    compiledRunForever.useForever
+    logic.use_
 
   // -------------------- MAPPING --------------------
   final def map(f: Resource[F, Unit] => Resource[F, Unit]): App[F, APP_INFO, LOGGER_T, CONFIG] =
-    App.of(resources, logic.andThen(f))
+    App.of(resources, f(logic))
 
   final def preRun(
     f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit]
@@ -113,25 +104,18 @@ object App {
         dependencies    = dependencies
       )
 
-    def logic(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Unit]
-    ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
-      provideOne(deps => Resource.eval(f(deps)))
-
     def provideOne(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => Resource[F, Any]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[?]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       provide(deps => List(f(deps)))
 
     def provide(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[
-        Resource[F, Any]
-      ]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[?]]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       provideF(deps => f(deps).pure[F])
 
     def provideF(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[Resource[F, Any]]]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[?]]]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       for {
         // -------------------- RESOURCES -------------------
@@ -156,16 +140,16 @@ object App {
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appProvServices: List[Resource[F, Any]]
+    appProvServices: List[F[?]]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = {
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
-    val logic: AppServiceRunner[F] => Resource[F, Unit] = runner => {
+    val logic: Resource[F, Unit] = {
       val info = appResources.info
       Resource
         .eval[F, Unit](
           toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
             appProvServices
-              .parTraverse[F, Any](runner.run(_))
+              .parTraverse[F, Any](identity)
               .onCancel(toolkitLogger.info(s"${info.name} was stopped."))
               .onError(e => toolkitLogger.error(e)(s"${info.name} was stopped due an error."))
               .void
@@ -178,9 +162,9 @@ object App {
 
   def of[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appLogic: AppServiceRunner[F] => Resource[F, Unit]
+    appLogic: Resource[F, Unit]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = new App[F, APP_INFO, LOGGER_T, CONFIG] {
     override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
-    override val logic: AppServiceRunner[F] => Resource[F, Unit]        = appLogic
+    override val logic: Resource[F, Unit]                               = appLogic
   }
 }

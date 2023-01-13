@@ -5,7 +5,10 @@ import com.comcast.ip4s.{Hostname, Port}
 import io.circe.Encoder
 import pureconfig.ConfigReader
 
-case class AppConfig(server: ServerConfig)
+case class AppConfig(
+  httpServer: HttpServerConfig,
+  kafkaBroker: KafkaBrokerSetting
+)
 object AppConfig {
 
   import io.circe.generic.auto.*
@@ -26,4 +29,6 @@ object AppConfig {
   implicit val showInstanceForConfig: Show[AppConfig] = _.asJson.toString()
 }
 
-case class ServerConfig(port: Port, host: Hostname)
+case class HttpServerConfig(port: Port, host: Hostname)
+
+case class KafkaBrokerSetting(host: Hostname)

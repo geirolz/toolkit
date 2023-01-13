@@ -88,7 +88,7 @@ lazy val example: Project = {
   )
     .enablePlugins(BuildInfoPlugin)
     .settings(
-      Compile / mainClass := Some(s"$appPackage.Main"),
+      Compile / mainClass := Some(s"$appPackage.AppMain"),
       libraryDependencies ++= ProjectDependencies.Examples.dedicated,
       buildInfoKeys ++= List[BuildInfoKey](
         name,

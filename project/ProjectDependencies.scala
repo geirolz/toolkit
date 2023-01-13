@@ -12,6 +12,7 @@ object ProjectDependencies {
   private val slf4Version        = "2.0.5"
   private val log4catsVersion    = "2.5.0"
   private val http4sVersion      = "0.23.17"
+  private val fs2Version         = "3.4.0"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -49,6 +50,7 @@ object ProjectDependencies {
     lazy val dedicated: Seq[ModuleID] = Seq(
       "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
+      "co.fs2" %% "fs2-core" % fs2Version,
       "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion
     )
