@@ -28,11 +28,6 @@ object ProjectDependencies {
       // runtime
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
 
-      // json
-      "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic-extras" % circeVersion,
-      "io.circe" %% "circe-refined" % circeVersion,
-
       // logging
       "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
       "org.slf4j" % "slf4j-api" % slf4Version,
@@ -48,11 +43,21 @@ object ProjectDependencies {
 
   object Examples {
     lazy val dedicated: Seq[ModuleID] = Seq(
+      // http
       "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
+
+      // streaming
       "co.fs2" %% "fs2-core" % fs2Version,
+
+      // config
       "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
-      "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion
+      "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
+
+      // json
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic-extras" % circeVersion,
+      "io.circe" %% "circe-refined" % circeVersion
     )
   }
 

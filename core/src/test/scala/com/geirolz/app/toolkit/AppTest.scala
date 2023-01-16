@@ -26,9 +26,9 @@ class AppTest extends munit.CatsEffectSuite {
           .dependsOn(_ =>
             Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies)
           )
-          .logic(_.dependencies.set(1))
+          .provideOne(_.dependencies.set(1))
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.compiledRun_.traceAsAppRuntime.use_
+      _   <- app.logic.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -94,13 +94,13 @@ class AppTest extends munit.CatsEffectSuite {
           )
           .provide(_ =>
             List(
-              Resource.sleep[IO](300.millis).trace(LabeledResource.resource("1")),
-              Resource.sleep[IO](50.millis).trace(LabeledResource.resource("2")),
-              Resource.sleep[IO](200.millis).trace(LabeledResource.resource("3"))
+              IO.sleep(300.millis),
+              IO.sleep(50.millis),
+              IO.sleep(200.millis)
             )
           )
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.compiledRun_.traceAsAppRuntime.use_
+      _   <- app.logic.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -113,15 +113,6 @@ class AppTest extends munit.CatsEffectSuite {
 
           // runtime
           LabeledResource.appRuntime.starting,
-          LabeledResource.resource("1").starting,
-          LabeledResource.resource("2").starting,
-          LabeledResource.resource("3").starting,
-          LabeledResource.resource("2").succeeded,
-          LabeledResource.resource("2").finalized,
-          LabeledResource.resource("3").succeeded,
-          LabeledResource.resource("3").finalized,
-          LabeledResource.resource("1").succeeded,
-          LabeledResource.resource("1").finalized,
           LabeledResource.appRuntime.succeeded,
           LabeledResource.appRuntime.finalized
         )
@@ -140,9 +131,9 @@ class AppTest extends munit.CatsEffectSuite {
               .withLogger(ToolkitLogger.console[IO])
               .withConfig(TestConfig.defaultTest)
           )
-          .provideOne(_ => Resource.sleep[IO](1.second).trace(LabeledResource.resource("1")))
+          .provideOne(_ => IO.sleep(1.second))
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.compiledRun_.traceAsAppRuntime.use_
+      _   <- app.logic.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -155,9 +146,6 @@ class AppTest extends munit.CatsEffectSuite {
 
           // runtime
           LabeledResource.appRuntime.starting,
-          LabeledResource.resource("1").starting,
-          LabeledResource.resource("1").succeeded,
-          LabeledResource.resource("1").finalized,
           LabeledResource.appRuntime.succeeded,
           LabeledResource.appRuntime.finalized
         )
@@ -165,7 +153,7 @@ class AppTest extends munit.CatsEffectSuite {
     } yield ()
   }
 
-  test("Loader and App work as expected with logic") {
+  test("Loader and App work as expected with provideOne") {
     val appLoader =
       App[IO]
         .withResourcesLoader(
@@ -174,12 +162,12 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .logic(_ => IO.unit)
+        .provideOne(_ => IO.unit)
 
     for {
       case implicit0(logger: EventLogger[IO]) <- EventLogger.create[IO]
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.compiledRun_.traceAsAppRuntime.use_
+      _   <- app.logic.traceAsAppRuntime.use_
 
       // assert
       _ <- assertIO(
@@ -208,12 +196,12 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .logic(_ => IO.raiseError(error"BOOM!"))
+        .provideOne(_ => IO.raiseError(error"BOOM!"))
 
     for {
       case implicit0(logger: EventLogger[IO]) <- EventLogger.create[IO]
       app <- appLoader.traceAsAppLoader.use(IO.pure)
-      _   <- app.compiledRun_.traceAsAppRuntime.attempt.use_
+      _   <- app.logic.traceAsAppRuntime.attempt.use_
 
       // assert
       _ <- assertIO(

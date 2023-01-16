@@ -36,13 +36,13 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(app, docs, config, example)
+  .aggregate(core, docs, config, example)
 
 lazy val docs: Project =
   project
     .in(file("docs"))
     .enablePlugins(MdocPlugin)
-    .dependsOn(app, config)
+    .dependsOn(core, config)
     .settings(
       baseSettings,
       noPublishSettings,
@@ -61,9 +61,9 @@ lazy val docs: Project =
       )
     )
 
-lazy val app: Project =
+lazy val core: Project =
   buildModule(
-    prjModuleName = "app",
+    prjModuleName = "core",
     toPublish     = true,
     folder        = "."
   ).settings(
@@ -88,6 +88,8 @@ lazy val example: Project = {
   )
     .enablePlugins(BuildInfoPlugin)
     .settings(
+      crossScalaVersions := Nil,
+      scalaVersion := scala213,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
       libraryDependencies ++= ProjectDependencies.Examples.dedicated,
       buildInfoKeys ++= List[BuildInfoKey](
@@ -105,7 +107,7 @@ lazy val example: Project = {
       ),
       buildInfoPackage := appPackage
     )
-    .dependsOn(app, config)
+    .dependsOn(core, config)
 }
 
 //=============================== MODULES UTILS ===============================
