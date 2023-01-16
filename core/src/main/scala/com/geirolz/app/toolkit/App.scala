@@ -105,17 +105,17 @@ object App {
       )
 
     def provideOne(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[?]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       provide(deps => List(f(deps)))
 
     def provide(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[?]]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       provideF(deps => f(deps).pure[F])
 
     def provideF(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[?]]]
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
     ): Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
       for {
         // -------------------- RESOURCES -------------------
@@ -140,7 +140,7 @@ object App {
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appProvServices: List[F[?]]
+    appProvServices: List[F[Any]]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = {
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
     val logic: Resource[F, Unit] = {

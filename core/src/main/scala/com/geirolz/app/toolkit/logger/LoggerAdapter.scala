@@ -6,7 +6,7 @@ trait LoggerAdapter[LOGGER[_[_]]] {
 object LoggerAdapter {
   def apply[LOGGER[_[_]]: LoggerAdapter]: LoggerAdapter[LOGGER] = implicitly[LoggerAdapter[LOGGER]]
 
-  implicit def id[L[K[_]] <: ToolkitLogger[K[_]]]: LoggerAdapter[L] =
+  implicit def id[L[K[_]] <: ToolkitLogger[K]]: LoggerAdapter[L] =
     new LoggerAdapter[L] {
       override def toToolkit[F[_]](underlying: L[F]): ToolkitLogger[F] = new ToolkitLogger[F] {
         override def info(message: => String): F[Unit] = underlying.info(message)

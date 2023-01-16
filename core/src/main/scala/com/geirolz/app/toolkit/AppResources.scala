@@ -58,7 +58,7 @@ object AppResources {
     def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       logger: LOGGER_T2[F]
     ): AppResources.Loader[F, APP_INFO, LOGGER_T2, CONFIG] =
-      withLogger(loggerF = _ => logger)
+      withLogger[LOGGER_T2](loggerF = (_: APP_INFO) => logger)
 
     def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       loggerF: APP_INFO => LOGGER_T2[F]
