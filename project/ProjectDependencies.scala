@@ -11,8 +11,9 @@ object ProjectDependencies {
   private val munitEffectVersion = "1.0.7"
   private val slf4Version        = "2.0.6"
   private val log4catsVersion    = "2.5.0"
+  private val odinVersion        = "0.13.0"
   private val http4sVersion      = "0.23.17"
-  private val fs2Version         = "3.4.0"
+  private val fs2Version         = "3.5.0"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -26,12 +27,7 @@ object ProjectDependencies {
   object Core {
     lazy val dedicated: Seq[ModuleID] = Seq(
       // runtime
-      "org.typelevel" %% "cats-effect" % catsEffectVersion,
-
-      // logging
-      "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
-      "org.slf4j" % "slf4j-api" % slf4Version,
-      "org.slf4j" % "slf4j-simple" % slf4Version
+      "org.typelevel" %% "cats-effect" % catsEffectVersion
     )
   }
 
@@ -50,6 +46,11 @@ object ProjectDependencies {
       // streaming
       "co.fs2" %% "fs2-core" % fs2Version,
 
+      // logging
+      "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
+      "org.slf4j" % "slf4j-api" % slf4Version,
+      "org.slf4j" % "slf4j-simple" % slf4Version,
+
       // config
       "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
@@ -63,6 +64,20 @@ object ProjectDependencies {
     lazy val dedicated_3_2: Seq[ModuleID] = Nil
   }
 
+  object Integrations {
+
+    object Log4cats {
+      lazy val dedicated: Seq[ModuleID] = List(
+        "org.typelevel" %% "log4cats-slf4j" % log4catsVersion
+      )
+    }
+
+    object Odin {
+      lazy val dedicated: Seq[ModuleID] = List(
+        "com.github.valskalla" %% "odin-core" % odinVersion
+      )
+    }
+  }
   object Plugins {
     val compilerPluginsFor2_13: Seq[ModuleID] = Seq(
       compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),

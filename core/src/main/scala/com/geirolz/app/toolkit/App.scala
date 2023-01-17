@@ -28,7 +28,7 @@ trait App[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     map(_.preAllocate(f(resources)))
 
   final def onFinalize(f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit])(implicit
-                                                                                  F: Applicative[F]
+    F: Applicative[F]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] =
     map(_.onFinalize(f(resources)))
 
@@ -38,7 +38,7 @@ trait App[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     map(_.onFinalizeCase(ec => f(resources, ec)))
 
   final def onError(f: (AppResources[APP_INFO, LOGGER_T[F], CONFIG], Throwable) => F[Unit])(implicit
-                                                                                            F: Applicative[F]
+    F: Applicative[F]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] =
     onFinalizeCase { case (res, ec) =>
       ec match {
@@ -48,7 +48,7 @@ trait App[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     }
 
   final def onCancel(f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => F[Unit])(implicit
-                                                                                F: Applicative[F]
+    F: Applicative[F]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] =
     onFinalizeCase { case (res, ec) =>
       ec match {
@@ -92,8 +92,8 @@ object App {
   class AppBuilder[F[+_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
-                                                                                                                         resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG],
-                                                                                                                         dependencies: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEPENDENCIES]
+    resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG],
+    dependencies: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEPENDENCIES]
   ) { $this =>
 
     def dependsOn[DEPENDENCIES_2](
@@ -139,8 +139,8 @@ object App {
   def fromServices[F[+_]: Async: Parallel, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
-                                                                                                           appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-                                                                                                           appProvServices: List[F[Any]]
+    appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
+    appProvServices: List[F[Any]]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = {
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
     val logic: Resource[F, Unit] = {
@@ -161,8 +161,8 @@ object App {
   }
 
   def of[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG](
-                                                                      appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-                                                                      appLogic: Resource[F, Unit]
+    appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
+    appLogic: Resource[F, Unit]
   ): App[F, APP_INFO, LOGGER_T, CONFIG] = new App[F, APP_INFO, LOGGER_T, CONFIG] {
     override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
     override val logic: Resource[F, Unit]                               = appLogic
