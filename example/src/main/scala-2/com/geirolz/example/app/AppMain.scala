@@ -7,6 +7,9 @@ import com.geirolz.example.app.provided.AppHttpServer
 import pureconfig.ConfigSource
 
 object AppMain extends IOApp {
+
+  type AppRes = AppResources[AppInfo, ToolkitLogger[IO], AppConfig]
+
   override def run(args: List[String]): IO[ExitCode] =
     App[IO]
       .withResourcesLoader(
@@ -19,12 +22,12 @@ object AppMain extends IOApp {
       .provide(deps =>
         List(
           // HTTP server
-          AppHttpServer.make(deps.resources.config).useForever,
+          AppHttpServer.make(deps.config).useForever,
 
           // Kafka consumer
           deps.dependencies.kafkaConsumer
             .consumeFrom("test-topic")
-            .evalTap(record => deps.resources.logger.info(s"Received record $record"))
+            .evalTap(record => deps.logger.info(s"Received record $record"))
             .compile
             .drain
         )

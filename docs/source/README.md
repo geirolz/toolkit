@@ -43,12 +43,12 @@ object Main extends IOApp {
       .provide(deps =>
         List(
           // HTTP server
-          AppHttpServer.make(deps.resources.config).useForever,
+          AppHttpServer.make(deps.config).useForever,
 
           // Kafka consumer
           deps.dependencies.kafkaConsumer
             .consumeFrom("test-topic")
-            .evalTap(record => deps.resources.logger.info(s"Received record $record"))
+            .evalTap(record => deps.logger.info(s"Received record $record"))
             .compile
             .drain
         )
