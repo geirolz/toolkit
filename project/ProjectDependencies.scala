@@ -3,7 +3,7 @@ import sbt._
 object ProjectDependencies {
 
   private val catsVersion        = "2.9.0"
-  private val catsEffectVersion  = "3.4.4"
+  private val catsEffectVersion  = "3.4.5"
   private val refinedVersion     = "0.10.1"
   private val circeVersion       = "0.14.3"
   private val pureConfigVersion  = "0.17.2"
