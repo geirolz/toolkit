@@ -223,5 +223,6 @@ def scalacSettings(scalaVersion: String): Seq[String] =
   }
 
 //=============================== ALIASES ===============================
-addCommandAlias("check", ";clean;test")
-addCommandAlias("generate-docs", "mdoc;copyReadMe;")
+addCommandAlias("check", "scalafmtAll;clean;coverage;test;coverageAggregate")
+addCommandAlias("gen-doc", "mdoc;copyReadMe;")
+addCommandAlias("coverage-test", "coverage;test;coverageReport")
