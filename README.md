@@ -9,6 +9,10 @@
 
 A small toolkit to build functional app with managed resources
 
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.1"
+```
+
 Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example) 
 
 - `dependsOn` let you define the app dependencies expressed by a `Resource[F, DEPENDENCIES]`
