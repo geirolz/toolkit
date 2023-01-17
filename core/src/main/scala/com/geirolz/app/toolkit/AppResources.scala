@@ -8,7 +8,11 @@ case class AppResources[APP_INFO <: BasicAppInfo[?], LOGGER, CONFIG](
   info: APP_INFO,
   logger: LOGGER,
   config: CONFIG
-)
+) {
+  type AppInfo = APP_INFO
+  type Logger  = LOGGER
+  type Config  = CONFIG
+}
 
 object AppResources {
 
