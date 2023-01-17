@@ -51,12 +51,12 @@ object ProjectDependencies {
       "co.fs2" %% "fs2-core" % fs2Version,
 
       // config
-      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
+      "com.github.pureconfig" % "pureconfig-generic_2.13" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
 
       // json
       "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic-extras" % circeVersion,
+      "io.circe" % "circe-generic-extras_2.13" % circeVersion,
       "io.circe" %% "circe-refined" % circeVersion
     )
   }
