@@ -42,7 +42,7 @@ object ProjectDependencies {
   }
 
   object Examples {
-    lazy val dedicated: Seq[ModuleID] = Seq(
+    lazy val dedicated_2_13: Seq[ModuleID] = Seq(
       // http
       "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
@@ -51,14 +51,16 @@ object ProjectDependencies {
       "co.fs2" %% "fs2-core" % fs2Version,
 
       // config
-      "com.github.pureconfig" % "pureconfig-generic_2.13" % pureConfigVersion,
+      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
 
       // json
       "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" % "circe-generic-extras_2.13" % circeVersion,
+      "io.circe" %% "circe-generic-extras" % circeVersion,
       "io.circe" %% "circe-refined" % circeVersion
     )
+
+    lazy val dedicated_3_2: Seq[ModuleID] = Nil
   }
 
   object Plugins {

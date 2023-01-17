@@ -1,7 +1,6 @@
 import sbt.project
 
 lazy val prjName                = "app-toolkit"
-lazy val prjPackageName         = prjName.replaceAll("[^\\p{Alpha}\\d]+", ".")
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
 lazy val scala213               = "2.13.10"
@@ -36,7 +35,7 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, example)
+  .aggregate(core, docs, config)
 
 lazy val docs: Project =
   project
@@ -89,7 +88,13 @@ lazy val example: Project = {
     .enablePlugins(BuildInfoPlugin)
     .settings(
       Compile / mainClass := Some(s"$appPackage.AppMain"),
-      libraryDependencies ++= ProjectDependencies.Examples.dedicated,
+      libraryDependencies ++= {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 13)) => ProjectDependencies.Examples.dedicated_2_13
+          case Some((3, _))  => ProjectDependencies.Examples.dedicated_3_2
+          case _             => Nil
+        }
+      },
       buildInfoKeys ++= List[BuildInfoKey](
         name,
         description,
