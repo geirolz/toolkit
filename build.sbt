@@ -35,7 +35,7 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, log4cats, odin)
+  .aggregate(core, docs, config, log4cats, odin, `config-pureconfig`)
 
 lazy val docs: Project =
   project
@@ -110,7 +110,7 @@ lazy val example: Project = {
       ),
       buildInfoPackage := appPackage
     )
-    .dependsOn(core, config, log4cats)
+    .dependsOn(core, config, log4cats, `config-pureconfig`)
 }
 
 // integrations
@@ -134,6 +134,15 @@ lazy val odin: Project =
       libraryDependencies ++= ProjectDependencies.Integrations.Odin.dedicated
     )
 
+lazy val `config-pureconfig`: Project =
+  buildModule(
+    prjModuleName = "config-pureconfig",
+    toPublish     = true,
+    folder        = "integrations"
+  ).dependsOn(core, config)
+    .settings(
+      libraryDependencies ++= ProjectDependencies.Integrations.ConfigPureConfig.dedicated
+    )
 //=============================== MODULES UTILS ===============================
 def buildModule(prjModuleName: String, toPublish: Boolean, folder: String): Project = {
   val keys    = prjModuleName.split("-")

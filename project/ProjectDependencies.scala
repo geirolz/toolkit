@@ -32,9 +32,7 @@ object ProjectDependencies {
   }
 
   object Config {
-    lazy val dedicated: Seq[ModuleID] = Seq(
-      "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
-    )
+    lazy val dedicated: Seq[ModuleID] = Nil
   }
 
   object Examples {
@@ -75,6 +73,12 @@ object ProjectDependencies {
     object Odin {
       lazy val dedicated: Seq[ModuleID] = List(
         "com.github.valskalla" %% "odin-core" % odinVersion
+      )
+    }
+
+    object ConfigPureConfig {
+      lazy val dedicated: Seq[ModuleID] = List(
+        "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
       )
     }
   }

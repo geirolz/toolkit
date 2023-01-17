@@ -1,7 +1,6 @@
 package com.geirolz.app.toolkit.config
 
 import cats.Show
-import pureconfig.ConfigReader
 
 import java.nio.charset.StandardCharsets
 
@@ -20,8 +19,4 @@ object Secret {
 
   implicit val showInstanceForSecretString: Show[Secret] =
     _ => Secret.placeHolder
-
-  implicit val configReaderForSecretString: ConfigReader[Secret] =
-    ConfigReader.stringConfigReader
-      .map(str => new Secret(str.getBytes(StandardCharsets.UTF_8)))
 }
