@@ -88,8 +88,6 @@ lazy val example: Project = {
   )
     .enablePlugins(BuildInfoPlugin)
     .settings(
-      crossScalaVersions := Nil,
-      scalaVersion := scala213,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
       libraryDependencies ++= ProjectDependencies.Examples.dedicated,
       buildInfoKeys ++= List[BuildInfoKey](
