@@ -62,3 +62,20 @@ object Main extends IOApp {
       )
 }
 ```
+
+
+### Integrations
+#### pureconfig 
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "@VERSION@"
+```
+
+#### log4cats
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "@VERSION@"
+```
+
+#### odin
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "@VERSION@"
+```
