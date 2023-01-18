@@ -1,5 +1,7 @@
 import sbt._
 
+import scala.language.postfixOps
+
 object ProjectDependencies {
 
   private val catsVersion        = "2.9.0"
@@ -66,7 +68,8 @@ object ProjectDependencies {
 
     object Log4cats {
       lazy val dedicated: Seq[ModuleID] = List(
-        "org.typelevel" %% "log4cats-slf4j" % log4catsVersion
+        "org.typelevel" %% "log4cats-core" % log4catsVersion,
+        "org.typelevel" %% "log4cats-noop" % log4catsVersion % Test
       )
     }
 
