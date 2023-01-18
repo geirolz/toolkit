@@ -5,7 +5,7 @@ import io.odin.Logger
 
 package object toolkit {
 
-  implicit def odinLoggerAdapter[ODIN_LOGGER[F[_]] <: Logger[F[_]]]: LoggerAdapter[ODIN_LOGGER] =
+  implicit def odinLoggerAdapter[ODIN_LOGGER[F[_]] <: Logger[F]]: LoggerAdapter[ODIN_LOGGER] =
     new LoggerAdapter[ODIN_LOGGER] {
       override def toToolkit[F[_]](odinLogger: ODIN_LOGGER[F]): ToolkitLogger[F] =
         new ToolkitLogger[F] {
