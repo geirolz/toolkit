@@ -5,6 +5,7 @@ import com.geirolz.app.toolkit.config.Secret.{BiOffuser, DeOffuser, Offuser}
 
 import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
+import scala.util.hashing.Hashing
 
 final class Secret[T](private val offuscatedValue: Array[Byte]) {
 
@@ -90,6 +91,9 @@ sealed trait Instances {
 
   implicit def unzipBiOffuserToDeOffuser[P: BiOffuser]: DeOffuser[P] =
     implicitly[BiOffuser[P]].deOffuser
+
+  implicit def hashing[T]: Hashing[Secret[T]] =
+    Hashing.default
 
   implicit def eq[T]: Eq[Secret[T]] =
     (_, _) => false
