@@ -14,8 +14,9 @@ object ProjectDependencies {
   private val slf4Version        = "2.0.6"
   private val log4catsVersion    = "2.5.0"
   private val odinVersion        = "0.13.0"
-  private val http4sVersion      = "0.23.17"
+  private val http4sVersion      = "0.23.18"
   private val fs2Version         = "3.5.0"
+  private val scalacheck         = "1.17.0"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -23,7 +24,9 @@ object ProjectDependencies {
 
     // test
     "org.scalameta" %% "munit" % munitVersion % Test,
-    "org.typelevel" %% "munit-cats-effect-3" % munitEffectVersion % Test
+    "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
+    "org.typelevel" %% "munit-cats-effect-3" % munitEffectVersion % Test,
+    "org.scalacheck" %% "scalacheck" % scalacheck % Test
   )
 
   object Core {
