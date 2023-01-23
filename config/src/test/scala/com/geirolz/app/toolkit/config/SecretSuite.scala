@@ -1,12 +1,21 @@
 package com.geirolz.app.toolkit.config
 
 import com.geirolz.app.toolkit.config.Secret.BiOffuser
+import com.geirolz.app.toolkit.config.testing.{Gens, Timed}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 
 import scala.reflect.ClassTag
 
 class SecretSuite extends munit.ScalaCheckSuite {
+
+  property(s"Secret is fast enough") {
+    forAll(Gens.strGen(10000)) { s =>
+      assert(
+        Timed(Secret.veiled(s).use)._1.toMillis < 10
+      )
+    }
+  }
 
   testBiOffuser[String]
   testBiOffuser[Int]
