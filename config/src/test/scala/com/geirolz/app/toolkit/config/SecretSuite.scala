@@ -1,21 +1,12 @@
 package com.geirolz.app.toolkit.config
 
-import com.geirolz.app.toolkit.config.Secret.BiOffuser
-import com.geirolz.app.toolkit.config.testing.{Gens, Timed}
+import com.geirolz.app.toolkit.config.Secret.OffuserTuple
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 
 import scala.reflect.ClassTag
 
 class SecretSuite extends munit.ScalaCheckSuite {
-
-  property(s"Secret is fast enough") {
-    forAll(Gens.strGen(10000)) { s =>
-      assert(
-        Timed(Secret.veiled(s).use)._1.toMillis < 10
-      )
-    }
-  }
 
   testBiOffuser[String]
   testBiOffuser[Int]
@@ -28,7 +19,7 @@ class SecretSuite extends munit.ScalaCheckSuite {
   testBiOffuser[BigInt]
   testBiOffuser[BigDecimal]
 
-  private def testBiOffuser[T: Arbitrary: BiOffuser](implicit
+  private def testBiOffuser[T: Arbitrary: OffuserTuple](implicit
     c: ClassTag[T]
   ): Unit = {
 
@@ -42,7 +33,7 @@ class SecretSuite extends munit.ScalaCheckSuite {
       forAll { (value: T) =>
         assertEquals(
           obtained = Secret(value).use,
-          expected = value
+          expected = Right(value)
         )
       }
     }

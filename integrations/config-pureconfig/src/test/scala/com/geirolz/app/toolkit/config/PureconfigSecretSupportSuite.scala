@@ -23,7 +23,7 @@ class PureconfigSecretSupportSuite extends munit.FunSuite {
     )
 
     assertEquals(
-      obtained = result.map(_.use),
+      obtained = result.flatMap(_.use),
       expected = Right("my-super-secret-password")
     )
   }
