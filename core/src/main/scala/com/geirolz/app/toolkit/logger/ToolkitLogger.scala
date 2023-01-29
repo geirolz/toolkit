@@ -35,9 +35,9 @@ object ToolkitLogger {
 
     private def normalize(lvl: Level, msg: String): String = {
 
-      val color = lvl match {
-        case Level.Info  => AnsiColor.ANSI_YELLOW
-        case Level.Error => AnsiColor.ANSI_RED
+      val color: AnsiColor = lvl match {
+        case Level.Info  => AnsiColor.YELLOW
+        case Level.Error => AnsiColor.RED
       }
 
       color(s"[${appInfo.name.toString.toLowerCase}] ${lvl.asString} - $msg")
