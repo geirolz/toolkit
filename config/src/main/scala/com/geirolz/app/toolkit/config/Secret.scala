@@ -1,7 +1,13 @@
 package com.geirolz.app.toolkit.config
 
 import cats.{Eq, Show}
-import com.geirolz.app.toolkit.config.Secret.{DeOffuser, NoLongerValidSecret, Offuser, OffuserTuple, Seed}
+import com.geirolz.app.toolkit.config.Secret.{
+  DeOffuser,
+  NoLongerValidSecret,
+  Offuser,
+  OffuserTuple,
+  Seed
+}
 
 import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
@@ -27,7 +33,7 @@ import scala.util.Random
   * }}}
   */
 final class Secret[T](private var offuscatedValue: Array[Byte], seed: Seed) {
-  
+
   private var destroyed: Boolean = false
 
   def unsafeUse(implicit deOffuser: DeOffuser[T]): T =
