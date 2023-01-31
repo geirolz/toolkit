@@ -1,8 +1,9 @@
 package com.geirolz.app.toolkit.console
 
 import cats.{Monoid, Show}
+import cats.effect.std.Console
 import cats.implicits.showInterpolator
-import com.geirolz.app.toolkit.console.AnsiValue.AnsiRichText
+import com.geirolz.app.toolkit.console.AnsiValue.AnsiText
 
 /** An ADT witch describes the ANSI values typed.
   *   - `AnsiValue.F` includes foreground colors
@@ -28,7 +29,7 @@ sealed trait AnsiValue {
 
   val value: String
 
-  def apply[T: Show](msg: T): AnsiRichText =
+  def apply[T](msg: T)(implicit s: Show[T] = Show.fromToString[T]): AnsiText =
     show"$value$msg${AnsiValue.S.RESET}"
 
   lazy val foreground: AnsiValue.F = this match {
@@ -82,7 +83,7 @@ sealed trait AnsiValue {
 }
 object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
 
-  type AnsiRichText = String
+  type AnsiText = String
 
   final lazy val empty: AnsiValue       = AnsiValue.Rich()
   private final val emptyString: String = ""
@@ -94,7 +95,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
   ): AnsiValue =
     AnsiValue.Rich(foreground, background, style)
 
-  private[logger] case class Rich private (
+  private[console] case class Rich private (
     fg: AnsiValue.F,
     bg: AnsiValue.B,
     s: AnsiValue.S
@@ -109,7 +110,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       }
     }
 
-    override val value: AnsiRichText = List(s, bg, fg).mkString
+    override val value: AnsiText = List(s, bg, fg).mkString
   }
   object Rich {
     private[AnsiValue] def apply(
@@ -279,7 +280,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     final val INVISIBLE: AnsiValue.S = S(scala.Console.INVISIBLE)
   }
 }
-private[logger] sealed trait AnsiValueInstances {
+private[console] sealed trait AnsiValueInstances {
 
   implicit val monoid: Monoid[AnsiValue] = new Monoid[AnsiValue] {
     override def empty: AnsiValue                               = AnsiValue.empty
@@ -288,15 +289,43 @@ private[logger] sealed trait AnsiValueInstances {
 
   implicit val show: Show[AnsiValue] = Show.fromToString
 }
-private[logger] sealed trait AnsiValueSyntax {
+private[console] sealed trait AnsiValueSyntax {
 
-  implicit class StringOps(str: String) {
-    def consoleColor(ansiColor: AnsiValue.F): String      = ansiColor(str)
-    def consoleBackground(ansiColor: AnsiValue.B): String = ansiColor(str)
-    def consoleStyleBold: String                          = AnsiValue.S.BOLD(str)
-    def consoleStyleUnderlined: String                    = AnsiValue.S.UNDERLINED(str)
-    def consoleStyleBlink: String                         = AnsiValue.S.BLINK(str)
-    def consoleStyleReversed: String                      = AnsiValue.S.REVERSED(str)
-    def consoleStyleInvisible: String                     = AnsiValue.S.INVISIBLE(str)
+  implicit class AnsiTextOps(t: AnsiText) {
+
+    def print[F[_]: Console]: F[Unit] = Console[F].print(t)
+
+    def println[F[_]: Console]: F[Unit] = Console[F].println(t)
+
+    def error[F[_]: Console]: F[Unit] = Console[F].error(t)
+
+    def errorln[F[_]: Console]: F[Unit] = Console[F].errorln(t)
+  }
+
+  implicit class AnyShowableOps[T](t: T)(implicit s: Show[T] = Show.fromToString[T]) {
+
+    def ansiValue(value: AnsiValue): AnsiText = value(t)
+
+    def ansi(
+      fg: AnsiValue.F.type => AnsiValue.F = _.NONE,
+      bg: AnsiValue.B.type => AnsiValue.B = _.NONE,
+      s: AnsiValue.S.type => AnsiValue.S  = _.NONE
+    ): AnsiText =
+      ansiValue(
+        AnsiValue(
+          foreground = fg(AnsiValue.F),
+          background = bg(AnsiValue.B),
+          style      = s(AnsiValue.S)
+        )
+      )
+
+    def ansiFg(fg: AnsiValue.F.type => AnsiValue.F): AnsiText       = ansi(fg = fg)
+    def ansiBg(bg: AnsiValue.B.type => AnsiValue.B): AnsiText       = ansi(bg = bg)
+    def ansiStyle(style: AnsiValue.S.type => AnsiValue.S): AnsiText = ansi(s = style)
+    def ansiBold: AnsiText                                          = ansiStyle(_.BOLD)
+    def ansiUnderlined: AnsiText                                    = ansiStyle(_.UNDERLINED)
+    def ansiBlink: AnsiText                                         = ansiStyle(_.BLINK)
+    def ansiReversed: AnsiText                                      = ansiStyle(_.REVERSED)
+    def ansiInvisible: AnsiText                                     = ansiStyle(_.INVISIBLE)
   }
 }

@@ -1,22 +1,26 @@
 package com.geirolz.app.toolkit.logger
 
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import com.geirolz.app.toolkit.console.AnsiValue
 
 class AnsiValueSuite extends munit.FunSuite {
 
-  test("Test Foreground") {
+  import AnsiValue.*
+
+  test("Foreground") {
     Console.println(AnsiValue.F.RED("MY MESSAGE"))
   }
 
-  test("Test Background") {
+  test("Background") {
     Console.println(AnsiValue.B.RED("MY MESSAGE"))
   }
 
-  test("Test Style") {
+  test("Style") {
     Console.println(AnsiValue.S.UNDERLINED("MY MESSAGE"))
   }
 
-  test("Test Rich with builder") {
+  test("Rich with builder") {
 
     val ansiValue: AnsiValue =
       AnsiValue.empty
@@ -27,7 +31,7 @@ class AnsiValueSuite extends munit.FunSuite {
     Console.println(ansiValue("MY MESSAGE"))
   }
 
-  test("Test Rich") {
+  test("Rich") {
 
     val ansiValue: AnsiValue =
       AnsiValue(
@@ -37,5 +41,13 @@ class AnsiValueSuite extends munit.FunSuite {
       )
 
     Console.println(ansiValue("MY MESSAGE"))
+  }
+
+  test("Test syntax") {
+    implicit val runtime: IORuntime = cats.effect.unsafe.IORuntime.global
+    "MY MESSAGE"
+      .ansi(fg = _.RED, bg = _.BLUE, s = _.UNDERLINED)
+      .println[IO]
+      .unsafeRunSync()
   }
 }
