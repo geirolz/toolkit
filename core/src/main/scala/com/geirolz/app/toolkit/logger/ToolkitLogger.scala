@@ -3,6 +3,7 @@ package com.geirolz.app.toolkit.logger
 import cats.effect.kernel.Async
 import cats.~>
 import com.geirolz.app.toolkit.BasicAppInfo
+import com.geirolz.app.toolkit.console.AnsiValue
 
 trait ToolkitLogger[F[_]] {
   def info(message: => String): F[Unit]
@@ -36,8 +37,8 @@ object ToolkitLogger {
     private def normalize(lvl: Level, msg: String): String = {
 
       val color: AnsiValue = lvl match {
-        case Level.Info  => AnsiValue.Foreground.YELLOW
-        case Level.Error => AnsiValue.Foreground.RED
+        case Level.Info  => AnsiValue.F.YELLOW
+        case Level.Error => AnsiValue.F.RED
       }
 
       color(s"[${appInfo.name.toString.toLowerCase}] ${lvl.asString} - $msg")
