@@ -10,7 +10,7 @@ class AppTest extends munit.CatsEffectSuite {
 
   import EventLogger.*
   import cats.syntax.all.*
-  import com.geirolz.app.toolkit.error._
+  import com.geirolz.app.toolkit.error.*
 
   test("Loader and App work as expected with dependsOn and logic fails") {
     EventLogger
@@ -19,7 +19,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           counter: Ref[IO, Int] <- IO.ref(0)
-          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
+          appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
             App[IO]
               .withResourcesLoader(
                 AppResources
