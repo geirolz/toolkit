@@ -26,7 +26,7 @@ package com.geirolz.example.app
 import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.{App, AppResources}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.ErrorSyntax.RuntimeExpressionStringCtx
+import com.geirolz.app.toolkit.error._
 import com.geirolz.example.app.service.UserService
 import com.geirolz.example.app.model.*
 

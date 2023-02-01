@@ -8,9 +8,9 @@ import scala.concurrent.duration.DurationInt
 
 class AppTest extends munit.CatsEffectSuite {
 
-  import ErrorSyntax.*
   import EventLogger.*
   import cats.syntax.all.*
+  import com.geirolz.app.toolkit.error._
 
   test("Loader and App work as expected with dependsOn and logic fails") {
     EventLogger
@@ -19,7 +19,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           counter: Ref[IO, Int] <- IO.ref(0)
-          appLoader: Resource[IO, App[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
+          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -32,7 +32,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .provideOne(_.dependencies.set(1))
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.logic.traceAsAppRuntime.use_
+          _   <- app.flattenLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -65,7 +65,7 @@ class AppTest extends munit.CatsEffectSuite {
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
-          appLoader: Resource[IO, App[IO, TestAppInfo, ToolkitLogger, TestConfig]] <-
+          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] <-
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -97,7 +97,7 @@ class AppTest extends munit.CatsEffectSuite {
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
-          appLoader: Resource[IO, App[IO, TestAppInfo, ToolkitLogger, TestConfig]] <-
+          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] <-
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -114,7 +114,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.logic.traceAsAppRuntime.use_
+          _   <- app.flattenLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -152,7 +152,7 @@ class AppTest extends munit.CatsEffectSuite {
               .provideOne(_ => IO.sleep(1.second))
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.logic.traceAsAppRuntime.use_
+          _   <- app.flattenLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -190,7 +190,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.logic.traceAsAppRuntime.use_
+          _   <- app.flattenLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -212,7 +212,7 @@ class AppTest extends munit.CatsEffectSuite {
   }
 
   test("Loader released even if the app crash") {
-    val appLoader: Resource[IO, App[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
+    val appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
       App[IO]
         .withResourcesLoader(
           AppResources
@@ -228,7 +228,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.logic.traceAsAppRuntime.attempt.use_
+          _   <- app.flattenLogic.traceAsAppRuntime.attempt.use_
 
           // assert
           _ <- assertIO(
