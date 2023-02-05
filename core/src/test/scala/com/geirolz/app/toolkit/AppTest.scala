@@ -1,6 +1,8 @@
 package com.geirolz.app.toolkit
 
+import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
+import cats.kernel.Semigroup
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.*
 
@@ -19,7 +21,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           counter: Ref[IO, Int] <- IO.ref(0)
-          appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
+          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -30,9 +32,9 @@ class AppTest extends munit.CatsEffectSuite {
               .dependsOn(_ =>
                 Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies)
               )
-              .provideOne(_.dependencies.set(1))
+              .provideOneT(_.dependencies.set(1))
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -73,7 +75,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideF(_ => IO.raiseError(error"BOOM!"))
+              .provideFT(_ => IO.raiseError(error"BOOM!"))
               .pure[IO]
           _ <- appLoader.traceAsAppLoader.attempt.use(IO.pure)
 
@@ -97,7 +99,7 @@ class AppTest extends munit.CatsEffectSuite {
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
-          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] <-
+          appLoader <-
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -105,7 +107,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provide(_ =>
+              .provideT(_ =>
                 List(
                   IO.sleep(300.millis),
                   IO.sleep(50.millis),
@@ -114,7 +116,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -149,10 +151,10 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideOne(_ => IO.sleep(1.second))
+              .provideOneT(_ => IO.sleep(1.second))
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -174,7 +176,7 @@ class AppTest extends munit.CatsEffectSuite {
   }
 
   test("Loader and App work as expected with provideOne") {
-    val appLoader =
+    val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
       App[IO]
         .withResourcesLoader(
           AppResources
@@ -182,7 +184,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .provideOne(_ => IO.unit)
+        .provideOneT(_ => IO.unit)
 
     EventLogger
       .create[IO]
@@ -190,7 +192,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -212,7 +214,7 @@ class AppTest extends munit.CatsEffectSuite {
   }
 
   test("Loader released even if the app crash") {
-    val appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
+    val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
       App[IO]
         .withResourcesLoader(
           AppResources
@@ -220,7 +222,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .provideOne(_ => IO.raiseError(error"BOOM!"))
+        .provideOneT(_ => IO.raiseError(error"BOOM!"))
 
     EventLogger
       .create[IO]
@@ -228,7 +230,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenLogic.traceAsAppRuntime.attempt.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.attempt.use_
 
           // assert
           _ <- assertIO(
@@ -247,5 +249,51 @@ class AppTest extends munit.CatsEffectSuite {
           )
         } yield ()
       })
+  }
+
+  test("Custom Error") {
+
+    trait AppError
+    object AppError {
+
+      case class Boom() extends AppError
+      case class MultiErrors(errors: NonEmptyList[AppError])
+          extends AppError
+          with MultiError[AppError] {
+        override type Self = MultiErrors
+        override protected def update(errors: NonEmptyList[AppError]): MultiErrors =
+          copy(errors)
+      }
+
+      implicit val semigroup: Semigroup[AppError] =
+        MultiError.semigroup(MultiErrors(_))
+    }
+
+    val test: IO[(Boolean, AppError | Unit)] =
+      for {
+        state <- IO.ref[Boolean](false)
+        app <- App[IO, AppError]
+          .withResourcesLoader(
+            AppResources
+              .loader[IO, TestAppInfo](TestAppInfo.value)
+              .withLogger(ToolkitLogger.console[IO])
+              .withConfig(TestConfig.defaultTest)
+          )
+          .provideE(_ =>
+            List(
+              IO(Left(AppError.Boom())),
+              IO.sleep(5.seconds) >> state.set(true).as(Right(()))
+            )
+          )
+          .use(_.toOption.get.runE)
+        finalState <- state.get
+      } yield (finalState, app)
+
+    assertIO_(
+      test.map { case (state, appResult) =>
+        assertEquals(state, false)
+        assert(appResult.isLeft)
+      }
+    )
   }
 }
