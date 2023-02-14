@@ -2,11 +2,11 @@ package com.geirolz.app.toolkit
 
 import cats.{Applicative, ApplicativeError, Parallel, Show}
 import cats.data.{EitherT, NonEmptyList}
-import cats.effect.{Async, Fiber, Ref, Resource, Sync}
-import cats.effect.kernel.{MonadCancel, Outcome}
+import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource.ExitCase
+import cats.effect.{Async, Fiber, Ref, Resource, Sync}
 import cats.kernel.Semigroup
-import com.geirolz.app.toolkit.error.ErrorLifter
+import com.geirolz.app.toolkit.error.{ErrorLifter, MultiException}
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
 trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
@@ -20,6 +20,14 @@ trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     val info: APP_INFO      = resources.info
     val config: CONFIG      = resources.config
     val logger: LOGGER_T[F] = resources.logger
+
+    def map[U](f: T => U): Resourced[U]         = f(value).resourced
+    def tupled: (Resources, T)                  = Resourced.unapply(this)
+    def useTupled[U](f: (Resources, T) => U): U = f.tupled(tupled)
+    def use[U](f: Resources => T => U): U       = f(resources)(value)
+
+    def tupledAll: (APP_INFO, CONFIG, LOGGER_T[F], T) = (info, config, logger, value)
+    def useTupledAll[U](f: (APP_INFO, CONFIG, LOGGER_T[F], T) => U): U = f.tupled(tupledAll)
   }
   object Resourced {
 
@@ -49,7 +57,17 @@ trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     env: E <:< Throwable
   ): Resource[F, Unit] =
     logic.flatMap {
-      case Left(left)   => Resource.eval(F.raiseError(left))
+      case Left(error)  => Resource.eval(F.raiseError(error))
+      case Right(value) => Resource.pure(value)
+    }
+
+  def flattenThrowNelLogic(implicit
+    F: MonadCancel[F, Throwable],
+    env: E <:< NonEmptyList[Throwable]
+  ): Resource[F, Unit] =
+    logic.flatMap {
+      case Left(errors) =>
+        Resource.eval(F.raiseError(MultiException.fromNel(errors)))
       case Right(value) => Resource.pure(value)
     }
 
@@ -157,12 +175,12 @@ trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     }
 
   final def handleErrorWith(
-    f: (Resources, Throwable) => F[E | Unit]
+    f: Resourced[Throwable] => F[E | Unit]
   )(implicit
     F: ApplicativeError[F, Throwable]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(
-      _.value.handleErrorWith[E | Unit, Throwable](e => Resource.eval(f(resources, e)))
+      _.value.handleErrorWith[E | Unit, Throwable](e => Resource.eval(f(e.resourced)))
     )
 }
 object App {
@@ -171,6 +189,9 @@ object App {
 
   type Throw[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] =
     App[F, Throwable, APP_INFO, LOGGER_T, CONFIG]
+
+  type ThrowNel[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] =
+    App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]
 
   def apply[F[+_]: Async: Parallel, E]: AppBuilderRuntimeSelected[F, E] =
     new AppBuilderRuntimeSelected[F, E]
@@ -232,27 +253,26 @@ object App {
         depsBuilder     = dependenciesBuilder
       )
 
-    def provideOneE(
+    def provideOneE(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | Any]
     ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-      provideE(f.andThen(_.pure[List]))(Semigroup.first)
+      provideE(onFailure)(f.andThen(_.pure[List])).map(_.map(_.failureMap(_.value.head)))
 
-    def provideE(
+    def provideE(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
-    )(implicit semigroupE: Semigroup[E]): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-      provideFEE(f.andThen(_.asRight.pure[F]))
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      provideFEE(onFailure)(f.andThen(_.asRight.pure[F]))
 
-    def provideFE(
+    def provideFE(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
     )(implicit
-      semigroupE: Semigroup[E],
       el: ErrorLifter[F, E]
-    ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-      provideFEE(el.liftFunction(f))
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      provideFEE(onFailure)(el.liftFunction(f))
 
-    def provideFEE(
+    def provideFEE(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | List[F[E | Any]]]
-    )(implicit semigroupE: Semigroup[E]): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] = {
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] = {
       (
         for {
           // -------------------- RESOURCES -------------------
@@ -272,7 +292,7 @@ object App {
             Resource.eval(f(AppDependencies(appResources, appDepServices)))
           )
           _ <- resLogger.info("App successfully built.")
-        } yield App.fromServices(appResources, appProvServices)
+        } yield App.fromServices(appResources, appProvServices, onFailure)
       ).value
     }
   }
@@ -299,22 +319,25 @@ object App {
       def provideOne(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
         implicit el: ErrorLifter[F, E]
       ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-        appBuilder.provideOneE(el.liftFunction(f))
+        appBuilder.provideOneE(onFailure = _ => OnFailure.CancelAll)(el.liftFunction(f))
 
       def provide(
         f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
       )(implicit
         el: ErrorLifter[F, E]
-      ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-        appBuilder.provideE(f.andThen(_.map(el.lift(_))))
+      ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+        appBuilder
+          .provideE(onFailure = _ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
 
       def provideF(
         f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
       )(implicit
         el: ErrorLifter[F, E]
-      ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
+      ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
         appBuilder
-          .provideFE(f.andThen(_.map(_.map(el.lift(_)))))
+          .provideFE(onFailure = _ => OnFailure.CancelAll)(
+            f.andThen(_.map(_.map(el.lift(_))))
+          )
     }
 
     implicit class AppBuilderThrowOps[F[+_]: Async, APP_INFO <: BasicAppInfo[
@@ -336,18 +359,20 @@ object App {
         f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
       )(implicit
         el: ErrorLifter[F, Throwable]
-      ): Resource[F, App.Throw[F, APP_INFO, LOGGER_T, CONFIG]] =
+      ): Resource[F, App.ThrowNel[F, APP_INFO, LOGGER_T, CONFIG]] =
         appBuilder
-          .provideE(f.andThen(_.map(_.attempt)))
+          .provideE(onFailure = _ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
           .evalMap(flatThrowError)
 
       def provideFT(
         f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
       )(implicit
         el: ErrorLifter[F, Throwable]
-      ): Resource[F, App.Throw[F, APP_INFO, LOGGER_T, CONFIG]] =
+      ): Resource[F, App.ThrowNel[F, APP_INFO, LOGGER_T, CONFIG]] =
         appBuilder
-          .provideFE(f.andThen(_.map(_.map(el.lift(_)))))
+          .provideFE(onFailure = _ => OnFailure.CancelAll)(
+            f.andThen(_.map(_.map(el.lift(_))))
+          )
           .evalMap(flatThrowError)
 
       private def flatThrowError[R]: Throwable | R => F[R] = {
@@ -357,36 +382,43 @@ object App {
     }
   }
 
-  def fromServices[F[+_]: Async: Parallel, E: Semigroup, APP_INFO <: BasicAppInfo[?], LOGGER_T[
+  def fromServices[F[+_]: Async: Parallel, E, APP_INFO <: BasicAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appProvServices: List[F[E | Any]]
-  ): App[F, E, APP_INFO, LOGGER_T, CONFIG] = {
+    appProvServices: List[F[E | Any]],
+    onFailure: E => OnFailure
+  ): App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG] = {
 
-    import cats.syntax.all.*
     import cats.effect.syntax.all.*
+    import cats.syntax.all.*
 
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
-    val logic: Resource[F, E | Unit] = {
+    val logic: Resource[F, Nel[E] | Unit] = {
       val info = appResources.info
-
-      val app: F[E | Unit] =
+      val app: F[Nel[E] | Unit] =
         for {
           fibers   <- Ref[F].of(List.empty[Fiber[F, Throwable, Unit]])
           failures <- Ref[F].of(List.empty[E])
-          onFailureTask = fibers.get.flatMap(_.parTraverse(_.cancel.start).void)
+          onFailureTask: (E => F[Unit]) =
+            onFailure(_) match {
+              case OnFailure.CancelAll =>
+                fibers.get.flatMap(_.parTraverse(_.cancel.start).void)
+              case OnFailure.DoNothing =>
+                Async[F].unit
+            }
+
           services = appProvServices.map(_.flatTap {
-            case Left(failure) => failures.update(_ :+ failure) >> onFailureTask
+            case Left(failure) => failures.update(_ :+ failure) >> onFailureTask(failure)
             case Right(_)      => Async[F].unit
           })
           _ <- services.parTraverse(t => t.void.start.flatMap(f => fibers.update(_ :+ f)))
           _ <- fibers.get.flatMap(_.parTraverse(_.joinWithUnit))
-          maybeReducedFailures <- failures.get.map(NonEmptyList.fromList(_).map(_.reduce))
+          maybeReducedFailures <- failures.get.map(Nel.fromList(_))
         } yield maybeReducedFailures.toLeft(())
 
       Resource
-        .eval[F, E | Unit](
+        .eval[F, Nel[E] | Unit](
           toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
             app
               .onCancel(toolkitLogger.info(s"${info.name} was stopped."))

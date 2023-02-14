@@ -1,8 +1,6 @@
 package com.geirolz.app.toolkit
 
-import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
-import cats.kernel.Semigroup
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.*
 
@@ -67,7 +65,10 @@ class AppTest extends munit.CatsEffectSuite {
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
-          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] <-
+          appLoader: Resource[
+            IO,
+            App[IO, Nel[Throwable], TestAppInfo, ToolkitLogger, TestConfig]
+          ] <-
             App[IO]
               .withResourcesLoader(
                 AppResources
@@ -116,7 +117,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowNelLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -251,25 +252,14 @@ class AppTest extends munit.CatsEffectSuite {
       })
   }
 
-  test("Custom Error") {
+  test("Custom Error with CancelAll") {
 
     trait AppError
     object AppError {
-
       case class Boom() extends AppError
-      case class MultiErrors(errors: NonEmptyList[AppError])
-          extends AppError
-          with MultiError[AppError] {
-        override type Self = MultiErrors
-        override protected def update(errors: NonEmptyList[AppError]): MultiErrors =
-          copy(errors)
-      }
-
-      implicit val semigroup: Semigroup[AppError] =
-        MultiError.semigroup(MultiErrors(_))
     }
 
-    val test: IO[(Boolean, AppError | Unit)] =
+    val test: IO[(Boolean, Nel[AppError] | Unit)] =
       for {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
@@ -279,21 +269,80 @@ class AppTest extends munit.CatsEffectSuite {
               .withLogger(ToolkitLogger.console[IO])
               .withConfig(TestConfig.defaultTest)
           )
-          .provideE(_ =>
+          .provideE(onFailure = _ => OnFailure.CancelAll)(_ =>
             List(
               IO(Left(AppError.Boom())),
+              IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
               IO.sleep(5.seconds) >> state.set(true).as(Right(()))
             )
           )
-          .use(_.toOption.get.runE)
+          .use(
+            _.toOption.get
+              .onFailure(_.useTupledAll { case (_, _, logger, failures) =>
+                logger.error(failures.toString())
+              })
+              .runE
+          )
         finalState <- state.get
       } yield (finalState, app)
 
     assertIO_(
       test.map { case (state, appResult) =>
-        assertEquals(state, false)
-        assert(appResult.isLeft)
+        assertEquals(
+          obtained = state,
+          expected = false
+        )
+        assert(cond = appResult.isLeft)
       }
     )
   }
+
+  test("Custom Error with DoNothing") {
+
+    trait AppError
+    object AppError {
+      case class Boom() extends AppError
+    }
+
+    val test: IO[(Boolean, Nel[AppError] | Unit)] =
+      for {
+        state <- IO.ref[Boolean](false)
+        app <- App[IO, AppError]
+          .withResourcesLoader(
+            AppResources
+              .loader[IO, TestAppInfo](TestAppInfo.value)
+              .withLogger(ToolkitLogger.console[IO])
+              .withConfig(TestConfig.defaultTest)
+          )
+          .provideE(onFailure = _ => OnFailure.DoNothing)(_ =>
+            List(
+              IO(Left(AppError.Boom())),
+              IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
+              IO.sleep(1.seconds) >> state.set(true).as(Right(()))
+            )
+          )
+          .use(
+            _.toOption.get
+              .onFailure(_.useTupledAll { case (_, _, logger, failures) =>
+                logger.error(failures.toString())
+              })
+              .runE
+          )
+        finalState <- state.get
+      } yield (finalState, app)
+
+    assertIO_(
+      test.map { case (state, appResult) =>
+        assertEquals(
+          obtained = state,
+          expected = true
+        )
+        assertEquals(
+          obtained = appResult.left.toOption.get.toList.size,
+          expected = 2
+        )
+      }
+    )
+  }
+
 }
