@@ -4,7 +4,7 @@ lazy val prjName                = "app-toolkit"
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
 lazy val scala213               = "2.13.10"
-lazy val scala32                = "3.2.1"
+lazy val scala32                = "3.2.2"
 lazy val supportedScalaVersions = List(scala213, scala32)
 
 //## global project to no publish ##
