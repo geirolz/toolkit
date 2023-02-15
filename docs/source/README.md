@@ -32,7 +32,7 @@ import com.geirolz.example.app.model.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
-    App[IO]
+    AppBuilder[IO]
       .withResourcesLoader(
         AppResources
           .loader[IO, AppInfo](AppInfo.fromBuildInfo)

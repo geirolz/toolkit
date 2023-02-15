@@ -20,7 +20,7 @@ class AppTest extends munit.CatsEffectSuite {
         for {
           counter: Ref[IO, Int] <- IO.ref(0)
           appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
-            App[IO]
+            AppBuilder[IO]
               .withResourcesLoader(
                 AppResources
                   .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -69,7 +69,7 @@ class AppTest extends munit.CatsEffectSuite {
             IO,
             App[IO, Nel[Throwable], TestAppInfo, ToolkitLogger, TestConfig]
           ] <-
-            App[IO]
+            AppBuilder[IO]
               .withResourcesLoader(
                 AppResources
                   .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -101,7 +101,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           appLoader <-
-            App[IO]
+            AppBuilder[IO]
               .withResourcesLoader(
                 AppResources
                   .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -145,7 +145,7 @@ class AppTest extends munit.CatsEffectSuite {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
           appLoader <-
-            App[IO]
+            AppBuilder[IO]
               .withResourcesLoader(
                 AppResources
                   .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -178,7 +178,7 @@ class AppTest extends munit.CatsEffectSuite {
 
   test("Loader and App work as expected with provideOne") {
     val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
-      App[IO]
+      AppBuilder[IO]
         .withResourcesLoader(
           AppResources
             .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -216,7 +216,7 @@ class AppTest extends munit.CatsEffectSuite {
 
   test("Loader released even if the app crash") {
     val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
-      App[IO]
+      AppBuilder[IO]
         .withResourcesLoader(
           AppResources
             .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -262,7 +262,7 @@ class AppTest extends munit.CatsEffectSuite {
     val test: IO[(Boolean, Nel[AppError] | Unit)] =
       for {
         state <- IO.ref[Boolean](false)
-        app <- App[IO, AppError]
+        app <- AppBuilder[IO, AppError]
           .withResourcesLoader(
             AppResources
               .loader[IO, TestAppInfo](TestAppInfo.value)
@@ -307,7 +307,7 @@ class AppTest extends munit.CatsEffectSuite {
     val test: IO[(Boolean, Nel[AppError] | Unit)] =
       for {
         state <- IO.ref[Boolean](false)
-        app <- App[IO, AppError]
+        app <- AppBuilder[IO, AppError]
           .withResourcesLoader(
             AppResources
               .loader[IO, TestAppInfo](TestAppInfo.value)
