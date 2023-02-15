@@ -280,7 +280,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     final val INVISIBLE: AnsiValue.S = S(scala.Console.INVISIBLE)
   }
 }
-private[console] sealed trait AnsiValueInstances {
+private[toolkit] sealed trait AnsiValueInstances {
 
   implicit val monoid: Monoid[AnsiValue] = new Monoid[AnsiValue] {
     override def empty: AnsiValue                               = AnsiValue.empty
@@ -289,7 +289,7 @@ private[console] sealed trait AnsiValueInstances {
 
   implicit val show: Show[AnsiValue] = Show.fromToString
 }
-private[console] sealed trait AnsiValueSyntax {
+private[toolkit] sealed trait AnsiValueSyntax {
 
   implicit class AnsiTextOps(t: AnsiText) {
 
