@@ -9,7 +9,8 @@ object LoggerAdapter {
   implicit def id[L[K[_]] <: ToolkitLogger[K]]: LoggerAdapter[L] =
     new LoggerAdapter[L] {
       override def toToolkit[F[_]](underlying: L[F]): ToolkitLogger[F] = new ToolkitLogger[F] {
-        override def info(message: => String): F[Unit] = underlying.info(message)
+        override def info(message: => String): F[Unit]  = underlying.info(message)
+        override def error(message: => String): F[Unit] = underlying.error(message)
         override def error(ex: Throwable)(message: => String): F[Unit] =
           underlying.error(ex)(message)
       }

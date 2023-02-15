@@ -11,6 +11,8 @@ package object toolkit {
         new ToolkitLogger[F] {
           override def info(message: => String): F[Unit] =
             odinLogger.info(message)
+          override def error(message: => String): F[Unit] =
+            odinLogger.error(message)
           override def error(ex: Throwable)(message: => String): F[Unit] =
             odinLogger.error(message, ex)
         }

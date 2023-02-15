@@ -22,14 +22,14 @@ object EventLogger {
     Ref.of(List.empty[Event]).map(new EventLogger(_))
   }
 
-  implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger, LOGGER_T[
+  implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger, E, LOGGER_T[
     _[_]
   ], APP_INFO <: BasicAppInfo[
     ?
   ], CONFIG](
-    resource: Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]]
+    resource: Resource[F, App[F, E, APP_INFO, LOGGER_T, CONFIG]]
   ) {
-    def traceAsAppLoader: Resource[F, App[F, APP_INFO, LOGGER_T, CONFIG]] =
+    def traceAsAppLoader: Resource[F, App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
       resource.trace(LabeledResource.appLoader)
   }
 
