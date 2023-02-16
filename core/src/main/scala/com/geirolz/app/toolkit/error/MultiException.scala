@@ -7,7 +7,7 @@ import com.geirolz.app.toolkit.Nel
 
 class MultiException(override val errors: Nel[Throwable])
     extends Throwable(
-      s"Multiple [${errors.size}] exceptions. ${errors.toList.map(_.getMessage.prepended(" - ")).mkString("\n")}"
+      s"Multiple [${errors.size}] exceptions. ${errors.toList.map(_.getMessage.prependedAll(" - ")).mkString("\n")}"
     )
     with MultiError[Throwable] {
 
