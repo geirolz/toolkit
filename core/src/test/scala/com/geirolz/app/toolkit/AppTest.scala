@@ -76,7 +76,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideFT(_ => IO.raiseError(error"BOOM!"))
+              .provideFT(_ => IO.raiseError(ex"BOOM!"))
               .pure[IO]
           _ <- appLoader.traceAsAppLoader.attempt.use(IO.pure)
 
@@ -223,7 +223,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .provideOneT(_ => IO.raiseError(error"BOOM!"))
+        .provideOneT(_ => IO.raiseError(ex"BOOM!"))
 
     EventLogger
       .create[IO]

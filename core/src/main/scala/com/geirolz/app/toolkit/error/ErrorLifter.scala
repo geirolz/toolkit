@@ -4,8 +4,10 @@ import cats.Applicative
 import com.geirolz.app.toolkit.|
 
 trait ErrorLifter[F[_], E] {
+
   def lift[A](f: F[A]): F[E | A]
-  def liftFunction[U, A](f: U => F[A]): U => F[E | A] = f.andThen(lift(_))
+
+  final def liftFunction[U, A](f: U => F[A]): U => F[E | A] = f.andThen(lift(_))
 }
 object ErrorLifter {
 

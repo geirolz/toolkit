@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.effect.IO
 import com.geirolz.app.toolkit.logger.LoggerAdapter
-import com.geirolz.app.toolkit.error._
+import com.geirolz.app.toolkit.error.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
@@ -13,7 +13,7 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
     val tkLogger                             = adapterLogger.toToolkit(NoOpLogger[IO])
 
     assertIO_(
-      tkLogger.info("msg") >> tkLogger.error(error"BOOM!")("msg")
+      tkLogger.info("msg") >> tkLogger.error(ex"BOOM!")("msg")
     )
   }
 }

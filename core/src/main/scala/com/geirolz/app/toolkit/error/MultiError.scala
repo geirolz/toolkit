@@ -10,15 +10,15 @@ trait MultiError[E] {
   val errors: Nel[E]
 
   def prepend(e: E): Self =
-    update(errors.prepend(e))
+    copyWith(errors.prepend(e))
 
   def append(e: E): Self =
-    update(errors.append(e))
+    copyWith(errors.append(e))
 
   def +(me: MultiError[E]): Self =
-    update(errors.appendList(me.errors.toList))
+    copyWith(errors.appendList(me.errors.toList))
 
-  protected def update(errors: Nel[E]): Self
+  protected def copyWith(errors: Nel[E]): Self
 }
 object MultiError {
 

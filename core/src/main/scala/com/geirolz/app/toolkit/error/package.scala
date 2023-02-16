@@ -3,10 +3,21 @@ package com.geirolz.app.toolkit
 import cats.kernel.Semigroup
 
 package object error {
+
   implicit class RuntimeExpressionStringCtx(ctx: StringContext) {
-    def error(args: Any*): RuntimeException = new RuntimeException(ctx.s(args*))
+    def ex(args: Any*): RuntimeException =
+      new RuntimeException(ctx.s(args*)).dropFirstStackTraceElement
   }
 
+  implicit class ThrowableSyntax[T <: Throwable](ex: T) {
+    def dropFirstStackTraceElement: T = {
+      val stackTrace = ex.getStackTrace
+      if (stackTrace != null && stackTrace.length > 1)
+        ex.setStackTrace(stackTrace.tail)
+
+      ex
+    }
+  }
   implicit val throwableSemigroup: Semigroup[Throwable] = (x: Throwable, y: Throwable) =>
     (x, y) match {
       case (m1: MultiException, m2: MultiException) => m1 + m2
