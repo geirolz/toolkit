@@ -17,12 +17,12 @@ import scala.collection.BuildFrom
 import scala.util.hashing.Hashing
 import scala.util.Random
 
-/** The [[Secret]] class represent a secret value of type `T`.
+/** The `Secret` class represent a secret value of type `T`.
   *
-  * The value is implicitly offuscated when creating the [[Secret]] instance using an implicit
-  * [[Offuser]] instance which, by default, transform the value into a shuffled `Array[Byte]`.
+  * The value is implicitly offuscated when creating the `Secret` instance using an implicit
+  * `Offuser` instance which, by default, transform the value into a shuffled `Array[Byte]`.
   *
-  * The offuscated value is de-offuscated using an implicit [[DeOffuser]] instance every time the
+  * The offuscated value is de-offuscated using an implicit `DeOffuser` instance every time the
   * method `use` is invoked which returns the original value un-shuffling the bytes and converting
   * them back to `T`.
   *
