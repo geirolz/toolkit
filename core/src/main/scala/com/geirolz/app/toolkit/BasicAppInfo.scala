@@ -15,9 +15,8 @@ trait BasicAppInfo[T] {
 }
 object BasicAppInfo {
 
-  def genBuildRefName[T: Show](name: T, version: T, builtOn: LocalDateTime): String =
+  def genBuildRefName[T: Show](name: T, version: T, builtOn: LocalDateTime): String = {
+    implicit val showLocalDataTime: Show[LocalDateTime] = Show.fromToString[LocalDateTime]
     show"$name:$version-$builtOn"
-
-  implicit val showLocalDataTime: Show[LocalDateTime] =
-    Show.fromToString[LocalDateTime]
+  }
 }
