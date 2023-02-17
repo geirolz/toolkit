@@ -10,7 +10,7 @@ object AppHttpServer {
   import org.http4s.*
   import org.http4s.dsl.io.*
 
-  def make(config: AppConfig): Resource[IO, Server] =
+  def resource(config: AppConfig): Resource[IO, Server] =
     EmberServerBuilder
       .default[IO]
       .withHost(config.httpServer.host)

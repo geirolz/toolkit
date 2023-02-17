@@ -1,7 +1,7 @@
 package com.geirolz.example.app
 
 import cats.Show
-import com.geirolz.app.toolkit.BasicAppInfo
+import com.geirolz.app.toolkit.SimpleAppInfo
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 
@@ -10,9 +10,9 @@ class AppInfo private (
   val version: String,
   val scalaVersion: String,
   val sbtVersion: String,
-  val builtOn: LocalDateTime,
-  val buildRefName: String
-) extends BasicAppInfo[String]
+  val buildRefName: String,
+  val builtOn: LocalDateTime
+) extends SimpleAppInfo[String]
 object AppInfo {
 
   val fromBuildInfo: AppInfo = {
@@ -20,17 +20,18 @@ object AppInfo {
       Instant.ofEpochMilli(BuildInfo.builtAtMillis),
       ZoneOffset.UTC
     )
+
     new AppInfo(
       name         = BuildInfo.name,
       version      = BuildInfo.version,
       scalaVersion = BuildInfo.scalaVersion,
       sbtVersion   = BuildInfo.sbtVersion,
-      builtOn      = builtOn,
-      buildRefName = BasicAppInfo.genBuildRefName(
+      buildRefName = SimpleAppInfo.genRefNameString(
         name    = BuildInfo.name,
         version = BuildInfo.version,
         builtOn = builtOn
-      )
+      ),
+      builtOn = builtOn
     )
   }
 

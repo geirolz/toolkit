@@ -7,7 +7,7 @@ import cats.kernel.Semigroup
 import com.geirolz.app.toolkit.error.ErrorLifter
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
-class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: BasicAppInfo[
+class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
   ?
 ], LOGGER_T[
   _[_]
@@ -72,7 +72,7 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: BasicAppInfo[
 }
 object AppBuilder extends AppBuilderSyntax {
 
-  type Throw[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG, DEPENDENCIES] =
+  type Throw[F[+_], APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG, DEPENDENCIES] =
     AppBuilder[F, Throwable, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
 
   def apply[F[+_]: Async: Parallel, E]: AppBuilder.RuntimeSelected[F, E] =
@@ -85,12 +85,12 @@ object AppBuilder extends AppBuilderSyntax {
 
   final class RuntimeSelected[F[+_]: Async: Parallel, E] {
 
-    def withResources[APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
+    def withResources[APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
       resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG]
     ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, Unit] =
       withResourcesLoader(AppResources.pureLoader(resources))
 
-    def withResourcesLoader[APP_INFO <: BasicAppInfo[?], LOGGER_T[
+    def withResourcesLoader[APP_INFO <: SimpleAppInfo[?], LOGGER_T[
       _[_]
     ]: LoggerAdapter, CONFIG: Show](
       resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG]
@@ -106,7 +106,7 @@ sealed trait AppBuilderSyntax {
 
   import cats.syntax.all.*
 
-  implicit class AppBuilderErrorLiftOps[F[+_]: Async, E: Semigroup, APP_INFO <: BasicAppInfo[
+  implicit class AppBuilderErrorLiftOps[F[+_]: Async, E: Semigroup, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
     _[_]
@@ -145,7 +145,7 @@ sealed trait AppBuilderSyntax {
         )
   }
 
-  implicit class AppBuilderThrowOps[F[+_]: Async, APP_INFO <: BasicAppInfo[
+  implicit class AppBuilderThrowOps[F[+_]: Async, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
     _[_]

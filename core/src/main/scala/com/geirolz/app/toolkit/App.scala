@@ -8,7 +8,7 @@ import cats.effect.kernel.Resource.ExitCase
 import com.geirolz.app.toolkit.error.MultiException
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
-trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
+trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 
   import cats.syntax.all.*
   import Resourced.Syntax.*
@@ -184,13 +184,13 @@ trait App[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 }
 object App {
 
-  type Throw[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] =
+  type Throw[F[+_], APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] =
     App[F, Throwable, APP_INFO, LOGGER_T, CONFIG]
 
-  type ThrowNel[F[+_], APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG] =
+  type ThrowNel[F[+_], APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] =
     App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]
 
-  def fromServices[F[+_]: Async: Parallel, E, APP_INFO <: BasicAppInfo[?], LOGGER_T[
+  def fromServices[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
@@ -238,7 +238,7 @@ object App {
     App.of(appResources, logic)
   }
 
-  def of[F[+_], E, APP_INFO <: BasicAppInfo[?], LOGGER_T[_[_]], CONFIG](
+  def of[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
     appLogic: Resource[F, E | Unit]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] = new App[F, E, APP_INFO, LOGGER_T, CONFIG] {

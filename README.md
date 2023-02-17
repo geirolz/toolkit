@@ -20,38 +20,80 @@ Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/e
 - `provide` let you define the app provided services expressed by a `List[F[?]]` which will be run in parallel
 - `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
 
-```scala
-package com.geirolz.example.app
 
-import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{App, AppResources}
+Given
+```scala
+import cats.Show
+import cats.effect.{Resource, IO}
+import com.geirolz.app.toolkit.{ AppResources, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.ErrorSyntax.RuntimeExpressionStringCtx
-import com.geirolz.example.app.service.UserService
-import com.geirolz.example.app.model.*
+
+// Define app resources types 
+type AppRes = AppResources[SimpleAppInfo[String], ToolkitLogger[IO], Config]
+
+// Define config
+case class Config(host: String, port: Int)
+object Config {
+  implicit val show: Show[Config] = Show.fromToString
+}
+
+// Define service dependencies
+case class AppDependencyServices(
+ kafkaConsumer: KafkaConsumer[IO]
+)
+object AppDependencyServices {
+  def resource(res: AppRes): Resource[IO, AppDependencyServices] =
+    Resource.pure(AppDependencyServices(KafkaConsumer.fake))
+}
+
+// A stubbed kafka consumer
+trait KafkaConsumer[F[_]] {
+  def consumeFrom(name: String): fs2.Stream[F, KafkaConsumer.KafkaRecord]
+}
+object KafkaConsumer {
+
+  import scala.concurrent.duration.DurationInt
+  
+  case class KafkaRecord(value: String)
+
+  def fake: KafkaConsumer[IO] =
+    (name: String) =>
+      fs2.Stream
+        .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
+        .repeat
+}
+```
+
+```scala
+import cats.effect.{ExitCode, IO, IOApp}
+import com.geirolz.app.toolkit.{AppBuilder, AppResources, SimpleAppInfo}
+import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.error.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
-    App[IO]
+    AppBuilder[IO]
       .withResourcesLoader(
         AppResources
-          .loader[IO, AppInfo](AppInfo.fromBuildInfo)
+          .loader[IO, SimpleAppInfo[String]](
+            SimpleAppInfo.string(
+              name          = "app-toolkit",
+              version       = "0.0.1",
+              scalaVersion  = "2.13.10",
+              sbtVersion    = "1.8.0"
+            )
+          )
           .withLogger(ToolkitLogger.console[IO](_))
-          .withConfigLoader(_ => IO(ConfigSource.default.loadOrThrow[AppConfig]))
+          .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
       )
-      .dependsOn(AppDependencyServices.make(_))
-      .provide(deps =>
-        List(
-          // HTTP server
-          AppHttpServer.make(deps.config).useForever,
-
+      .dependsOn(AppDependencyServices.resource(_))
+      .provideOneT(deps =>
           // Kafka consumer
           deps.dependencies.kafkaConsumer
             .consumeFrom("test-topic")
             .evalTap(record => deps.logger.info(s"Received record $record"))
             .compile
             .drain
-        )
       )
       .use(app =>
         app
@@ -66,16 +108,16 @@ object Main extends IOApp {
 
 ### Integrations
 #### pureconfig 
-```sbt
+```mdoc sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.2"
 ```
 
 #### log4cats
-```sbt
+```mdoc sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.2"
 ```
 
 #### odin
-```sbt
+```mdoc sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.2"
 ```

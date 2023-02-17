@@ -20,11 +20,11 @@ object AppMain extends IOApp {
           .withLogger(Slf4jLogger.getLogger[IO])
           .withPureConfigLoader[AppConfig]
       )
-      .dependsOn(AppDependencyServices.make(_))
+      .dependsOn(AppDependencyServices.resource(_))
       .provide(deps =>
         List(
           // HTTP server
-          AppHttpServer.make(deps.config).useForever,
+          AppHttpServer.resource(deps.config).useForever,
 
           // Kafka consumer
           deps.dependencies.kafkaConsumer

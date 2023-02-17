@@ -14,13 +14,10 @@ object KafkaConsumer {
 
   case class KafkaRecord(value: String)
 
-  def fake(@unused host: Hostname): KafkaConsumer[IO] = {
-    new KafkaConsumer[IO] {
-      override def consumeFrom(@unused name: String): fs2.Stream[IO, KafkaRecord] = {
-        fs2.Stream
-          .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
-          .repeat
-      }
-    }
-  }
+  def fake(@unused host: Hostname): KafkaConsumer[IO] =
+    (name: String) =>
+      fs2.Stream
+        .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
+        .repeat
+
 }

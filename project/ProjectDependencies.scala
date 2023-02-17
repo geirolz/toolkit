@@ -98,6 +98,6 @@ object ProjectDependencies {
   }
 
   object Docs {
-    lazy val dedicated: Seq[ModuleID] = Nil
+    lazy val dedicated: Seq[ModuleID] = Examples.dedicated_2_13
   }
 }

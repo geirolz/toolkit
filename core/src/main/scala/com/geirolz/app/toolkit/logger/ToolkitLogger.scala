@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit.logger
 
 import cats.effect.kernel.Async
 import cats.~>
-import com.geirolz.app.toolkit.BasicAppInfo
+import com.geirolz.app.toolkit.SimpleAppInfo
 import com.geirolz.app.toolkit.console.AnsiValue
 
 trait ToolkitLogger[F[_]] {
@@ -24,7 +24,7 @@ object ToolkitLogger {
     case object Error extends Level
   }
 
-  def console[F[_]: Async](appInfo: BasicAppInfo[?]): ToolkitLogger[F] = new ToolkitLogger[F] {
+  def console[F[_]: Async](appInfo: SimpleAppInfo[?]): ToolkitLogger[F] = new ToolkitLogger[F] {
 
     override def info(message: => String): F[Unit] =
       Async[F].delay(Console.println(normalize(Level.Info, message)))

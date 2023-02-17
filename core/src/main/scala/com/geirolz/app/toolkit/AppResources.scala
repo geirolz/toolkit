@@ -4,7 +4,7 @@ import cats.{Monad, Show}
 import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
 import com.geirolz.app.toolkit.novalues.NoConfig
 
-case class AppResources[APP_INFO <: BasicAppInfo[?], LOGGER, CONFIG](
+case class AppResources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG](
   info: APP_INFO,
   logger: LOGGER,
   config: CONFIG
@@ -18,7 +18,7 @@ object AppResources {
 
   import cats.syntax.all.*
 
-  def loader[F[_]: Monad, APP_INFO <: BasicAppInfo[?]](
+  def loader[F[_]: Monad, APP_INFO <: SimpleAppInfo[?]](
     appInfo: APP_INFO
   ): AppResources.Loader[F, APP_INFO, NoopLogger, NoConfig] = {
     pureLoader(
@@ -32,7 +32,7 @@ object AppResources {
 
   def pureLoader[
     F[_]: Monad,
-    APP_INFO <: BasicAppInfo[?],
+    APP_INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
     CONFIG: Show
   ](
@@ -46,7 +46,7 @@ object AppResources {
 
   final case class Loader[
     F[_]: Monad,
-    APP_INFO <: BasicAppInfo[?],
+    APP_INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
     CONFIG: Show
   ](

@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit.testing
 import cats.effect.{Ref, Resource}
 import cats.effect.kernel.MonadCancelThrow
 import cats.Functor
-import com.geirolz.app.toolkit.{App, BasicAppInfo}
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 
 class EventLogger[F[_]](ref: Ref[F, List[Event]]) {
 
@@ -24,7 +24,7 @@ object EventLogger {
 
   implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger, E, LOGGER_T[
     _[_]
-  ], APP_INFO <: BasicAppInfo[
+  ], APP_INFO <: SimpleAppInfo[
     ?
   ], CONFIG](
     resource: Resource[F, App[F, E, APP_INFO, LOGGER_T, CONFIG]]

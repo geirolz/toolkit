@@ -9,7 +9,7 @@ case class AppDependencyServices(
 )
 object AppDependencyServices {
 
-  def make(res: AppRes): Resource[IO, AppDependencyServices] =
+  def resource(res: AppRes): Resource[IO, AppDependencyServices] =
     Resource.pure(
       AppDependencyServices(
         KafkaConsumer.fake(res.config.kafkaBroker.host)
