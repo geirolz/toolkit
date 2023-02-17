@@ -87,7 +87,7 @@ object Main extends IOApp {
           .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
       )
       .dependsOn(AppDependencyServices.resource(_))
-      .provideOneT(deps =>
+      .provideOne(deps =>
           // Kafka consumer
           deps.dependencies.kafkaConsumer
             .consumeFrom("test-topic")

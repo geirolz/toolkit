@@ -30,7 +30,7 @@ class AppTest extends munit.CatsEffectSuite {
               .dependsOn(_ =>
                 Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies)
               )
-              .provideOneT(_.dependencies.set(1))
+              .provideOne(_.dependencies.set(1))
           app <- appLoader.traceAsAppLoader.use(IO.pure)
           _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
@@ -76,7 +76,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideFT(_ => IO.raiseError(ex"BOOM!"))
+              .provideF(_ => IO.raiseError(ex"BOOM!"))
               .pure[IO]
           _ <- appLoader.traceAsAppLoader.attempt.use(IO.pure)
 
@@ -108,7 +108,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideT(_ =>
+              .provide(_ =>
                 List(
                   IO.sleep(300.millis),
                   IO.sleep(50.millis),
@@ -152,7 +152,7 @@ class AppTest extends munit.CatsEffectSuite {
                   .withLogger(ToolkitLogger.console[IO])
                   .withConfig(TestConfig.defaultTest)
               )
-              .provideOneT(_ => IO.sleep(1.second))
+              .provideOne(_ => IO.sleep(1.second))
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
           _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
@@ -185,7 +185,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .provideOneT(_ => IO.unit)
+        .provideOne(_ => IO.unit)
 
     EventLogger
       .create[IO]
@@ -223,7 +223,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
         )
-        .provideOneT(_ => IO.raiseError(ex"BOOM!"))
+        .provideOne(_ => IO.raiseError(ex"BOOM!"))
 
     EventLogger
       .create[IO]

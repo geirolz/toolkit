@@ -19,6 +19,14 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
 
   import cats.syntax.all.*
 
+  // ------------ dependsOnE ------------
+  def dependsOn[DEP_2](
+    dependenciesBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
+  )(implicit
+    el: ErrorLifter.Resource[F, E]
+  ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
+    dependsOnE[DEP_2](el.liftFunction(dependenciesBuilder))
+
   def dependsOnE[DEP_2](
     dependenciesBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, E | DEP_2]
   ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
@@ -27,15 +35,40 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
       depsBuilder     = dependenciesBuilder
     )
 
-  def provideOneE(onFailure: E => OnFailure)(
+  // ------------ provideOneE ------------
+  def provideOneRight(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
+    implicit el: ErrorLifter[F, E]
+  ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
+    provideOneE(el.liftFunction(f))
+
+  def provideOneE(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | Any]
   ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-    provideE(onFailure)(f.andThen(_.pure[List])).map(_.map(_.failureMap(_.value.head)))
+    provideE(_ => OnFailure.CancelAll)(f.andThen(_.pure[List]))
+      .map(_.map(_.failureMap(_.value.head)))
+
+  // ------------ provideE ------------
+  def provideRight(
+    f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
+  )(implicit
+    el: ErrorLifter[F, E]
+  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    provideE(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
 
   def provideE(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
     provideFEE(onFailure)(f.andThen(_.asRight.pure[F]))
+
+  // ------------ provideFE ------------
+  def provideRightF(
+    f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
+  )(implicit
+    el: ErrorLifter[F, E]
+  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    provideFE(_ => OnFailure.CancelAll)(
+      f.andThen(_.map(_.map(el.lift(_))))
+    )
 
   def provideFE(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
@@ -106,45 +139,6 @@ sealed trait AppBuilderSyntax {
 
   import cats.syntax.all.*
 
-  implicit class AppBuilderErrorLiftOps[F[+_]: Async, E: Semigroup, APP_INFO <: SimpleAppInfo[
-    ?
-  ], LOGGER_T[
-    _[_]
-  ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
-    appBuilder: AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
-  ) {
-
-    def dependsOn[DEP_2](
-      dependenciesBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
-    )(implicit
-      el: ErrorLifter.Resource[F, E]
-    ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
-      appBuilder.dependsOnE[DEP_2](el.liftFunction(dependenciesBuilder))
-
-    def provideOne(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
-      implicit el: ErrorLifter[F, E]
-    ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-      appBuilder.provideOneE(_ => OnFailure.CancelAll)(el.liftFunction(f))
-
-    def provide(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-    )(implicit
-      el: ErrorLifter[F, E]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-      appBuilder
-        .provideE(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
-
-    def provideF(
-      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-    )(implicit
-      el: ErrorLifter[F, E]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-      appBuilder
-        .provideFE(_ => OnFailure.CancelAll)(
-          f.andThen(_.map(_.map(el.lift(_))))
-        )
-  }
-
   implicit class AppBuilderThrowOps[F[+_]: Async, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
@@ -153,14 +147,14 @@ sealed trait AppBuilderSyntax {
     appBuilder: AppBuilder.Throw[F, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
   )(implicit semigroupThrow: Semigroup[Throwable]) {
 
-    def provideOneT(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
+    def provideOne(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
       implicit el: ErrorLifter[F, Throwable]
     ): Resource[F, App.Throw[F, APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
-        .provideOne(f)
+        .provideOneRight(f)
         .evalMap(flatThrowError)
 
-    def provideT(
+    def provide(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
     )(implicit
       el: ErrorLifter[F, Throwable]
@@ -169,7 +163,7 @@ sealed trait AppBuilderSyntax {
         .provideE(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
         .evalMap(flatThrowError)
 
-    def provideFT(
+    def provideF(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
     )(implicit
       el: ErrorLifter[F, Throwable]
