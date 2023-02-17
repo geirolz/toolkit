@@ -46,7 +46,11 @@ lazy val docs: Project =
       baseSettings,
       noPublishSettings,
       libraryDependencies ++= Seq(
-        ProjectDependencies.Docs.dedicated
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 13)) => ProjectDependencies.Docs.dedicated_2_13
+          case Some((3, _))  => ProjectDependencies.Docs.dedicated_3_2
+          case _             => Nil
+        }
       ).flatten,
       // config
       scalacOptions --= Seq("-Werror", "-Xfatal-warnings"),
@@ -87,6 +91,7 @@ lazy val example: Project = {
   )
     .enablePlugins(BuildInfoPlugin)
     .settings(
+      noPublishSettings,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
       libraryDependencies ++= {
         CrossVersion.partialVersion(scalaVersion.value) match {
