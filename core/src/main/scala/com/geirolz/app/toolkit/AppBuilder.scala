@@ -3,7 +3,6 @@ package com.geirolz.app.toolkit
 import cats.{Parallel, Show}
 import cats.data.EitherT
 import cats.effect.{Async, Resource, Sync}
-import cats.kernel.Semigroup
 import com.geirolz.app.toolkit.error.ErrorLifter
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
@@ -14,70 +13,60 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
 ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
   resourcesLoader: AppResources.Loader[F, APP_INFO, LOGGER_T, CONFIG],
   depsBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, E | DEPENDENCIES]
-) {
+)(implicit el: ErrorLifter[F, E]) {
   $this =>
 
   import cats.syntax.all.*
 
-  // ------------ dependsOnE ------------
-  def dependsOn[DEP_2](
-    dependenciesBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
-  )(implicit
-    el: ErrorLifter.Resource[F, E]
+  // ------------------- DEPENDS ON -------------------
+  private[toolkit] def _dependsOnRight[DEP_2](
+    f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
   ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
-    dependsOnE[DEP_2](el.liftFunction(dependenciesBuilder))
+    _dependsOn[DEP_2](el.liftResourceFunction(f))
 
-  def dependsOnE[DEP_2](
-    dependenciesBuilder: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, E | DEP_2]
+  private[toolkit] def _dependsOn[DEP_2](
+    f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, E | DEP_2]
   ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
     new AppBuilder(
       resourcesLoader = $this.resourcesLoader,
-      depsBuilder     = dependenciesBuilder
+      depsBuilder     = f
     )
 
-  // ------------ provideOneE ------------
-  def provideOneRight(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
-    implicit el: ErrorLifter[F, E]
+  // ------------------- PROVIDE ONE -------------------
+  private[toolkit] def _provideOneRight(
+    f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any]
   ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-    provideOneE(el.liftFunction(f))
+    _provideOne(el.liftFunction(f))
 
-  def provideOneE(
+  private[toolkit] def _provideOne(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | Any]
   ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-    provideE(_ => OnFailure.CancelAll)(f.andThen(_.pure[List]))
+    _provide(_ => OnFailure.CancelAll)(f.andThen(_.pure[List]))
       .map(_.map(_.failureMap(_.value.head)))
 
-  // ------------ provideE ------------
-  def provideRight(
+  // ------------------- PROVIDE -------------------
+  private[toolkit] def _provideRight(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-  )(implicit
-    el: ErrorLifter[F, E]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-    provideE(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
+    _provide(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
 
-  def provideE(onFailure: E => OnFailure)(
+  private[toolkit] def _provide(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-    provideFEE(onFailure)(f.andThen(_.asRight.pure[F]))
+    _provideFE(onFailure)(f.andThen(_.asRight.pure[F]))
 
-  // ------------ provideFE ------------
-  def provideRightF(
+  // ------------------- PROVIDE F -------------------
+  private[toolkit] def _provideRightF(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-  )(implicit
-    el: ErrorLifter[F, E]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-    provideFE(_ => OnFailure.CancelAll)(
-      f.andThen(_.map(_.map(el.lift(_))))
-    )
+    _provideF(_ => OnFailure.CancelAll)(f.andThen(_.map(_.map(el.lift(_)))))
 
-  def provideFE(onFailure: E => OnFailure)(
+  private[toolkit] def _provideF(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
-  )(implicit
-    el: ErrorLifter[F, E]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
-    provideFEE(onFailure)(el.liftFunction(f))
+    _provideFE(onFailure)(el.liftFunction(f))
 
-  def provideFEE(onFailure: E => OnFailure)(
+  private[toolkit] def _provideFE(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | List[F[E | Any]]]
   ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] = {
     (
@@ -105,18 +94,16 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
 }
 object AppBuilder extends AppBuilderSyntax {
 
-  type Throw[F[+_], APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG, DEPENDENCIES] =
-    AppBuilder[F, Throwable, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
-
-  def apply[F[+_]: Async: Parallel, E]: AppBuilder.RuntimeSelected[F, E] =
+  def apply[F[+_]: Async: Parallel, E: =:!=[*, Throwable]: ErrorLifter[F, *]]
+    : AppBuilder.RuntimeSelected[F, E] =
     new AppBuilder.RuntimeSelected[F, E]
 
   def apply[F[+_]: Async: Parallel](implicit
     di: DummyImplicit
   ): AppBuilder.RuntimeSelected[F, Throwable] =
-    AppBuilder[F, Throwable]
+    new AppBuilder.RuntimeSelected[F, Throwable]
 
-  final class RuntimeSelected[F[+_]: Async: Parallel, E] {
+  final class RuntimeSelected[F[+_]: Async: Parallel, E: ErrorLifter[F, *]] {
 
     def withResources[APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show](
       resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG]
@@ -135,43 +122,98 @@ object AppBuilder extends AppBuilderSyntax {
   }
 }
 
-sealed trait AppBuilderSyntax {
+sealed trait AppBuilderSyntax { this: AppBuilder.type =>
 
-  import cats.syntax.all.*
+  implicit class AppBuilderErrorOps[F[+_]: Async, E, APP_INFO <: SimpleAppInfo[
+    ?
+  ], LOGGER_T[
+    _[_]
+  ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
+    appBuilder: AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
+  )(implicit env: E =:!= Throwable, el: ErrorLifter[F, E]) {
+
+    // ------------ dependsOnE ------------
+    def dependsOn[DEP_2](
+      f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
+    )(implicit dummyImplicit: DummyImplicit): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
+      appBuilder._dependsOnRight[DEP_2](f)
+
+    def dependsOn[DEP_2](
+      f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, E | DEP_2]
+    ): AppBuilder[F, E, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
+      appBuilder._dependsOn(f)
+
+    // ------------ provideOneE ------------
+    def provideOneRight(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any]
+    ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideOneRight(f)
+
+    def provideOne(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | Any]
+    ): Resource[F, E | App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideOne(f)
+
+    // ------------ provideE ------------
+    def provideRight(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideRight(f)
+
+    def provide(onFailure: E => OnFailure)(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provide(onFailure)(f)
+
+    // ------------ provideFE ------------
+    def provideRightF(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideRightF(f)
+
+    def provideF(onFailure: E => OnFailure)(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideF(onFailure)(f)
+
+    def provideFE(onFailure: E => OnFailure)(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | List[F[E | Any]]]
+    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+      appBuilder._provideFE(onFailure)(f)
+  }
 
   implicit class AppBuilderThrowOps[F[+_]: Async, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show, DEPENDENCIES](
-    appBuilder: AppBuilder.Throw[F, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
-  )(implicit semigroupThrow: Semigroup[Throwable]) {
+    appBuilder: AppBuilder[F, Throwable, APP_INFO, LOGGER_T, CONFIG, DEPENDENCIES]
+  ) {
 
-    def provideOne(f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any])(
-      implicit el: ErrorLifter[F, Throwable]
-    ): Resource[F, App.Throw[F, APP_INFO, LOGGER_T, CONFIG]] =
+    def dependsOn[DEP_2](
+      f: AppResources[APP_INFO, LOGGER_T[F], CONFIG] => Resource[F, DEP_2]
+    ): AppBuilder[F, Throwable, APP_INFO, LOGGER_T, CONFIG, DEP_2] =
+      appBuilder._dependsOnRight[DEP_2](f)
+
+    def provideOne(
+      f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[Any]
+    ): Resource[F, App[F, Throwable, APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
-        .provideOneRight(f)
+        ._provideOneRight(f)
         .evalMap(flatThrowError)
 
     def provide(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-    )(implicit
-      el: ErrorLifter[F, Throwable]
-    ): Resource[F, App.ThrowNel[F, APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
-        .provideE(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
+        ._provideRight(f)
         .evalMap(flatThrowError)
 
     def provideF(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-    )(implicit
-      el: ErrorLifter[F, Throwable]
-    ): Resource[F, App.ThrowNel[F, APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
-        .provideFE(_ => OnFailure.CancelAll)(
-          f.andThen(_.map(_.map(el.lift(_))))
-        )
+        ._provideRightF(f)
         .evalMap(flatThrowError)
 
     private def flatThrowError[R]: Throwable | R => F[R] = {

@@ -177,7 +177,7 @@ class AppTest extends munit.CatsEffectSuite {
   }
 
   test("Loader and App work as expected with provideOne") {
-    val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
+    val appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
       AppBuilder[IO]
         .withResourcesLoader(
           AppResources
@@ -215,7 +215,7 @@ class AppTest extends munit.CatsEffectSuite {
   }
 
   test("Loader released even if the app crash") {
-    val appLoader: Resource[IO, App.Throw[IO, TestAppInfo, ToolkitLogger, TestConfig]] =
+    val appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
       AppBuilder[IO]
         .withResourcesLoader(
           AppResources
@@ -269,7 +269,7 @@ class AppTest extends munit.CatsEffectSuite {
               .withLogger(ToolkitLogger.console[IO])
               .withConfig(TestConfig.defaultTest)
           )
-          .provideE(onFailure = _ => OnFailure.CancelAll)(_ =>
+          .provide(onFailure = _ => OnFailure.CancelAll)(_ =>
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
@@ -314,7 +314,7 @@ class AppTest extends munit.CatsEffectSuite {
               .withLogger(ToolkitLogger.console[IO])
               .withConfig(TestConfig.defaultTest)
           )
-          .provideE(onFailure = _ => OnFailure.DoNothing)(_ =>
+          .provide(onFailure = _ => OnFailure.DoNothing)(_ =>
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
