@@ -125,6 +125,11 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     }
 
   // -------------------- FAILURE --------------------
+  final def takeFirstFailure[EE](implicit
+    env: E <:< NonEmptyList[EE]
+  ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
+    failureMap(_.value.head)
+
   final def reduceFailures[EE](implicit
     env: E <:< NonEmptyList[EE],
     semigroup: Semigroup[EE]

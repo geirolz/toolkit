@@ -204,16 +204,18 @@ sealed trait AppBuilderSyntax { this: AppBuilder.type =>
 
     def provide(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-    ): Resource[F, App[F, NonEmptyList[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, Throwable, APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
         ._provideRight(f)
+        .map(_.map(_.takeFirstFailure))
         .evalMap(flatThrowError)
 
     def provideF(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-    ): Resource[F, App[F, NonEmptyList[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, Throwable, APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
         ._provideRightF(f)
+        .map(_.map(_.takeFirstFailure))
         .evalMap(flatThrowError)
 
     private def flatThrowError[R]: Throwable | R => F[R] = {

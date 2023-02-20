@@ -66,10 +66,7 @@ class AppTest extends munit.CatsEffectSuite {
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
-          appLoader: Resource[
-            IO,
-            App[IO, NonEmptyList[Throwable], TestAppInfo, ToolkitLogger, TestConfig]
-          ] <-
+          appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] <-
             AppBuilder[IO]
               .withResourcesLoader(
                 AppResources
@@ -118,7 +115,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenThrowNelLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -202,7 +199,7 @@ class AppTest extends munit.CatsEffectSuite {
               )
               .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenThrowNelLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(

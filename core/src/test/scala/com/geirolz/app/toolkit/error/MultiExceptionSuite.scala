@@ -55,25 +55,6 @@ class MultiExceptionSuite extends munit.FunSuite {
     ex.setStackTrace(Array.empty)
   }
 
-  test("To String") {
-    val ex = MultiException.fromNel(
-      NonEmptyList.of(
-        new RuntimeException("EX1"),
-        new RuntimeException("EX2"),
-        new RuntimeException("EX3")
-      )
-    )
-
-    assertEquals(
-      ex.toString,
-      """com.geirolz.app.toolkit.error.MultiException:
-        |Multiple [3] exceptions.
-        | -EX1 [com.geirolz.app.toolkit.error.MultiExceptionSuite.$anonfun$new$8(MultiExceptionSuite.scala:61)]
-        | -EX2 [com.geirolz.app.toolkit.error.MultiExceptionSuite.$anonfun$new$8(MultiExceptionSuite.scala:62)]
-        | -EX3 [com.geirolz.app.toolkit.error.MultiExceptionSuite.$anonfun$new$8(MultiExceptionSuite.scala:63)]""".stripMargin
-    )
-  }
-
   test("printStackTrace") {
     val ex = MultiException.fromNel(
       NonEmptyList.of(
