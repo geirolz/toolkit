@@ -108,16 +108,16 @@ object Main extends IOApp {
 
 ### Integrations
 #### pureconfig 
-```mdoc sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.2"
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.3"
 ```
 
 #### log4cats
-```mdoc sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.2"
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.3"
 ```
 
 #### odin
-```mdoc sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.2"
+```sbt
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.3"
 ```
