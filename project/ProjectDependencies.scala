@@ -15,7 +15,7 @@ object ProjectDependencies {
   private val log4catsVersion    = "2.5.0"
   private val odinVersion        = "0.13.0"
   private val http4sVersion      = "0.23.18"
-  private val fs2Version         = "3.5.0"
+  private val fs2Version         = "3.6.1"
   private val scalacheck         = "1.17.0"
 
   lazy val common: Seq[ModuleID] = Seq(
