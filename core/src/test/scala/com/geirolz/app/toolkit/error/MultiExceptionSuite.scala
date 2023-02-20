@@ -74,7 +74,7 @@ class MultiExceptionSuite extends munit.FunSuite {
     )
   }
 
-  test("To String 2 ") {
+  test("printStackTrace") {
     val ex = MultiException.fromNel(
       NonEmptyList.of(
         new RuntimeException("EX1"),

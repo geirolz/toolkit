@@ -46,7 +46,7 @@ final class MultiException(override val errors: NonEmptyList[Throwable])
 
 object MultiException {
 
-  def buildThrowMessage(errors: NonEmptyList[Throwable]): String = {
+  private def buildThrowMessage(errors: NonEmptyList[Throwable]): String = {
     s"""
        |Multiple [${errors.size}] exceptions.
        |${errors.toList
