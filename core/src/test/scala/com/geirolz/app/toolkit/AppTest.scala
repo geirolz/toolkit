@@ -1,5 +1,6 @@
 package com.geirolz.app.toolkit
 
+import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.*
@@ -67,7 +68,7 @@ class AppTest extends munit.CatsEffectSuite {
         for {
           appLoader: Resource[
             IO,
-            App[IO, Nel[Throwable], TestAppInfo, ToolkitLogger, TestConfig]
+            App[IO, NonEmptyList[Throwable], TestAppInfo, ToolkitLogger, TestConfig]
           ] <-
             AppBuilder[IO]
               .withResourcesLoader(
@@ -176,24 +177,32 @@ class AppTest extends munit.CatsEffectSuite {
       })
   }
 
-  test("Loader and App work as expected with provideOne") {
-    val appLoader: Resource[IO, App[IO, Throwable, TestAppInfo, ToolkitLogger, TestConfig]] =
-      AppBuilder[IO]
-        .withResourcesLoader(
-          AppResources
-            .loader[IO, TestAppInfo](TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO])
-            .withConfig(TestConfig.defaultTest)
-        )
-        .provideOne(_ => IO.unit)
-
+  test("Loader and App work as expected with provideF") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
         implicit val loggerImplicit: EventLogger[IO] = logger
         for {
+          appLoader <-
+            AppBuilder[IO]
+              .withResourcesLoader(
+                AppResources
+                  .loader[IO, TestAppInfo](TestAppInfo.value)
+                  .withLogger(ToolkitLogger.console[IO])
+                  .withConfig(TestConfig.defaultTest)
+              )
+              .provideF(_ =>
+                IO(
+                  List(
+                    IO.sleep(300.millis),
+                    IO.sleep(50.millis),
+                    IO.sleep(200.millis)
+                  )
+                )
+              )
+              .pure[IO]
           app <- appLoader.traceAsAppLoader.use(IO.pure)
-          _   <- app.flattenThrowLogic.traceAsAppRuntime.use_
+          _   <- app.flattenThrowNelLogic.traceAsAppRuntime.use_
 
           // assert
           _ <- assertIO(
@@ -259,7 +268,7 @@ class AppTest extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, Nel[AppError] | Unit)] =
+    val test: IO[(Boolean, NonEmptyList[AppError] | Unit)] =
       for {
         state <- IO.ref[Boolean](false)
         app <- AppBuilder[IO, AppError]
@@ -304,7 +313,7 @@ class AppTest extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, Nel[AppError] | Unit)] =
+    val test: IO[(Boolean, NonEmptyList[AppError] | Unit)] =
       for {
         state <- IO.ref[Boolean](false)
         app <- AppBuilder[IO, AppError]

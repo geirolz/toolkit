@@ -1,7 +1,7 @@
 package com.geirolz.app.toolkit
 
 import cats.{Parallel, Show}
-import cats.data.EitherT
+import cats.data.{EitherT, NonEmptyList}
 import cats.effect.{Async, Resource, Sync}
 import com.geirolz.app.toolkit.error.ErrorLifter
 import com.geirolz.app.toolkit.logger.LoggerAdapter
@@ -47,28 +47,28 @@ class AppBuilder[F[+_]: Async: Parallel, E, APP_INFO <: SimpleAppInfo[
   // ------------------- PROVIDE -------------------
   private[toolkit] def _provideRight(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+  ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
     _provide(_ => OnFailure.CancelAll)(f.andThen(_.map(el.lift(_))))
 
   private[toolkit] def _provide(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
-  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+  ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
     _provideFE(onFailure)(f.andThen(_.asRight.pure[F]))
 
   // ------------------- PROVIDE F -------------------
   private[toolkit] def _provideRightF(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+  ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
     _provideF(_ => OnFailure.CancelAll)(f.andThen(_.map(_.map(el.lift(_)))))
 
   private[toolkit] def _provideF(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
-  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+  ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
     _provideFE(onFailure)(el.liftFunction(f))
 
   private[toolkit] def _provideFE(onFailure: E => OnFailure)(
     f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | List[F[E | Any]]]
-  ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] = {
+  ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] = {
     (
       for {
         // -------------------- RESOURCES -------------------
@@ -157,28 +157,28 @@ sealed trait AppBuilderSyntax { this: AppBuilder.type =>
     // ------------ provideE ------------
     def provideRight(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder._provideRight(f)
 
     def provide(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[E | Any]]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder._provide(onFailure)(f)
 
     // ------------ provideFE ------------
     def provideRightF(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder._provideRightF(f)
 
     def provideF(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[E | Any]]]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder._provideF(onFailure)(f)
 
     def provideFE(onFailure: E => OnFailure)(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[E | List[F[E | Any]]]
-    ): Resource[F, E | App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, E | App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder._provideFE(onFailure)(f)
   }
 
@@ -204,14 +204,14 @@ sealed trait AppBuilderSyntax { this: AppBuilder.type =>
 
     def provide(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => List[F[Any]]
-    ): Resource[F, App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, NonEmptyList[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
         ._provideRight(f)
         .evalMap(flatThrowError)
 
     def provideF(
       f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES] => F[List[F[Any]]]
-    ): Resource[F, App[F, Nel[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
+    ): Resource[F, App[F, NonEmptyList[Throwable], APP_INFO, LOGGER_T, CONFIG]] =
       appBuilder
         ._provideRightF(f)
         .evalMap(flatThrowError)

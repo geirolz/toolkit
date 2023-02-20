@@ -1,11 +1,10 @@
 package com.geirolz.app.toolkit
 
-import cats.{Applicative, ApplicativeError, Parallel, Show}
+import cats.{Applicative, ApplicativeError, Parallel, Semigroup, Show}
 import cats.data.NonEmptyList
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.effect.kernel.MonadCancel
 import cats.effect.kernel.Resource.ExitCase
-import com.geirolz.app.toolkit.error.MultiException
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
 trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
@@ -62,13 +61,10 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 
   def flattenThrowNelLogic(implicit
     F: MonadCancel[F, Throwable],
-    env: E <:< NonEmptyList[Throwable]
+    env: E <:< NonEmptyList[Throwable],
+    semigroup: Semigroup[Throwable]
   ): Resource[F, Unit] =
-    logic.flatMap {
-      case Left(errors) =>
-        Resource.eval(F.raiseError(MultiException.fromNel(errors)))
-      case Right(value) => Resource.pure(value)
-    }
+    reduceFailures.flattenThrowLogic
 
   // ---------------------- RUN ----------------------
   final def run(implicit F: MonadCancel[F, Throwable], env: E <:< Throwable): F[Unit] =
@@ -129,6 +125,12 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     }
 
   // -------------------- FAILURE --------------------
+  final def reduceFailures[EE](implicit
+    env: E <:< NonEmptyList[EE],
+    semigroup: Semigroup[EE]
+  ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
+    failureMap(_.value.reduce)
+
   final def onFailure(f: Resourced[E] => F[Unit])(implicit
     F: Applicative[F]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] =
@@ -190,15 +192,15 @@ object App {
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
     appProvServices: List[F[E | Any]],
     onFailure: E => OnFailure
-  ): App[F, Nel[E], APP_INFO, LOGGER_T, CONFIG] = {
+  ): App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG] = {
 
     import cats.effect.syntax.all.*
     import cats.syntax.all.*
 
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
-    val logic: Resource[F, Nel[E] | Unit] = {
+    val logic: Resource[F, NonEmptyList[E] | Unit] = {
       val info = appResources.info
-      val app: F[Nel[E] | Unit] =
+      val app: F[NonEmptyList[E] | Unit] =
         for {
           fibers   <- Ref[F].of(List.empty[Fiber[F, Throwable, Unit]])
           failures <- Ref[F].of(List.empty[E])
@@ -216,11 +218,11 @@ object App {
           })
           _ <- services.parTraverse(t => t.void.start.flatMap(f => fibers.update(_ :+ f)))
           _ <- fibers.get.flatMap(_.parTraverse(_.joinWithUnit))
-          maybeReducedFailures <- failures.get.map(Nel.fromList(_))
+          maybeReducedFailures <- failures.get.map(NonEmptyList.fromList(_))
         } yield maybeReducedFailures.toLeft(())
 
       Resource
-        .eval[F, Nel[E] | Unit](
+        .eval[F, NonEmptyList[E] | Unit](
           toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
             app
               .onCancel(toolkitLogger.info(s"${info.name} was stopped."))
