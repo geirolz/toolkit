@@ -10,7 +10,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.2"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.3"
 ```
 
 Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example)
