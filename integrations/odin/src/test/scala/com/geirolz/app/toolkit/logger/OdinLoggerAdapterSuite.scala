@@ -1,7 +1,6 @@
-package com.geirolz.app.toolkit
+package com.geirolz.app.toolkit.logger
 
 import cats.effect.IO
-import com.geirolz.app.toolkit.logger.LoggerAdapter
 import com.geirolz.app.toolkit.error.*
 import io.odin.Logger
 

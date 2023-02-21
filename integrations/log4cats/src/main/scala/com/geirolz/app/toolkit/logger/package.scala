@@ -1,9 +1,8 @@
-package com.geirolz.app
+package com.geirolz.app.toolkit
 
-import com.geirolz.app.toolkit.logger.{LoggerAdapter, ToolkitLogger}
 import org.typelevel.log4cats.Logger
 
-package object toolkit {
+package object logger {
 
   implicit def log4CatsLoggerAdapter[LOG4S_LOGGER[F[_]] <: Logger[F]]: LoggerAdapter[LOG4S_LOGGER] =
     new LoggerAdapter[LOG4S_LOGGER] {

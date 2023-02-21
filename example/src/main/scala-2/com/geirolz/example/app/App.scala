@@ -1,16 +1,12 @@
 package com.geirolz.example.app
 
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{AppResources, *}
+import com.geirolz.app.toolkit.{AppBuilder, AppResources}
+import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 import com.geirolz.example.app.provided.AppHttpServer
-import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-object AppMain extends IOApp {
-
-  import com.geirolz.app.toolkit.config.pureconfig.syntax.*
-
-  type AppRes = AppResources[AppInfo, SelfAwareStructuredLogger[IO], AppConfig]
+object App extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
     AppBuilder[IO]

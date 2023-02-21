@@ -1,9 +1,8 @@
-package com.geirolz.app
+package com.geirolz.app.toolkit
 
-import com.geirolz.app.toolkit.logger.{LoggerAdapter, ToolkitLogger}
 import io.odin.Logger
 
-package object toolkit {
+package object logger {
 
   implicit def odinLoggerAdapter[ODIN_LOGGER[F[_]] <: Logger[F]]: LoggerAdapter[ODIN_LOGGER] =
     new LoggerAdapter[ODIN_LOGGER] {
