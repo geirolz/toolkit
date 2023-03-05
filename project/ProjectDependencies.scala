@@ -7,7 +7,7 @@ object ProjectDependencies {
   private val catsVersion        = "2.9.0"
   private val catsEffectVersion  = "3.4.8"
   private val refinedVersion     = "0.10.1"
-  private val circeVersion       = "0.14.3"
+  private val circeVersion       = "0.14.5"
   private val pureConfigVersion  = "0.17.2"
   private val munitVersion       = "0.7.29"
   private val munitEffectVersion = "1.0.7"
