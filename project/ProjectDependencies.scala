@@ -11,7 +11,7 @@ object ProjectDependencies {
   private val pureConfigVersion  = "0.17.2"
   private val munitVersion       = "0.7.29"
   private val munitEffectVersion = "1.0.7"
-  private val slf4Version        = "2.0.6"
+  private val slf4Version        = "2.0.7"
   private val log4catsVersion    = "2.5.0"
   private val odinVersion        = "0.13.0"
   private val http4sVersion      = "0.23.18"
