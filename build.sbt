@@ -190,9 +190,7 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
       case Some((3, _))  => ProjectDependencies.Plugins.compilerPluginsFor3
       case _             => Nil
     }
-  },
-  // fmt
-  scalafmtOnCompile := true
+  }
 )
 
 def scalacSettings(scalaVersion: String): Seq[String] =

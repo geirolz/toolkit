@@ -48,7 +48,7 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
 
   val resources: Resources
 
-  val logic: Resource[F, E | Unit]
+  val logic: Resource[F, E \/ Unit]
 
   def flattenThrowLogic(implicit
     F: MonadCancel[F, Throwable],
@@ -70,32 +70,32 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
   final def run(implicit F: MonadCancel[F, Throwable], env: E <:< Throwable): F[Unit] =
     flattenThrowLogic.use_
 
-  final def runE(implicit F: MonadCancel[F, Throwable]): F[E | Unit] =
+  final def runE(implicit F: MonadCancel[F, Throwable]): F[E \/ Unit] =
     logic.use(_.pure[F])
 
   // -------------------- MAPPING --------------------
   final def logicMap[EE](
-    f: Resourced[Resource[F, E | Unit]] => Resource[F, EE | Unit]
+    f: Resourced[Resource[F, E \/ Unit]] => Resource[F, EE \/ Unit]
   ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
     App.of(resources, f(logic.resourced))
 
   final def map[EE](
-    f: Resourced[E | Unit] => EE | Unit
+    f: Resourced[E \/ Unit] => EE \/ Unit
   ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(_.value.map(v => f(v.resourced)))
 
   final def flatMap[EE](
-    f: Resourced[E | Unit] => Resource[F, EE | Unit]
+    f: Resourced[E \/ Unit] => Resource[F, EE \/ Unit]
   ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(_.value.flatMap(v => f(v.resourced)))
 
   final def evalMap[EE](
-    f: Resourced[E | Unit] => F[EE | Unit]
+    f: Resourced[E \/ Unit] => F[EE \/ Unit]
   ): App[F, EE, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(_.value.evalMap(v => f(v.resourced)))
 
   final def evalTap(
-    f: Resourced[E | Unit] => F[Unit]
+    f: Resourced[E \/ Unit] => F[Unit]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(_.value.evalTap(v => f(v.resourced)))
 
@@ -181,12 +181,12 @@ trait App[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG] {
     }
 
   final def handleErrorWith(
-    f: Resourced[Throwable] => F[E | Unit]
+    f: Resourced[Throwable] => F[E \/ Unit]
   )(implicit
     F: ApplicativeError[F, Throwable]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] =
     logicMap(
-      _.value.handleErrorWith[E | Unit, Throwable](e => Resource.eval(f(e.resourced)))
+      _.value.handleErrorWith[E \/ Unit, Throwable](e => Resource.eval(f(e.resourced)))
     )
 }
 object App {
@@ -195,7 +195,7 @@ object App {
     _[_]
   ]: LoggerAdapter, CONFIG: Show](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appProvServices: List[F[E | Any]],
+    appProvServices: List[F[E \/ Any]],
     onFailure: E => OnFailure
   ): App[F, NonEmptyList[E], APP_INFO, LOGGER_T, CONFIG] = {
 
@@ -203,9 +203,9 @@ object App {
     import cats.syntax.all.*
 
     val toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](appResources.logger)
-    val logic: Resource[F, NonEmptyList[E] | Unit] = {
+    val logic: Resource[F, NonEmptyList[E] \/ Unit] = {
       val info = appResources.info
-      val app: F[NonEmptyList[E] | Unit] =
+      val app: F[NonEmptyList[E] \/ Unit] =
         for {
           fibers   <- Ref[F].of(List.empty[Fiber[F, Throwable, Unit]])
           failures <- Ref[F].of(List.empty[E])
@@ -227,7 +227,7 @@ object App {
         } yield maybeReducedFailures.toLeft(())
 
       Resource
-        .eval[F, NonEmptyList[E] | Unit](
+        .eval[F, NonEmptyList[E] \/ Unit](
           toolkitLogger.info(s"Starting ${info.buildRefName}...") >>
             app
               .onCancel(toolkitLogger.info(s"${info.name} was stopped."))
@@ -241,9 +241,9 @@ object App {
 
   def of[F[+_], E, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG](
     appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG],
-    appLogic: Resource[F, E | Unit]
+    appLogic: Resource[F, E \/ Unit]
   ): App[F, E, APP_INFO, LOGGER_T, CONFIG] = new App[F, E, APP_INFO, LOGGER_T, CONFIG] {
     override val resources: AppResources[APP_INFO, LOGGER_T[F], CONFIG] = appResources
-    override val logic: Resource[F, E | Unit]                           = appLogic
+    override val logic: Resource[F, E \/ Unit]                          = appLogic
   }
 }

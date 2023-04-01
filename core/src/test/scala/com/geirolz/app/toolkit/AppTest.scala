@@ -265,7 +265,7 @@ class AppTest extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, NonEmptyList[AppError] | Unit)] =
+    val test: IO[(Boolean, NonEmptyList[AppError] \/ Unit)] =
       for {
         state <- IO.ref[Boolean](false)
         app <- AppBuilder[IO, AppError]
@@ -310,7 +310,7 @@ class AppTest extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, NonEmptyList[AppError] | Unit)] =
+    val test: IO[(Boolean, NonEmptyList[AppError] \/ Unit)] =
       for {
         state <- IO.ref[Boolean](false)
         app <- AppBuilder[IO, AppError]
