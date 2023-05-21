@@ -5,7 +5,7 @@ import scala.language.postfixOps
 object ProjectDependencies {
 
   private val catsVersion              = "2.9.0"
-  private val catsEffectVersion        = "3.4.11"
+  private val catsEffectVersion        = "3.5.0"
   private val refinedVersion           = "0.10.1"
   private val circeVersion             = "0.14.5"
   private val circeGenericExtraVersion = "0.14.3"
