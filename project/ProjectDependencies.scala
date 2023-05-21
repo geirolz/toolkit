@@ -5,17 +5,17 @@ import scala.language.postfixOps
 object ProjectDependencies {
 
   private val catsVersion              = "2.9.0"
-  private val catsEffectVersion        = "3.4.10"
+  private val catsEffectVersion        = "3.4.11"
   private val refinedVersion           = "0.10.1"
   private val circeVersion             = "0.14.5"
   private val circeGenericExtraVersion = "0.14.3"
-  private val pureConfigVersion        = "0.17.3"
+  private val pureConfigVersion        = "0.17.4"
   private val munitVersion             = "0.7.29"
   private val munitEffectVersion       = "1.0.7"
   private val slf4Version              = "2.0.7"
   private val log4catsVersion          = "2.6.0"
   private val odinVersion              = "0.13.0"
-  private val http4sVersion            = "0.23.18"
+  private val http4sVersion            = "0.23.19"
   private val fs2Version               = "3.6.1"
   private val scalacheck               = "1.17.0"
 
