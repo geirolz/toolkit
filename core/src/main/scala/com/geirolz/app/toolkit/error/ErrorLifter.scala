@@ -10,9 +10,7 @@ trait ErrorLifter[F[_], E] { self =>
 
   def liftResourceFunction[U, A](f: U => Resource[F, A]): U => Resource[F, E \/ A]
 
-  final def liftFunction[U, A](f: U => F[A]): U => F[E \/ A] =
-    f.andThen(lift(_))
-
+  final def liftFunction[U, A](f: U => F[A]): U => F[E \/ A] = f.andThen(lift(_))
 }
 object ErrorLifter {
 
