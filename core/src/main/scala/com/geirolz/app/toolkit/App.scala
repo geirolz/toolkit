@@ -424,13 +424,13 @@ sealed trait AppSyntax {
 
   implicit class AppOps[F[
     +_
-  ]: Async: Parallel, FAILURE: * =:!= Throwable, APP_INFO <: SimpleAppInfo[
+  ]: Async: Parallel, FAILURE, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES](
-    app: App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
-  ) {
+    val app: App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
+  )(implicit env: FAILURE =:!= Throwable) {
 
     // failures
     def mapFailure[FAILURE2](
