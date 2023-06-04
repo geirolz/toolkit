@@ -10,7 +10,6 @@ case class AppDependencyServices(
   kafkaConsumer: KafkaConsumer[IO]
 )
 object AppDependencyServices {
-
   def resource(res: App.Resources[AppInfo, SelfAwareStructuredLogger[IO], AppConfig, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(
       AppDependencyServices(
