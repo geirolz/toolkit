@@ -494,7 +494,7 @@ sealed trait AppSyntax {
   implicit class AppThrowOps[F[+_]: Async: Parallel, APP_INFO <: SimpleAppInfo[?], LOGGER_T[
     _[_]
   ], CONFIG, RESOURCES, DEPENDENCIES](
-    app: AppThrow[F, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
+    app: App[F, Throwable, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
   ) {
 
     def compile: Resource[F, F[Unit]] =

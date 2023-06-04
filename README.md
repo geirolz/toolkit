@@ -24,12 +24,11 @@ Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/e
 Given
 ```scala
 import cats.Show
-import cats.effect.{Resource, IO}
-import com.geirolz.app.toolkit.{ AppResources, SimpleAppInfo}
+import cats.effect.{ExitCode, Resource, IO, IOApp}
+import com.geirolz.app.toolkit.{ App, SimpleAppInfo }
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-
-// Define app resources types 
-type AppRes = AppResources[SimpleAppInfo[String], ToolkitLogger[IO], Config]
+import com.geirolz.app.toolkit.novalues.NoResources
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 // Define config
 case class Config(host: String, port: Int)
@@ -42,7 +41,7 @@ case class AppDependencyServices(
  kafkaConsumer: KafkaConsumer[IO]
 )
 object AppDependencyServices {
-  def resource(res: AppRes): Resource[IO, AppDependencyServices] =
+  def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(AppDependencyServices(KafkaConsumer.fake))
 }
 
@@ -66,26 +65,23 @@ object KafkaConsumer {
 
 ```scala
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{AppBuilder, AppResources, SimpleAppInfo}
+import com.geirolz.app.toolkit.App
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.error.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
-    AppBuilder[IO]
-      .withResourcesLoader(
-        AppResources
-          .loader[IO, SimpleAppInfo[String]](
-            SimpleAppInfo.string(
-              name          = "app-toolkit",
-              version       = "0.0.1",
-              scalaVersion  = "2.13.10",
-              sbtVersion    = "1.8.0"
-            )
-          )
-          .withLogger(ToolkitLogger.console[IO](_))
-          .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
-      )
+    App[IO]
+      .withInfo(
+        SimpleAppInfo.string(
+          name          = "app-toolkit",
+          version       = "0.0.1",
+          scalaVersion  = "2.13.10",
+          sbtVersion    = "1.8.0"
+        )
+       )
+      .withLogger(ToolkitLogger.console[IO](_))
+      .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
       .dependsOn(AppDependencyServices.resource(_))
       .provideOne(deps =>
           // Kafka consumer
@@ -95,13 +91,9 @@ object Main extends IOApp {
             .compile
             .drain
       )
-      .use(app =>
-        app
-          .preRun(_.logger.info("CUSTOM PRE-RUN"))
-          .onFinalize(_.logger.info("CUSTOM END"))
-          .run
-          .as(ExitCode.Success)
-      )
+      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .onFinalize(_.logger.info("CUSTOM END"))
+      .run(ExitCode.Success)
 }
 ```
 
