@@ -38,5 +38,5 @@ object LabeledResource {
   val http: LabeledResource                       = LabeledResource.uniqueResource("http")
   val appRuntime: LabeledResource                 = LabeledResource.uniqueResource("app-runtime")
   val appLoader: LabeledResource                  = LabeledResource.uniqueResource("app-loader")
-  val appDependencies: LabeledResource = LabeledResource.uniqueResource("app-dependencies")
+  val appDependencies: LabeledResource            = LabeledResource.uniqueResource("app-dependencies")
 }

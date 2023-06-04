@@ -1,13 +1,7 @@
 package com.geirolz.app.toolkit.config
 
 import cats.{Eq, Show}
-import com.geirolz.app.toolkit.config.Secret.{
-  DeOffuser,
-  NoLongerValidSecret,
-  Offuser,
-  OffuserTuple,
-  Seed
-}
+import com.geirolz.app.toolkit.config.Secret.{DeOffuser, NoLongerValidSecret, Offuser, OffuserTuple, Seed}
 
 import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
@@ -19,12 +13,11 @@ import scala.util.Random
 
 /** The `Secret` class represent a secret value of type `T`.
   *
-  * The value is implicitly offuscated when creating the `Secret` instance using an implicit
-  * `Offuser` instance which, by default, transform the value into a shuffled `Array[Byte]`.
+  * The value is implicitly offuscated when creating the `Secret` instance using an implicit `Offuser` instance which, by default, transform the value
+  * into a shuffled `Array[Byte]`.
   *
-  * The offuscated value is de-offuscated using an implicit `DeOffuser` instance every time the
-  * method `use` is invoked which returns the original value un-shuffling the bytes and converting
-  * them back to `T`.
+  * The offuscated value is de-offuscated using an implicit `DeOffuser` instance every time the method `use` is invoked which returns the original
+  * value un-shuffling the bytes and converting them back to `T`.
   *
   * Example
   * {{{

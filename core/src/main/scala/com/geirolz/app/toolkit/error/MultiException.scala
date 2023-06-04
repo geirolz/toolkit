@@ -50,9 +50,7 @@ object MultiException {
     s"""
        |Multiple [${errors.size}] exceptions.
        |${errors.toList
-        .map(ex =>
-          s" -${ex.getMessage} [${ex.getStackTrace.headOption.map(_.toString).getOrElse("")}]"
-        )
+        .map(ex => s" -${ex.getMessage} [${ex.getStackTrace.headOption.map(_.toString).getOrElse("")}]")
         .mkString("\n")}""".stripMargin
   }
 

@@ -76,7 +76,7 @@ sealed trait AnsiValue {
       case (_: AnsiValue.Rich, b: AnsiValue.Rich) => b
       case (a: AnsiValue.Rich, b: AnsiValue)      => a.withEvalValue(b)
       case (a, b: AnsiValue.Rich)                 => b.withEvalValue(a)
-      case (a, b) => AnsiValue.Rich().withEvalValue(a).withEvalValue(b)
+      case (a, b)                                 => AnsiValue.Rich().withEvalValue(a).withEvalValue(b)
     }
 
   override def toString: String = value
