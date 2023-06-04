@@ -1,21 +1,18 @@
 package com.geirolz.example.app
 
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{AppBuilder, AppResources}
-import com.geirolz.app.toolkit.config.pureconfig.syntax.*
+import com.geirolz.app.toolkit.App
+import com.geirolz.app.toolkit.config.pureconfig.syntax.AppResourcesLoaderOps
 import com.geirolz.example.app.provided.AppHttpServer
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-object App extends IOApp {
+object AppMain extends IOApp {
 
   override def run(args: List[String]): IO[ExitCode] =
-    AppBuilder[IO]
-      .withResourcesLoader(
-        AppResources
-          .loader[IO, AppInfo](AppInfo.fromBuildInfo)
-          .withLogger(Slf4jLogger.getLogger[IO])
-          .withPureConfigLoader[AppConfig]
-      )
+    App[IO]
+      .withInfo(AppInfo.fromBuildInfo)
+      .withLogger(Slf4jLogger.getLogger[IO])
+      .withPureConfigLoader[AppConfig]
       .dependsOn(AppDependencyServices.resource(_))
       .provide(deps =>
         List(
@@ -30,11 +27,7 @@ object App extends IOApp {
             .drain
         )
       )
-      .use(app =>
-        app
-          .preRun(_.logger.info("CUSTOM PRE-RUN"))
-          .onFinalize(_.logger.info("CUSTOM END"))
-          .run
-          .as(ExitCode.Success)
-      )
+      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .onFinalize(_.logger.info("CUSTOM END"))
+      .run(ExitCode.Success)
 }

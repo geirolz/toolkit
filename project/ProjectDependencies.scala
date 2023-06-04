@@ -4,19 +4,20 @@ import scala.language.postfixOps
 
 object ProjectDependencies {
 
-  private val catsVersion        = "2.9.0"
-  private val catsEffectVersion  = "3.4.8"
-  private val refinedVersion     = "0.10.1"
-  private val circeVersion       = "0.14.5"
-  private val pureConfigVersion  = "0.17.2"
-  private val munitVersion       = "0.7.29"
-  private val munitEffectVersion = "1.0.7"
-  private val slf4Version        = "2.0.6"
-  private val log4catsVersion    = "2.5.0"
-  private val odinVersion        = "0.13.0"
-  private val http4sVersion      = "0.23.18"
-  private val fs2Version         = "3.6.1"
-  private val scalacheck         = "1.17.0"
+  private val catsVersion              = "2.9.0"
+  private val catsEffectVersion        = "3.5.0"
+  private val refinedVersion           = "0.10.1"
+  private val circeVersion             = "0.14.5"
+  private val circeGenericExtraVersion = "0.14.3"
+  private val pureConfigVersion        = "0.17.4"
+  private val munitVersion             = "0.7.29"
+  private val munitEffectVersion       = "1.0.7"
+  private val slf4Version              = "2.0.7"
+  private val log4catsVersion          = "2.6.0"
+  private val odinVersion              = "0.13.0"
+  private val http4sVersion            = "0.23.19"
+  private val fs2Version               = "3.7.0"
+  private val scalacheck               = "1.17.0"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -41,7 +42,8 @@ object ProjectDependencies {
   }
 
   object Examples {
-    lazy val dedicated_2_13: Seq[ModuleID] = Seq(
+
+    private lazy val dedicatedCommon: Seq[ModuleID] = Seq(
       // http
       "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
@@ -55,16 +57,21 @@ object ProjectDependencies {
       "org.slf4j" % "slf4j-simple" % slf4Version,
 
       // config
-      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
 
       // json
       "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-generic-extras" % circeVersion,
       "io.circe" %% "circe-refined" % circeVersion
     )
 
-    lazy val dedicated_3_2: Seq[ModuleID] = Nil
+    lazy val dedicated_2_13: Seq[ModuleID] = dedicatedCommon ++ Seq(
+      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
+      "io.circe" %% "circe-generic-extras" % circeGenericExtraVersion
+    )
+
+    lazy val dedicated_3_2: Seq[ModuleID] = dedicatedCommon ++ Seq(
+      "io.circe" %% "circe-generic" % circeVersion
+    )
   }
 
   object Integrations {

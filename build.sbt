@@ -4,7 +4,7 @@ lazy val prjName                = "app-toolkit"
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
 lazy val scala213               = "2.13.10"
-lazy val scala32                = "3.2.2"
+lazy val scala32                = "3.3.0"
 lazy val supportedScalaVersions = List(scala213, scala32)
 
 //## global project to no publish ##
@@ -190,9 +190,7 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
       case Some((3, _))  => ProjectDependencies.Plugins.compilerPluginsFor3
       case _             => Nil
     }
-  },
-  // fmt
-  scalafmtOnCompile := true
+  }
 )
 
 def scalacSettings(scalaVersion: String): Seq[String] =

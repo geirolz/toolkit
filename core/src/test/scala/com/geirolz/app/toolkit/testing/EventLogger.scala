@@ -3,7 +3,6 @@ package com.geirolz.app.toolkit.testing
 import cats.effect.{Ref, Resource}
 import cats.effect.kernel.MonadCancelThrow
 import cats.Functor
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 
 class EventLogger[F[_]](ref: Ref[F, List[Event]]) {
 
@@ -22,22 +21,20 @@ object EventLogger {
     Ref.of(List.empty[Event]).map(new EventLogger(_))
   }
 
-  implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger, E, LOGGER_T[
-    _[_]
-  ], APP_INFO <: SimpleAppInfo[
-    ?
-  ], CONFIG](
-    resource: Resource[F, App[F, E, APP_INFO, LOGGER_T, CONFIG]]
-  ) {
-    def traceAsAppLoader: Resource[F, App[F, E, APP_INFO, LOGGER_T, CONFIG]] =
-      resource.trace(LabeledResource.appLoader)
+  implicit class appLoaderResOps[F[+_]: MonadCancelThrow: EventLogger](compiledApp: Resource[F, F[Unit]]) {
+
+    def traceAsAppLoader: Resource[F, F[Unit]] =
+      compiledApp.trace(LabeledResource.appLoader)
+
+    def runFullTracedApp: F[Unit] =
+      compiledApp.traceAsAppLoader
+        .use(_.traceAsAppRuntime.pure[F])
+        .flatten
   }
 
-  implicit class appRuntimeResOps[F[_]: MonadCancelThrow: EventLogger](
-    resource: Resource[F, Unit]
-  ) {
-    def traceAsAppRuntime: Resource[F, Unit] =
-      resource.trace(LabeledResource.appRuntime)
+  implicit class appRuntimeResOps[F[_]: MonadCancelThrow: EventLogger](app: F[Unit]) {
+    def traceAsAppRuntime: F[Unit] =
+      Resource.eval(app).trace(LabeledResource.appRuntime).use_
   }
 
   implicit class genericResOps[F[_]: MonadCancelThrow: EventLogger, T](resource: Resource[F, T]) {
