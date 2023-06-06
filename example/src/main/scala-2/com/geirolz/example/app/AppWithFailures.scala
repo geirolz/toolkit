@@ -29,5 +29,5 @@ object AppWithFailures extends IOApp {
       )
       .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
       .onFinalize(_.logger.info("CUSTOM END"))
-      .run
+      .run(args)
 }
