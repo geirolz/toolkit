@@ -70,7 +70,7 @@ class App[
   ): Self =
     copyWith(onFinalizeF = f)
 
-  private[toolkit] def _compile: Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
+  private[toolkit] def _compile(appArgs: List[String]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
     (
       for {
 
@@ -94,6 +94,7 @@ class App[
         // group resources
         appResources: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = App.Resources(
           info      = this.appInfo,
+          args      = AppArgs(appArgs),
           logger    = appLogger,
           config    = appConfig,
           resources = otherResources
@@ -216,17 +217,31 @@ object App extends AppSyntax {
   import cats.syntax.all.*
 
   final case class Dependencies[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
-    resources: App.Resources[APP_INFO, LOGGER, CONFIG, RESOURCES],
-    dependencies: DEPENDENCIES
+    private val _resources: App.Resources[APP_INFO, LOGGER, CONFIG, RESOURCES],
+    private val _dependencies: DEPENDENCIES
   ) {
     // proxies
-    val info: APP_INFO = resources.info
-    val logger: LOGGER = resources.logger
-    val config: CONFIG = resources.config
+    val info: APP_INFO             = _resources.info
+    val args: AppArgs              = _resources.args
+    val logger: LOGGER             = _resources.logger
+    val config: CONFIG             = _resources.config
+    val resources: RESOURCES       = _resources.resources
+    val dependencies: DEPENDENCIES = _dependencies
+
+    override def toString: String =
+      s"""App.Dependencies(
+        |  info = $info,
+        |  args = $args,
+        |  logger = $logger,
+        |  config = $config,
+        |  resources = $resources,
+        |  dependencies = $dependencies
+        |)""".stripMargin
   }
 
   final case class Resources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
     info: APP_INFO,
+    args: AppArgs,
     logger: LOGGER,
     config: CONFIG,
     resources: RESOURCES
@@ -235,6 +250,15 @@ object App extends AppSyntax {
     type Logger    = LOGGER
     type Config    = CONFIG
     type Resources = RESOURCES
+
+    override def toString: String =
+      s"""App.Dependencies(
+         |  info = $info,
+         |  args = $args,
+         |  logger = $logger,
+         |  config = $config,
+         |  resources = $resources
+         |)""".stripMargin
   }
 
   def apply[F[+_]: Async: Parallel](implicit dummyImplicit: DummyImplicit): AppBuilderRuntimeSelected[F, Throwable] =
@@ -467,22 +491,28 @@ sealed trait AppSyntax {
       app._updateFailureHandlerLoader(appRes => _.handleFailureWith(f.compose(app.Resourced(appRes, _))))
 
     // compile and run
-    def compile: Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
-      app._compile
+    def compile(args: List[String] = Nil): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
+      app._compile(args)
 
-    def run: F[ExitCode] = run {
-      case Left(_)  => ExitCode.Error
-      case Right(_) => ExitCode.Success
-    }
+    def run(appArgs: List[String] = Nil): F[ExitCode] =
+      runMap[ExitCode](appArgs).apply {
+        case Left(_)  => ExitCode.Error
+        case Right(_) => ExitCode.Success
+      }
 
-    def runReduce[B](f: FAILURE \/ Unit => B)(implicit semigroup: Semigroup[FAILURE]): F[B] =
-      run {
-        case Left(failures) => Left(failures.reduce)
-        case Right(_)       => Right(())
-      }.map(f)
+    def runReduce[B](appArgs: List[String] = Nil, f: FAILURE \/ Unit => B)(implicit semigroup: Semigroup[FAILURE]): F[B] =
+      runMap[FAILURE \/ Unit](appArgs)
+        .apply {
+          case Left(failures) => Left(failures.reduce)
+          case Right(_)       => Right(())
+        }
+        .map(f)
 
-    def run[B](f: NonEmptyList[FAILURE] \/ Unit => B): F[B] =
-      compile
+    def runRaw(appArgs: List[String] = Nil): F[NonEmptyList[FAILURE] \/ Unit] =
+      runMap[NonEmptyList[FAILURE] \/ Unit](appArgs)(identity)
+
+    def runMap[B](appArgs: List[String] = Nil)(f: NonEmptyList[FAILURE] \/ Unit => B): F[B] =
+      compile(appArgs)
         .map {
           case Left(failure)   => f(Left(NonEmptyList.one(failure))).pure[F]
           case Right(appLogic) => appLogic.map(f)
@@ -497,8 +527,8 @@ sealed trait AppSyntax {
     app: App[F, Throwable, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
   ) {
 
-    def compile: Resource[F, F[Unit]] =
-      app._compile.flatMap {
+    def compile(appArgs: List[String] = Nil): Resource[F, F[Unit]] =
+      app._compile(appArgs).flatMap {
         case Left(failure) =>
           Resource.raiseError(failure)
         case Right(value) =>
@@ -509,13 +539,13 @@ sealed trait AppSyntax {
           })
       }
 
-    def run: F[ExitCode] =
-      run(ExitCode.Success)
+    def run_ : F[Unit] =
+      run().void
 
-    def run[U](b: U): F[U] =
-      compile
+    def run(appArgs: List[String] = Nil): F[ExitCode] =
+      compile(appArgs)
         .use(_.pure[F])
         .flatten
-        .as(b)
+        .as(ExitCode.Success)
   }
 }

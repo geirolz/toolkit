@@ -1,8 +1,8 @@
 package com.geirolz.app.toolkit.testing
 
-import cats.effect.{Ref, Resource}
-import cats.effect.kernel.MonadCancelThrow
 import cats.Functor
+import cats.effect.kernel.MonadCancelThrow
+import cats.effect.{Ref, Resource}
 
 class EventLogger[F[_]](ref: Ref[F, List[Event]]) {
 

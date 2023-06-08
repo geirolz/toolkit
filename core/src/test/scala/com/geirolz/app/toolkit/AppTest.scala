@@ -2,9 +2,9 @@ package com.geirolz.app.toolkit
 
 import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
+import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.*
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 
 import scala.concurrent.duration.DurationInt
 
@@ -26,7 +26,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withConfig(TestConfig.defaultTest)
             .dependsOn(_ => Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
             .provideOne(_.dependencies.set(1))
-            .compile
+            .compile()
             .runFullTracedApp
 
           // assert
@@ -66,7 +66,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withConfig(TestConfig.defaultTest)
             .withoutDependencies
             .provideOneF(_ => IO.raiseError(ex"BOOM!"))
-            .compile
+            .compile()
             .traceAsAppLoader
             .attempt
             .use_
@@ -103,7 +103,7 @@ class AppTest extends munit.CatsEffectSuite {
                 IO.sleep(200.millis)
               )
             )
-            .compile
+            .compile()
             .runFullTracedApp
 
           // assert
@@ -137,7 +137,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withConfig(TestConfig.defaultTest)
             .withoutDependencies
             .provideOne(_ => IO.sleep(1.second))
-            .compile
+            .compile()
             .runFullTracedApp
 
           // assert
@@ -179,7 +179,7 @@ class AppTest extends munit.CatsEffectSuite {
                 )
               )
             )
-            .compile
+            .compile()
             .runFullTracedApp
 
           // assert
@@ -215,7 +215,7 @@ class AppTest extends munit.CatsEffectSuite {
               .withConfig(TestConfig.defaultTest)
               .withoutDependencies
               .provideOne(_ => IO.raiseError(ex"BOOM!"))
-              .compile
+              .compile()
               .runFullTracedApp
               .attempt
 
@@ -236,6 +236,34 @@ class AppTest extends munit.CatsEffectSuite {
           )
         } yield ()
       })
+  }
+
+  test("App can use args from Run method") {
+
+    for {
+      state <- IO.ref[Boolean](false)
+      _ <- App[IO]
+        .withInfo(TestAppInfo.value)
+        .withLogger(ToolkitLogger.console[IO])
+        .withConfig(TestConfig.defaultTest)
+        .withoutDependencies
+        .provideOne(r =>
+          state.set(
+            r.args.exists(
+              _.getVar[Int]("arg1").contains(1),
+              _.hasFlags("verbose", "debug")
+            )
+          )
+        )
+        .run(List("arg1=1", "verbose", "debug"))
+        .void
+
+      // assert
+      _ <- assertIO(
+        obtained = state.get,
+        returns  = true
+      )
+    } yield ()
   }
 
   test("Custom Error with CancelAll") {
@@ -265,7 +293,7 @@ class AppTest extends munit.CatsEffectSuite {
               logger.error(failures.toString)
             }
           )
-          .run(identity)
+          .runRaw()
         finalState <- state.get
       } yield (finalState, app)
 
@@ -305,7 +333,7 @@ class AppTest extends munit.CatsEffectSuite {
           .onFailure(_.useTupledAll { case (_, _, logger, failures, _) =>
             logger.error(failures.toString).as(OnFailureBehaviour.DoNothing)
           })
-          .run(identity)
+          .runRaw()
         finalState <- state.get
       } yield (finalState, app)
 
@@ -322,5 +350,4 @@ class AppTest extends munit.CatsEffectSuite {
       }
     )
   }
-
 }
