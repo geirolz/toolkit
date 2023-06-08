@@ -1,4 +1,5 @@
 # app-toolkit
+
 [![Build Status](https://github.com/geirolz/app-toolkit/actions/workflows/cicd.yml/badge.svg)](https://github.com/geirolz/app-toolkit/actions)
 [![codecov](https://img.shields.io/codecov/c/github/geirolz/app-toolkit)](https://codecov.io/gh/geirolz/app-toolkit)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/db3274b55e0c4031803afb45f58d4413)](https://www.codacy.com/manual/david.geirola/app-toolkit?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=geirolz/app-toolkit&amp;utm_campaign=Badge_Grade)
@@ -20,26 +21,28 @@ Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/e
 - `provide` let you define the app provided services expressed by a `List[F[?]]` which will be run in parallel
 - `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
 
-
 Given
+
 ```scala
 import cats.Show
 import cats.effect.{ExitCode, Resource, IO, IOApp}
-import com.geirolz.app.toolkit.{ App, SimpleAppInfo }
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.novalues.NoResources
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 // Define config
 case class Config(host: String, port: Int)
+
 object Config {
   implicit val show: Show[Config] = Show.fromToString
 }
 
 // Define service dependencies
 case class AppDependencyServices(
- kafkaConsumer: KafkaConsumer[IO]
-)
+                                  kafkaConsumer: KafkaConsumer[IO]
+                                )
+
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(AppDependencyServices(KafkaConsumer.fake))
@@ -49,10 +52,11 @@ object AppDependencyServices {
 trait KafkaConsumer[F[_]] {
   def consumeFrom(name: String): fs2.Stream[F, KafkaConsumer.KafkaRecord]
 }
+
 object KafkaConsumer {
 
   import scala.concurrent.duration.DurationInt
-  
+
   case class KafkaRecord(value: String)
 
   def fake: KafkaConsumer[IO] =
@@ -74,42 +78,45 @@ object Main extends IOApp {
     App[IO]
       .withInfo(
         SimpleAppInfo.string(
-          name          = "app-toolkit",
-          version       = "0.0.1",
-          scalaVersion  = "2.13.10",
-          sbtVersion    = "1.8.0"
+          name = "app-toolkit",
+          version = "0.0.1",
+          scalaVersion = "2.13.10",
+          sbtVersion = "1.8.0"
         )
-       )
+      )
       .withLogger(ToolkitLogger.console[IO](_))
       .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
       .dependsOn(AppDependencyServices.resource(_))
       .provideOne(deps =>
-          // Kafka consumer
-          deps.dependencies.kafkaConsumer
-            .consumeFrom("test-topic")
-            .evalTap(record => deps.logger.info(s"Received record $record"))
-            .compile
-            .drain
+        // Kafka consumer
+        deps.dependencies.kafkaConsumer
+          .consumeFrom("test-topic")
+          .evalTap(record => deps.logger.info(s"Received record $record"))
+          .compile
+          .drain
       )
       .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
       .onFinalize(_.logger.info("CUSTOM END"))
-      .run(ExitCode.Success)
+      .run(args)
 }
 ```
 
-
 ### Integrations
-#### pureconfig 
+
+#### pureconfig
+
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.6"
 ```
 
 #### log4cats
+
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.6"
 ```
 
 #### odin
+
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.6"
 ```
