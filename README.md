@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.7"
 ```
 
 Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example)
@@ -106,17 +106,17 @@ object Main extends IOApp {
 #### pureconfig
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.7"
 ```
 
 #### log4cats
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.7"
 ```
 
 #### odin
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.7"
 ```
