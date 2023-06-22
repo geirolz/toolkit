@@ -1,11 +1,30 @@
 package com.geirolz.app.toolkit.logger
 
 import cats.effect.IO
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.error.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
 class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
+
+  test("Syntax works as expected") {
+    assertIO_(
+      App[IO]
+        .withInfo(
+          SimpleAppInfo.string(
+            name         = "app-toolkit",
+            version      = "0.0.1",
+            scalaVersion = "2.13.10",
+            sbtVersion   = "1.8.0"
+          )
+        )
+        .withLogger(NoOpLogger[IO])
+        .withoutDependencies
+        .provideOne(_ => IO.unit)
+        .run_
+    )
+  }
 
   test("Implicit conversion with Logger") {
     val adapterLogger: LoggerAdapter[Logger] = implicitly[LoggerAdapter[Logger]]

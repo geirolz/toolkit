@@ -2,9 +2,31 @@ package com.geirolz.app.toolkit.config
 
 import _root_.pureconfig.ConfigReader
 import _root_.pureconfig.backend.ConfigFactoryWrapper
+import cats.effect.IO
+import com.geirolz.app.toolkit.config.pureconfig.syntax.AppResourcesLoaderOps
+import com.geirolz.app.toolkit.config.testing.TestConfig
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.typesafe.config.Config
 
-class PureconfigSecretSupportSuite extends munit.FunSuite {
+class PureconfigSecretSupportSuite extends munit.CatsEffectSuite {
+
+  test("Syntax works as expected") {
+    assertIO_(
+      App[IO]
+        .withInfo(
+          SimpleAppInfo.string(
+            name         = "app-toolkit",
+            version      = "0.0.1",
+            scalaVersion = "2.13.10",
+            sbtVersion   = "1.8.0"
+          )
+        )
+        .withPureConfigLoader[TestConfig]
+        .withoutDependencies
+        .provideOne(_ => IO.unit)
+        .run_
+    )
+  }
 
   test("Read secret string with pureconfig") {
 
