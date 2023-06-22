@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-core" % "0.0.7"
 ```
 
 Check the full example [here](https://github.com/geirolz/app-toolkit/tree/main/example)
@@ -106,17 +106,47 @@ object Main extends IOApp {
 #### pureconfig
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-config-pureconfig" % "0.0.7"
+```
+
+Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
+
+```scala
+
+import cats.Show
+import com.geirolz.app.toolkit.config.pureconfig.syntax.*
+
+case class TestConfig(value: String)
+
+object TestConfig {
+  implicit val show: Show[TestConfig] = Show.fromToString
+  implicit val configReader: pureconfig.ConfigReader[TestConfig] =
+    pureconfig.ConfigReader.forProduct1("value")(TestConfig.apply)
+}
+
+App[IO]
+  .withInfo(
+    SimpleAppInfo.string(
+      name = "app-toolkit",
+      version = "0.0.1",
+      scalaVersion = "2.13.10",
+      sbtVersion = "1.8.0"
+    )
+  )
+  .withPureConfigLoader[TestConfig]
+  .withoutDependencies
+  .provideOne(_ => IO.unit)
+  .run_
 ```
 
 #### log4cats
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-log4cats" % "0.0.7"
 ```
 
 #### odin
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.6"
+libraryDependencies += "com.github.geirolz" %% "app-toolkit-odin" % "0.0.7"
 ```

@@ -7,7 +7,7 @@ import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 import com.geirolz.example.app.provided.AppHttpServer
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-object App extends IOApp:
+object AppMain extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     App[IO]
       .withInfo(AppInfo.fromBuildInfo)
