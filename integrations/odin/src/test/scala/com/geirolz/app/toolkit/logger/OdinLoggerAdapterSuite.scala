@@ -12,7 +12,7 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
       App[IO]
         .withInfo(
           SimpleAppInfo.string(
-            name         = "app-toolkit",
+            name         = "toolkit",
             version      = "0.0.1",
             scalaVersion = "2.13.10",
             sbtVersion   = "1.8.0"

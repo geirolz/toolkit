@@ -1,6 +1,6 @@
 import sbt.project
 
-lazy val prjName                = "app-toolkit"
+lazy val prjName                = "toolkit"
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
 lazy val scala213               = "2.13.10"
