@@ -25,11 +25,10 @@ Given
 
 ```scala mdoc:silent
 import cats.Show
-import cats.effect.{ExitCode, Resource, IO, IOApp}
+import cats.effect.{Resource, IO}
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.novalues.NoResources
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 // Define config
 case class Config(host: String, port: Int)
@@ -39,9 +38,7 @@ object Config {
 }
 
 // Define service dependencies
-case class AppDependencyServices(
-                                  kafkaConsumer: KafkaConsumer[IO]
-                                )
+case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
@@ -67,11 +64,12 @@ object KafkaConsumer {
 }
 ```
 
+You can write your app as
+
 ```scala mdoc:silent
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.App
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.error.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -111,15 +109,16 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@
 
 Import the syntax
 
-```scala
+```scala mdoc:silent:reset:warn
 import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 ```
 
 Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
 
-```scala mdoc:silent
-
+```scala mdoc:silent:reset
 import cats.Show
+import cats.effect.IO
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 
 case class TestConfig(value: String)
@@ -165,7 +164,7 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "@VERSION@"
 
 Import the syntax
 
-```scala
+```scala mdoc:silent:reset:warn
 import com.geirolz.app.toolkit.fly4s.syntax.*
 ```
 
@@ -175,10 +174,11 @@ To have access to the whole app dependencies you can use `beforeProvidingMigrate
 access to
 the whole app dependencies to provide a custom `Fly4s` instance you can use `beforeProvidingMigrateDatabase`.
 
-```scala mdoc:silent
-
+```scala mdoc:silent:reset
 import cats.Show
+import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.syntax.*
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
