@@ -27,7 +27,7 @@ object AppWithFailures extends IOApp {
             .drain
         )
       )
-      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .beforeProviding(_.logger.info("CUSTOM PRE-RUN"))
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
 }

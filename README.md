@@ -25,11 +25,10 @@ Given
 
 ```scala
 import cats.Show
-import cats.effect.{ExitCode, Resource, IO, IOApp}
+import cats.effect.{Resource, IO}
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.novalues.NoResources
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 // Define config
 case class Config(host: String, port: Int)
@@ -39,9 +38,7 @@ object Config {
 }
 
 // Define service dependencies
-case class AppDependencyServices(
- kafkaConsumer: KafkaConsumer[IO]
-)
+case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
@@ -67,11 +64,12 @@ object KafkaConsumer {
 }
 ```
 
+You can write your app as
+
 ```scala
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.App
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.error.*
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -95,7 +93,7 @@ object Main extends IOApp {
           .compile
           .drain
       )
-      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
 }
@@ -109,11 +107,18 @@ object Main extends IOApp {
 libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.8"
 ```
 
+Import the syntax
+
+```scala
+import com.geirolz.app.toolkit.config.pureconfig.syntax.*
+```
+
 Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
 
 ```scala
-
 import cats.Show
+import cats.effect.IO
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 
 case class TestConfig(value: String)
@@ -149,4 +154,60 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.8"
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.8"
+```
+
+#### fly4s
+
+```sbt
+libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.8"
+```
+
+Import the syntax
+
+```scala
+import com.geirolz.app.toolkit.fly4s.syntax.*
+```
+
+Which allows you to use `beforeProvidingMigrateDatabaseWithConfig` on `App` to migrate the database before running the
+app.
+To have access to the whole app dependencies you can use `beforeProvidingMigrateDatabaseWith` instead while to have
+access to
+the whole app dependencies to provide a custom `Fly4s` instance you can use `beforeProvidingMigrateDatabase`.
+
+```scala
+import cats.Show
+import cats.effect.IO
+import com.geirolz.app.toolkit.fly4s.syntax.*
+import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+
+case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
+
+object TestConfig {
+  implicit val show: Show[TestConfig] = Show.fromToString
+}
+
+App[IO]
+  .withInfo(
+    SimpleAppInfo.string(
+      name = "toolkit",
+      version = "0.0.1",
+      scalaVersion = "2.13.10",
+      sbtVersion = "1.8.0"
+    )
+  )
+  .withConfig(
+    TestConfig(
+      dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
+      dbUser = Some("postgres"),
+      dbPassword = Some("postgres".toCharArray)
+    )
+  )
+  .withoutDependencies
+  .provideOne(_ => IO.unit)
+  .beforeProvidingMigrateDatabaseWithConfig(
+    url = _.dbUrl,
+    user = _.dbUser,
+    password = _.dbPassword
+  )
+  .run_
 ```
