@@ -10,6 +10,7 @@ object ProjectDependencies {
   private val circeVersion             = "0.14.5"
   private val circeGenericExtraVersion = "0.14.3"
   private val pureConfigVersion        = "0.17.4"
+  private val fly4sVersion             = "0.0.18"
   private val munitVersion             = "0.7.29"
   private val munitEffectVersion       = "1.0.7"
   private val slf4Version              = "2.0.7"
@@ -96,9 +97,15 @@ object ProjectDependencies {
       )
     }
 
-    object ConfigPureConfig {
+    object Pureconfig {
       lazy val dedicated: Seq[ModuleID] = List(
         "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
+      )
+    }
+
+    object Fly4s {
+      lazy val dedicated: Seq[ModuleID] = List(
+        "com.github.geirolz" %% "fly4s-core" % fly4sVersion
       )
     }
   }

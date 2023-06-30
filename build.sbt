@@ -35,13 +35,13 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, testing, log4cats, odin, pureconfig)
+  .aggregate(core, docs, config, testing, log4cats, odin, pureconfig, fly4s)
 
 lazy val docs: Project =
   project
     .in(file("docs"))
     .enablePlugins(MdocPlugin)
-    .dependsOn(core, config, log4cats, odin, pureconfig)
+    .dependsOn(core, config, log4cats, odin, pureconfig, fly4s)
     .settings(
       baseSettings,
       noPublishSettings,
@@ -142,13 +142,22 @@ lazy val odin: Project =
       libraryDependencies ++= ProjectDependencies.Integrations.Odin.dedicated
     )
 
-lazy val `pureconfig`: Project =
+lazy val pureconfig: Project =
   module("pureconfig")(
     folder    = s"$integrationsFolder/pureconfig",
     publishAs = Some(subProjectName("pureconfig"))
   ).dependsOn(core, config)
     .settings(
-      libraryDependencies ++= ProjectDependencies.Integrations.ConfigPureConfig.dedicated
+      libraryDependencies ++= ProjectDependencies.Integrations.Pureconfig.dedicated
+    )
+
+lazy val fly4s: Project =
+  module("fly4s")(
+    folder    = s"$integrationsFolder/fly4s",
+    publishAs = Some(subProjectName("fly4s"))
+  ).dependsOn(core)
+    .settings(
+      libraryDependencies ++= ProjectDependencies.Integrations.Fly4s.dedicated
     )
 
 //=============================== MODULES UTILS ===============================

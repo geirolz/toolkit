@@ -22,7 +22,7 @@ class App[
   val loggerBuilder: F[LOGGER_T[F]],
   val configLoader: F[CONFIG],
   val resourcesLoader: F[RESOURCES],
-  val beforeRunF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
+  val beforeProvidingF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val onFinalizeF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val failureHandlerLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => FailureHandler[F, FAILURE],
   val dependenciesLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE \/ DEPENDENCIES],
@@ -60,15 +60,15 @@ class App[
   def withMessages(messages: AppMessages): Self =
     copyWith(appMessages = messages)
 
-  def beforeRun(
+  def beforeProviding(
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ): Self =
-    copyWith(beforeRunF = f)
+    copyWith(beforeProvidingF = beforeProvidingF >> f)
 
   def onFinalize(
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ): Self =
-    copyWith(onFinalizeF = f)
+    copyWith(onFinalizeF = onFinalizeF >> f)
 
   private[toolkit] def _compile(appArgs: List[String]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
     (
@@ -146,7 +146,7 @@ class App[
         } yield maybeReducedFailures.toLeft(())
       } yield {
         appLoggerF.info(appMessages.startingApp) >>
-        beforeRunF(appDependencies) >>
+        beforeProvidingF(appDependencies) >>
         appLogic
           .onCancel(appLoggerF.info(appMessages.appWasStopped))
           .onError(e => appLoggerF.error(e)(appMessages.appEnErrorOccurred))
@@ -180,13 +180,13 @@ class App[
     RES2,
     DEPS2
   ](
-    appInfo: APP_INFO2                                                                      = this.appInfo,
-    appMessages: AppMessages                                                                = this.appMessages,
-    loggerBuilder: G[LOGGER_T2[G]]                                                          = this.loggerBuilder,
-    configLoader: G[CONFIG2]                                                                = this.configLoader,
-    resourcesLoader: G[RES2]                                                                = this.resourcesLoader,
-    beforeRunF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]  = this.beforeRunF,
-    onFinalizeF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit] = this.onFinalizeF,
+    appInfo: APP_INFO2                                                                           = this.appInfo,
+    appMessages: AppMessages                                                                     = this.appMessages,
+    loggerBuilder: G[LOGGER_T2[G]]                                                               = this.loggerBuilder,
+    configLoader: G[CONFIG2]                                                                     = this.configLoader,
+    resourcesLoader: G[RES2]                                                                     = this.resourcesLoader,
+    beforeProvidingF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit] = this.beforeProvidingF,
+    onFinalizeF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]      = this.onFinalizeF,
     failureHandlerLoader: App.Resources[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] => FailureHandler[
       G,
       FAILURE2
@@ -205,7 +205,7 @@ class App[
       loggerBuilder        = loggerBuilder,
       configLoader         = configLoader,
       resourcesLoader      = resourcesLoader,
-      beforeRunF           = beforeRunF,
+      beforeProvidingF     = beforeProvidingF,
       onFinalizeF          = onFinalizeF,
       failureHandlerLoader = failureHandlerLoader,
       dependenciesLoader   = dependenciesLoader,
@@ -434,7 +434,7 @@ object App extends AppSyntax {
       failureHandlerLoader = _ => FailureHandler.cancelAll,
       loggerBuilder        = loggerBuilder,
       resourcesLoader      = resourcesLoader,
-      beforeRunF           = _ => ().pure[F],
+      beforeProvidingF     = _ => ().pure[F],
       onFinalizeF          = _ => ().pure[F],
       configLoader         = configLoader,
       dependenciesLoader   = dependenciesLoader,
