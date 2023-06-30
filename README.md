@@ -95,7 +95,7 @@ object Main extends IOApp {
           .compile
           .drain
       )
-      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
 }

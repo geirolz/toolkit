@@ -40,8 +40,8 @@ object Config {
 
 // Define service dependencies
 case class AppDependencyServices(
- kafkaConsumer: KafkaConsumer[IO]
-)
+                                  kafkaConsumer: KafkaConsumer[IO]
+                                )
 
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
@@ -78,10 +78,10 @@ object Main extends IOApp {
     App[IO]
       .withInfo(
         SimpleAppInfo.string(
-          name          = "toolkit",
-          version       = "0.0.1",
-          scalaVersion  = "2.13.10",
-          sbtVersion    = "1.8.0"
+          name = "toolkit",
+          version = "0.0.1",
+          scalaVersion = "2.13.10",
+          sbtVersion = "1.8.0"
         )
       )
       .withLogger(ToolkitLogger.console[IO](_))
@@ -95,7 +95,7 @@ object Main extends IOApp {
           .compile
           .drain
       )
-      .beforeRun(_.logger.info("CUSTOM PRE-RUN"))
+      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
 }
@@ -108,7 +108,9 @@ object Main extends IOApp {
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@"
 ```
+
 Import the syntax
+
 ```scala
 import com.geirolz.app.toolkit.config.pureconfig.syntax.*
 ```
@@ -131,10 +133,10 @@ object TestConfig {
 App[IO]
   .withInfo(
     SimpleAppInfo.string(
-      name          = "toolkit",
-      version       = "0.0.1",
-      scalaVersion  = "2.13.10",
-      sbtVersion    = "1.8.0"
+      name = "toolkit",
+      version = "0.0.1",
+      scalaVersion = "2.13.10",
+      sbtVersion = "1.8.0"
     )
   )
   .withPureConfigLoader[TestConfig]
@@ -162,6 +164,7 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "@VERSION@"
 ```
 
 Import the syntax
+
 ```scala
 import com.geirolz.app.toolkit.fly4s.syntax.*
 ```
@@ -186,25 +189,25 @@ object TestConfig {
 App[IO]
   .withInfo(
     SimpleAppInfo.string(
-      name          = "toolkit",
-      version       = "0.0.1",
-      scalaVersion  = "2.13.10",
-      sbtVersion    = "1.8.0"
+      name = "toolkit",
+      version = "0.0.1",
+      scalaVersion = "2.13.10",
+      sbtVersion = "1.8.0"
     )
   )
   .withConfig(
     TestConfig(
-      dbUrl       = "jdbc:postgresql://localhost:5432/toolkit",
-      dbUser      = Some("postgres"),
-      dbPassword  = Some("postgres".toCharArray)
+      dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
+      dbUser = Some("postgres"),
+      dbPassword = Some("postgres".toCharArray)
     )
   )
   .withoutDependencies
   .provideOne(_ => IO.unit)
   .beforeProvidingMigrateDatabaseWithConfig(
-    url       = _.dbUrl,
-    user      = _.dbUser,
-    password  = _.dbPassword
+    url = _.dbUrl,
+    user = _.dbUser,
+    password = _.dbPassword
   )
   .run_
 ```
