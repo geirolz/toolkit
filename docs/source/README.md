@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-core" % "@VERSION@"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
 ```
 
 Check the full example [here](https://github.com/geirolz/toolkit/tree/main/example)
@@ -106,7 +106,7 @@ object Main extends IOApp {
 #### pureconfig
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-config-pureconfig" % "@VERSION@"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@"
 ```
 
 Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`

@@ -35,13 +35,13 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, testing, log4cats, odin, `config-pureconfig`)
+  .aggregate(core, docs, config, testing, log4cats, odin, pureconfig)
 
 lazy val docs: Project =
   project
     .in(file("docs"))
     .enablePlugins(MdocPlugin)
-    .dependsOn(core, config, log4cats, odin, `config-pureconfig`)
+    .dependsOn(core, config, log4cats, odin, pureconfig)
     .settings(
       baseSettings,
       noPublishSettings,
@@ -65,38 +65,33 @@ lazy val docs: Project =
     )
 
 lazy val core: Project =
-  buildModule(
-    prjModuleName = "core",
-    toPublish     = true,
-    folder        = "."
+  module("core")(
+    folder    = "./core",
+    publishAs = Some(prjName)
   ).settings(
     libraryDependencies ++= ProjectDependencies.Core.dedicated
   ).dependsOn(testing)
 
 lazy val config: Project =
-  buildModule(
-    prjModuleName = "config",
-    toPublish     = true,
-    folder        = "."
+  module("config")(
+    folder    = "./config",
+    publishAs = Some(subProjectName("config"))
   ).settings(
     libraryDependencies ++= ProjectDependencies.Config.dedicated
   )
 
 lazy val testing: Project =
-  buildModule(
-    prjModuleName = "testing",
-    toPublish     = true,
-    folder        = "."
+  module("testing")(
+    folder    = "./testing",
+    publishAs = Some(subProjectName("testing"))
   ).settings(
     libraryDependencies ++= ProjectDependencies.Testing.dedicated
   )
 
 lazy val example: Project = {
   val appPackage: String = "com.geirolz.example.app"
-  buildModule(
-    prjModuleName = "example",
-    toPublish     = false,
-    folder        = "."
+  module("example")(
+    folder = "./example"
   )
     .enablePlugins(BuildInfoPlugin)
     .settings(
@@ -124,55 +119,62 @@ lazy val example: Project = {
       ),
       buildInfoPackage := appPackage
     )
-    .dependsOn(core, config, log4cats, `config-pureconfig`)
+    .dependsOn(core, config, log4cats, pureconfig)
 }
 
 // integrations
+lazy val integrationsFolder: String = "./integrations"
 lazy val log4cats: Project =
-  buildModule(
-    prjModuleName = "log4cats",
-    toPublish     = true,
-    folder        = "integrations"
+  module("log4cats")(
+    folder    = s"$integrationsFolder/log4cats",
+    publishAs = Some(subProjectName("log4cats"))
   ).dependsOn(core)
     .settings(
       libraryDependencies ++= ProjectDependencies.Integrations.Log4cats.dedicated
     )
 
 lazy val odin: Project =
-  buildModule(
-    prjModuleName = "odin",
-    toPublish     = true,
-    folder        = "integrations"
+  module("odin")(
+    folder    = s"$integrationsFolder/odin",
+    publishAs = Some(subProjectName("odin"))
   ).dependsOn(core)
     .settings(
       libraryDependencies ++= ProjectDependencies.Integrations.Odin.dedicated
     )
 
-lazy val `config-pureconfig`: Project =
-  buildModule(
-    prjModuleName = "config-pureconfig",
-    toPublish     = true,
-    folder        = "integrations"
+lazy val `pureconfig`: Project =
+  module("pureconfig")(
+    folder    = s"$integrationsFolder/pureconfig",
+    publishAs = Some(subProjectName("pureconfig"))
   ).dependsOn(core, config)
     .settings(
       libraryDependencies ++= ProjectDependencies.Integrations.ConfigPureConfig.dedicated
     )
 
 //=============================== MODULES UTILS ===============================
-def buildModule(prjModuleName: String, toPublish: Boolean, folder: String): Project = {
-  val keys    = prjModuleName.split("-")
-  val docName = keys.mkString(" ")
-  val prjFile = file(s"$folder/$prjModuleName")
-
-  Project(prjModuleName, prjFile)
+def module(modName: String)(folder: String, publishAs: Option[String] = None): Project = {
+  val keys       = modName.split("-")
+  val modDocName = keys.mkString(" ")
+  val publishSettings = publishAs match {
+    case Some(pubName) =>
+      Seq(
+        moduleName := pubName,
+        publish / skip := false
+      )
+    case None =>
+      Seq(
+        publish / skip := true
+      )
+  }
+  Project(modName, file(folder))
     .settings(
-      description := moduleName.value,
-      moduleName := s"$prjName-$prjModuleName",
-      name := s"$prjName $docName",
-      publish / skip := !toPublish,
+      name := s"$prjName $modDocName",
+      publishSettings,
       baseSettings
     )
 }
+
+def subProjectName(modPublishName: String): String = s"$prjName-$modPublishName"
 
 //=============================== SETTINGS ===============================
 lazy val noPublishSettings: Seq[Def.Setting[_]] = Seq(
