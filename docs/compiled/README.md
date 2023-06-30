@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-core" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.7"
 ```
 
 Check the full example [here](https://github.com/geirolz/toolkit/tree/main/example)
@@ -40,8 +40,8 @@ object Config {
 
 // Define service dependencies
 case class AppDependencyServices(
-                                  kafkaConsumer: KafkaConsumer[IO]
-                                )
+ kafkaConsumer: KafkaConsumer[IO]
+)
 
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
@@ -106,7 +106,7 @@ object Main extends IOApp {
 #### pureconfig
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-config-pureconfig" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.7"
 ```
 
 Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
