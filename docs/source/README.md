@@ -40,8 +40,8 @@ object Config {
 
 // Define service dependencies
 case class AppDependencyServices(
-                                  kafkaConsumer: KafkaConsumer[IO]
-                                )
+ kafkaConsumer: KafkaConsumer[IO]
+)
 
 object AppDependencyServices {
   def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
