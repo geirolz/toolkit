@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.8"
 ```
 
 Check the full example [here](https://github.com/geirolz/toolkit/tree/main/example)
@@ -106,7 +106,7 @@ object Main extends IOApp {
 #### pureconfig
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.8"
 ```
 
 Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
@@ -142,11 +142,11 @@ App[IO]
 #### log4cats
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.8"
 ```
 
 #### odin
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.7"
+libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.8"
 ```
