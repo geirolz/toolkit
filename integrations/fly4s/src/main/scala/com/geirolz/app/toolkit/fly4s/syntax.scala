@@ -2,6 +2,7 @@ package com.geirolz.app.toolkit.fly4s
 
 import cats.effect.Resource
 import cats.effect.kernel.Async
+import com.geirolz.app.toolkit.logger.LoggerAdapter
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import fly4s.core.Fly4s
 import fly4s.core.data.Fly4sConfig
@@ -11,7 +12,9 @@ private[fly4s] sealed trait AllSyntax {
 
   import cats.syntax.all.*
 
-  implicit class AppResourcesLoaderOps[F[+_]: Async, FAILURE, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG, RESOURCES, DEPENDENCIES](
+  implicit class AppResourcesLoaderOps[F[+_]: Async, FAILURE, APP_INFO <: SimpleAppInfo[?], LOGGER_T[
+    _[_]
+  ]: LoggerAdapter, CONFIG, RESOURCES, DEPENDENCIES](
     app: App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
   ) {
 
@@ -51,6 +54,17 @@ private[fly4s] sealed trait AllSyntax {
     def beforeProvidingMigrateDatabase(
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Resource[F, Fly4s[F]]
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      app.beforeProviding(dep => f(dep).use(_.migrate).void)
+      app.beforeProviding(dep =>
+        f(dep)
+          .evalMap(fl4s =>
+            for {
+              logger <- LoggerAdapter[LOGGER_T].toToolkit(dep.logger).pure[F]
+              _      <- logger.debug(s"Applying migration...")
+              result <- fl4s.migrate.onError(logger.error(_)("Unable to apply database migrations."))
+              _      <- logger.info(s"Applied ${result.migrationsExecuted} migrations to the database.")
+            } yield ()
+          )
+          .use_
+      )
   }
 }
