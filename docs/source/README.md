@@ -110,16 +110,17 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@
 Import the syntax
 
 ```scala mdoc:silent:reset:warn
-import com.geirolz.app.toolkit.config.pureconfig.syntax.*
+import com.geirolz.app.toolkit.config.pureconfig.*
 ```
 
-Which allows you to use `withPureConfigLoader` to load the config from a `ConfigSource.default`
+Which allows you to use `withConfigLoader` with `pureconfigLoader[F, CONF]` to load the config from
+a `ConfigSource.default` or other sources
 
 ```scala mdoc:silent:reset
 import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.config.pureconfig.syntax.*
+import com.geirolz.app.toolkit.config.pureconfig.*
 
 case class TestConfig(value: String)
 
@@ -138,7 +139,7 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withPureConfigLoader[TestConfig]
+  .withConfigLoader(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
   .provideOne(_ => IO.unit)
   .run_

@@ -326,7 +326,12 @@ object App extends AppSyntax {
     def withConfigLoader[CONFIG2: Show](
       configF: APP_INFO => F[CONFIG2]
     ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      copyWith(configLoader = configF(appInfo))
+      withConfigLoader(configF(appInfo))
+
+    def withConfigLoader[CONFIG2: Show](
+      configF: F[CONFIG2]
+    ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
+      copyWith(configLoader = configF)
 
     // ------- RESOURCES -------
     def withoutResources: AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, NoResources] =
