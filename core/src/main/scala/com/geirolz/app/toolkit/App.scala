@@ -60,15 +60,20 @@ class App[
   def withMessages(messages: AppMessages): Self =
     copyWith(appMessages = messages)
 
-  def beforeProviding(
-    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
-  ): Self =
-    copyWith(beforeProvidingF = beforeProvidingF >> f)
-
   def onFinalize(
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ): Self =
-    copyWith(onFinalizeF = onFinalizeF >> f)
+    onFinalizeUpdate(_ => f)
+
+  def onFinalizeAppend(
+    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+  ): Self =
+    onFinalizeUpdate(p => deps => p >> f(deps))
+
+  def onFinalizeUpdate(
+    f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+  ): Self =
+    copyWith(onFinalizeF = deps => f(onFinalizeF(deps))(deps))
 
   private[toolkit] def _compile(appArgs: List[String]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
     (
@@ -349,12 +354,13 @@ object App extends AppSyntax {
     def dependsOn[DEPENDENCIES, F2 <: FAILURE](
       f: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, F2 \/ DEPENDENCIES]
     )(implicit dummyImplicit: DummyImplicit): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      new AppBuilderSelectProvide(
+      AppBuilderSelectProvide(
         appInfo            = appInfo,
         loggerBuilder      = loggerBuilder,
         configLoader       = configLoader,
         resourcesLoader    = resourcesLoader,
-        dependenciesLoader = f
+        dependenciesLoader = f,
+        beforeProvidingF   = _ => ().pure[F]
       )
 
     private def copyWith[G[+_]: Async: Parallel, ERROR2, APP_INFO2 <: SimpleAppInfo[?], LOGGER_T2[
@@ -372,21 +378,39 @@ object App extends AppSyntax {
     )
   }
 
-  final class AppBuilderSelectProvide[F[+_]: Async: Parallel, FAILURE, APP_INFO <: SimpleAppInfo[
+  final case class AppBuilderSelectProvide[F[+_]: Async: Parallel, FAILURE, APP_INFO <: SimpleAppInfo[
     ?
   ], LOGGER_T[
     _[_]
   ]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES] private[App] (
-    appInfo: APP_INFO,
-    loggerBuilder: F[LOGGER_T[F]],
-    configLoader: F[CONFIG],
-    resourcesLoader: F[RESOURCES],
-    dependenciesLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[
+    private val appInfo: APP_INFO,
+    private val loggerBuilder: F[LOGGER_T[F]],
+    private val configLoader: F[CONFIG],
+    private val resourcesLoader: F[RESOURCES],
+    private val dependenciesLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[
       F,
       FAILURE \/ DEPENDENCIES
-    ]
+    ],
+    private val beforeProvidingF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ) {
 
+    // ------- BEFORE PROVIDING -------
+    def beforeProviding(
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      beforeProvidingUpdate(_ => f)
+
+    def beforeProvidingAppend(
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      beforeProvidingUpdate(p => deps => p >> f(deps))
+
+    def beforeProvidingUpdate(
+      f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      copy(beforeProvidingF = deps => f(beforeProvidingF(deps))(deps))
+
+    // ------- PROVIDE -------
     def provideOne(
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Any]
     )(implicit
@@ -428,18 +452,19 @@ object App extends AppSyntax {
 
     def provideAttemptF[F2 <: FAILURE](
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[F2 \/ List[F[F2 \/ Any]]]
-    ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] = new App(
-      appInfo              = appInfo,
-      appMessages          = AppMessages.default(appInfo),
-      failureHandlerLoader = _ => FailureHandler.cancelAll,
-      loggerBuilder        = loggerBuilder,
-      resourcesLoader      = resourcesLoader,
-      beforeProvidingF     = _ => ().pure[F],
-      onFinalizeF          = _ => ().pure[F],
-      configLoader         = configLoader,
-      dependenciesLoader   = dependenciesLoader,
-      provideBuilder       = f
-    )
+    ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      new App(
+        appInfo              = appInfo,
+        appMessages          = AppMessages.default(appInfo),
+        failureHandlerLoader = _ => FailureHandler.cancelAll,
+        loggerBuilder        = loggerBuilder,
+        resourcesLoader      = resourcesLoader,
+        beforeProvidingF     = beforeProvidingF,
+        onFinalizeF          = _ => ().pure[F],
+        configLoader         = configLoader,
+        dependenciesLoader   = dependenciesLoader,
+        provideBuilder       = f
+      )
   }
 }
 sealed trait AppSyntax {

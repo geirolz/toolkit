@@ -85,6 +85,7 @@ object Main extends IOApp {
       .withLogger(ToolkitLogger.console[IO](_))
       .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
       .dependsOn(AppDependencyServices.resource(_))
+      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .provideOne(deps =>
         // Kafka consumer
         deps.dependencies.kafkaConsumer
@@ -93,7 +94,6 @@ object Main extends IOApp {
           .compile
           .drain
       )
-      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
 }
@@ -177,7 +177,7 @@ the whole app dependencies to provide a custom `Fly4s` instance you can use `bef
 ```scala mdoc:silent:reset
 import cats.Show
 import cats.effect.IO
-import com.geirolz.app.toolkit.fly4s.syntax.*
+import com.geirolz.app.toolkit.fly4s.*
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
@@ -203,11 +203,13 @@ App[IO]
     )
   )
   .withoutDependencies
-  .provideOne(_ => IO.unit)
-  .beforeProvidingMigrateDatabaseWithConfig(
-    url = _.dbUrl,
-    user = _.dbUser,
-    password = _.dbPassword
+  .beforeProviding(
+    migrateDatabaseWithConfig(
+      url = _.dbUrl,
+      user = _.dbUser,
+      password = _.dbPassword
+    )
   )
+  .provideOne(_ => IO.unit)
   .run_
 ```
