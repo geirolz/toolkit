@@ -11,8 +11,8 @@ package object fly4s {
 
   def migrateDatabaseWithConfig[F[_]: Async, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG, DEPENDENCIES, RESOURCES](
     url: CONFIG => String,
-    user: CONFIG => Option[String]          = _ => None,
-    password: CONFIG => Option[Array[Char]] = _ => None,
+    user: CONFIG => Option[String]          = (_: CONFIG) => None,
+    password: CONFIG => Option[Array[Char]] = (_: CONFIG) => None,
     config: Fly4sConfig                     = Fly4sConfig.default,
     classLoader: ClassLoader                = Thread.currentThread.getContextClassLoader
   ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
@@ -26,8 +26,8 @@ package object fly4s {
 
   def migrateDatabaseWith[F[_]: Async, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG, DEPENDENCIES, RESOURCES](
     url: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => String,
-    user: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = _ => None,
-    password: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = _ => None,
+    user: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = (_: Any) => None,
+    password: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = (_: Any) => None,
     config: Fly4sConfig                                                                                       = Fly4sConfig.default,
     classLoader: ClassLoader = Thread.currentThread.getContextClassLoader
   ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =

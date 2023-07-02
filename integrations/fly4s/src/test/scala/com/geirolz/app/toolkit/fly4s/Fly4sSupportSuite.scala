@@ -24,7 +24,6 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
         )
       )
       .withoutDependencies
-      .provideOne(_ => IO.unit)
       .beforeProviding(
         migrateDatabaseWithConfig(
           url      = _.dbUrl,
@@ -32,6 +31,6 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
           password = _.dbPassword
         )
       )
-
+      .provideOne(_ => IO.unit)
   }
 }
