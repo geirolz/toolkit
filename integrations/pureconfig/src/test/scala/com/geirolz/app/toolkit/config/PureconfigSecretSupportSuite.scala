@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit.config
 import _root_.pureconfig.ConfigReader
 import _root_.pureconfig.backend.ConfigFactoryWrapper
 import cats.effect.IO
-import com.geirolz.app.toolkit.config.pureconfig.syntax.AppResourcesLoaderOps
+import com.geirolz.app.toolkit.config.pureconfig.pureconfigLoader
 import com.geirolz.app.toolkit.config.testing.TestConfig
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.typesafe.config.Config
@@ -21,7 +21,7 @@ class PureconfigSecretSupportSuite extends munit.CatsEffectSuite {
             sbtVersion   = "1.8.0"
           )
         )
-        .withPureConfigLoader[TestConfig]
+        .withConfigLoader(pureconfigLoader[IO, TestConfig])
         .withoutDependencies
         .provideOne(_ => IO.unit)
         .run_
