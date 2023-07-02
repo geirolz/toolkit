@@ -204,10 +204,12 @@ App[IO]
   )
   .withoutDependencies
   .provideOne(_ => IO.unit)
-  .beforeProvidingMigrateDatabaseWithConfig(
-    url = _.dbUrl,
-    user = _.dbUser,
-    password = _.dbPassword
+  .beforeProviding(
+    migrateDatabaseWithConfig(
+      url      = _.dbUrl,
+      user     = _.dbUser,
+      password = _.dbPassword
+    )
   )
   .run_
 ```
