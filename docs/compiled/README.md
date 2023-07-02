@@ -107,7 +107,7 @@ object Main extends IOApp {
 libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.8"
 ```
 
-Import the syntax
+Import the loader
 
 ```scala
 import com.geirolz.app.toolkit.config.pureconfig.*
@@ -163,10 +163,10 @@ libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.8"
 libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.8"
 ```
 
-Import the syntax
+Import the tasks
 
 ```scala
-import com.geirolz.app.toolkit.fly4s.syntax.*
+import com.geirolz.app.toolkit.fly4s.*
 ```
 
 Which allows you to use `beforeProvidingMigrateDatabaseWithConfig` on `App` to migrate the database before running the
