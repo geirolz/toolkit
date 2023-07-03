@@ -13,14 +13,14 @@ package object fly4s {
     url: CONFIG => String,
     user: CONFIG => Option[String]          = (_: CONFIG) => None,
     password: CONFIG => Option[Array[Char]] = (_: CONFIG) => None,
-    config: Fly4sConfig                     = Fly4sConfig.default,
+    config: CONFIG => Fly4sConfig           = (_: CONFIG) => Fly4sConfig.default,
     classLoader: ClassLoader                = Thread.currentThread.getContextClassLoader
   ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     migrateDatabaseWith(
       url         = d => url(d.config),
       user        = d => user(d.config),
       password    = d => password(d.config),
-      config      = config,
+      config      = d => config(d.config),
       classLoader = classLoader
     )
 
@@ -28,7 +28,7 @@ package object fly4s {
     url: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => String,
     user: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = (_: Any) => None,
     password: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = (_: Any) => None,
-    config: Fly4sConfig                                                                                       = Fly4sConfig.default,
+    config: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Fly4sConfig           = (_: Any) => Fly4sConfig.default,
     classLoader: ClassLoader = Thread.currentThread.getContextClassLoader
   ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     migrateDatabase(dep =>
@@ -37,7 +37,7 @@ package object fly4s {
           url         = url(dep),
           user        = user(dep),
           password    = password(dep),
-          config      = config,
+          config      = config(dep),
           classLoader = classLoader
         )
     )
@@ -50,9 +50,9 @@ package object fly4s {
         .evalMap(fl4s =>
           for {
             logger <- LoggerAdapter[LOGGER_T].toToolkit(dep.logger).pure[F]
-            _      <- logger.debug(s"Applying migration...")
-            result <- fl4s.migrate.onError(logger.error(_)("Unable to apply database migrations."))
-            _      <- logger.info(s"Applied ${result.migrationsExecuted} migrations to the database.")
+            _      <- logger.debug(s"Applying migration to database...")
+            result <- fl4s.migrate.onError(logger.error(_)(s"Unable to apply database migrations to database."))
+            _      <- logger.info(s"Applied ${result.migrationsExecuted} migrations to database.")
           } yield ()
         )
         .use_
