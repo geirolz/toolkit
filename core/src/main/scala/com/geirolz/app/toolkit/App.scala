@@ -20,8 +20,8 @@ class App[
   val appInfo: APP_INFO,
   val appMessages: AppMessages,
   val loggerBuilder: F[LOGGER_T[F]],
-  val configLoader: F[CONFIG],
-  val resourcesLoader: F[RESOURCES],
+  val configLoader: Resource[F, CONFIG],
+  val resourcesLoader: Resource[F, RESOURCES],
   val beforeProvidingF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val onFinalizeF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val failureHandlerLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => FailureHandler[F, FAILURE],
@@ -73,7 +73,7 @@ class App[
     f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ): Self =
     copyWith(onFinalizeF = deps => f(onFinalizeF(deps))(deps))
-  
+
   private[toolkit] def _updateFailureHandlerLoader(
     fh: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Endo[FailureHandler[F, FAILURE]]
   ): App[
@@ -101,8 +101,8 @@ class App[
     appInfo: APP_INFO2                                                                           = this.appInfo,
     appMessages: AppMessages                                                                     = this.appMessages,
     loggerBuilder: G[LOGGER_T2[G]]                                                               = this.loggerBuilder,
-    configLoader: G[CONFIG2]                                                                     = this.configLoader,
-    resourcesLoader: G[RES2]                                                                     = this.resourcesLoader,
+    configLoader: Resource[G, CONFIG2]                                                           = this.configLoader,
+    resourcesLoader: Resource[G, RES2]                                                           = this.resourcesLoader,
     beforeProvidingF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit] = this.beforeProvidingF,
     onFinalizeF: App.Dependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]      = this.onFinalizeF,
     failureHandlerLoader: App.Resources[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] => FailureHandler[
@@ -192,8 +192,8 @@ object App extends AppSyntax {
       new AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, NoopLogger, NoConfig, NoResources](
         appInfo         = appInfo,
         loggerBuilder   = NoopLogger[F].pure[F],
-        configLoader    = NoConfig.value.pure[F],
-        resourcesLoader = NoResources.value.pure[F]
+        configLoader    = Resource.pure(NoConfig.value),
+        resourcesLoader = Resource.pure(NoResources.value)
       )
   }
 
@@ -204,8 +204,8 @@ object App extends AppSyntax {
   ]: LoggerAdapter, CONFIG: Show, RESOURCES] private[App] (
     appInfo: APP_INFO,
     loggerBuilder: F[LOGGER_T[F]],
-    configLoader: F[CONFIG],
-    resourcesLoader: F[RESOURCES]
+    configLoader: Resource[F, CONFIG],
+    resourcesLoader: Resource[F, RESOURCES]
   ) {
 
     // ------- LOGGER -------
@@ -234,17 +234,27 @@ object App extends AppSyntax {
     def withConfig[CONFIG2: Show](
       config: CONFIG2
     ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      copyWith(configLoader = config.pure[F])
+      withConfigLoader(config.pure[F])
 
     def withConfigLoader[CONFIG2: Show](
-      configF: APP_INFO => F[CONFIG2]
-    ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfigLoader(configF(appInfo))
+      configLoader: APP_INFO => F[CONFIG2]
+    )(implicit dummyImplicit: DummyImplicit): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
+      withConfigLoader(i => Resource.eval(configLoader(i)))
 
     def withConfigLoader[CONFIG2: Show](
-      configF: F[CONFIG2]
+      configLoader: F[CONFIG2]
     ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      copyWith(configLoader = configF)
+      withConfigLoader(Resource.eval(configLoader))
+
+    def withConfigLoader[CONFIG2: Show](
+      configLoader: Resource[F, CONFIG2]
+    ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
+      withConfigLoader(_ => configLoader)
+
+    def withConfigLoader[CONFIG2: Show](
+      configLoader: APP_INFO => Resource[F, CONFIG2]
+    ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG2, RESOURCES] =
+      copyWith(configLoader = configLoader(this.appInfo))
 
     // ------- RESOURCES -------
     def withoutResources: AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, NoResources] =
@@ -257,6 +267,11 @@ object App extends AppSyntax {
 
     def withResourcesLoader[RESOURCES2](
       resourcesLoader: F[RESOURCES2]
+    ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES2] =
+      withResourcesLoader(Resource.eval(resourcesLoader))
+
+    def withResourcesLoader[RESOURCES2](
+      resourcesLoader: Resource[F, RESOURCES2]
     ): AppBuilderSelectResAndDeps[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES2] =
       copyWith(resourcesLoader = resourcesLoader)
 
@@ -284,10 +299,10 @@ object App extends AppSyntax {
     private def copyWith[G[+_]: Async: Parallel, ERROR2, APP_INFO2 <: SimpleAppInfo[?], LOGGER_T2[
       _[_]
     ]: LoggerAdapter, CONFIG2: Show, RESOURCES2](
-      appInfo: APP_INFO2             = this.appInfo,
-      loggerBuilder: G[LOGGER_T2[G]] = this.loggerBuilder,
-      configLoader: G[CONFIG2]       = this.configLoader,
-      resourcesLoader: G[RESOURCES2] = this.resourcesLoader
+      appInfo: APP_INFO2                       = this.appInfo,
+      loggerBuilder: G[LOGGER_T2[G]]           = this.loggerBuilder,
+      configLoader: Resource[G, CONFIG2]       = this.configLoader,
+      resourcesLoader: Resource[G, RESOURCES2] = this.resourcesLoader
     ) = new AppBuilderSelectResAndDeps[G, ERROR2, APP_INFO2, LOGGER_T2, CONFIG2, RESOURCES2](
       appInfo         = appInfo,
       loggerBuilder   = loggerBuilder,
@@ -303,8 +318,8 @@ object App extends AppSyntax {
   ]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES] private[App] (
     private val appInfo: APP_INFO,
     private val loggerBuilder: F[LOGGER_T[F]],
-    private val configLoader: F[CONFIG],
-    private val resourcesLoader: F[RESOURCES],
+    private val configLoader: Resource[F, CONFIG],
+    private val resourcesLoader: Resource[F, RESOURCES],
     private val dependenciesLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[
       F,
       FAILURE \/ DEPENDENCIES

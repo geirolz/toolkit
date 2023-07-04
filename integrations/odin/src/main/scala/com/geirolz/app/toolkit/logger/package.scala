@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit
 
-import io.odin.Logger
+import io.odin.{Logger, consoleLogger}
 
 package object logger {
 
@@ -16,6 +16,8 @@ package object logger {
           override def error(ex: Throwable)(message: => String): F[Unit] = u.error(message, ex)
           override def debug(message: => String): F[Unit]                = u.debug(message)
           override def debug(ex: Throwable)(message: => String): F[Unit] = u.debug(message, ex)
+          override def trace(message: => String): F[Unit]                = u.trace(message)
+          override def trace(ex: Throwable)(message: => String): F[Unit] = u.trace(message, ex)
         }
     }
 }

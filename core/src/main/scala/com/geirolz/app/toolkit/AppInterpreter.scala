@@ -51,12 +51,12 @@ object AppInterpreter {
 
           // config
           _         <- appResLogger.debug(app.appMessages.loadingConfig)
-          appConfig <- EitherT.right[FAILURE](Resource.eval(app.configLoader))
+          appConfig <- EitherT.right[FAILURE](app.configLoader)
           _         <- appResLogger.info(app.appMessages.configSuccessfullyLoaded)
           _         <- appResLogger.info(appConfig.show)
 
           // other resources
-          otherResources <- EitherT.right[FAILURE](Resource.eval(app.resourcesLoader))
+          otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
 
           // group resources
           appResources: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = App.Resources(
