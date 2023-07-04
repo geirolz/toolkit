@@ -5,6 +5,7 @@ import cats.Applicative
 sealed trait NoopLogger[F[_]] extends ToolkitLogger[F]
 object NoopLogger {
   def apply[F[_]: Applicative]: NoopLogger[F] = new NoopLogger[F] {
+    override val loggerLevel: ToolkitLogger.Level                  = ToolkitLogger.Level.Info
     override def info(message: => String): F[Unit]                 = Applicative[F].unit
     override def info(ex: Throwable)(message: => String): F[Unit]  = Applicative[F].unit
     override def warn(message: => String): F[Unit]                 = Applicative[F].unit

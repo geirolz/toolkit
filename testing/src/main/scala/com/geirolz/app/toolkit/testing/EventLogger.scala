@@ -28,8 +28,8 @@ object EventLogger {
 
     def runFullTracedApp: F[Unit] =
       compiledApp.traceAsAppLoader
-        .use(_.traceAsAppRuntime.pure[F])
-        .flatten
+        .map(_.traceAsAppRuntime)
+        .useEval
   }
 
   implicit class appRuntimeResOps[F[_]: MonadCancelThrow: EventLogger](app: F[Unit]) {

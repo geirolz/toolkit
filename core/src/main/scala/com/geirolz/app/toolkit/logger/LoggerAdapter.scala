@@ -9,6 +9,7 @@ object LoggerAdapter {
   implicit def id[L[K[_]] <: ToolkitLogger[K]]: LoggerAdapter[L] =
     new LoggerAdapter[L] {
       override def toToolkit[F[_]](u: L[F]): ToolkitLogger[F] = new ToolkitLogger[F] {
+        override val loggerLevel: ToolkitLogger.Level                  = u.loggerLevel
         override def info(message: => String): F[Unit]                 = u.info(message)
         override def info(ex: Throwable)(message: => String): F[Unit]  = u.info(ex)(message)
         override def warn(message: => String): F[Unit]                 = u.warn(message)
