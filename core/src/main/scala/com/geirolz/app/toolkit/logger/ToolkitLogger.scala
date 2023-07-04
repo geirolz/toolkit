@@ -72,7 +72,7 @@ object ToolkitLogger {
 
         val ps: PrintStream = level match {
           case Level.Error => System.err
-          case Level.Trace => System.out
+          case _           => System.out
         }
 
         val color: AnsiValue = level match {
