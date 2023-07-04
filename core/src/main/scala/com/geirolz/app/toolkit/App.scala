@@ -1,12 +1,12 @@
 package com.geirolz.app.toolkit
 
-import cats.{Endo, Parallel, Semigroup, Show}
-import cats.data.{EitherT, NonEmptyList}
+import cats.data.NonEmptyList
 import cats.effect.*
-import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
-import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoResources}
+import cats.{Endo, Parallel, Semigroup, Show}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.error.MultiException
+import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
+import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoResources}
 
 class App[
   F[+_]: Async: Parallel,
@@ -32,7 +32,6 @@ class App[
   type Logger  = LOGGER_T[F]
   type Config  = CONFIG
 
-  import cats.effect.syntax.all.*
   import cats.syntax.all.*
 
   type Self         = App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
@@ -74,93 +73,7 @@ class App[
     f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ): Self =
     copyWith(onFinalizeF = deps => f(onFinalizeF(deps))(deps))
-
-  private[toolkit] def _compile(appArgs: List[String]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
-    (
-      for {
-
-        // -------------------- RESOURCES-------------------
-        // logger
-        appLogger <- EitherT.right[FAILURE](Resource.eval(this.loggerBuilder))
-        appLoggerF = LoggerAdapter[LOGGER_T].toToolkit[F](appLogger)
-        appResLogger = appLoggerF.mapK(
-          Resource.liftK[F].andThen(EitherT.liftK[Resource[F, *], FAILURE])
-        )
-
-        // config
-        _         <- appResLogger.info(appMessages.loadingConfig)
-        appConfig <- EitherT.right[FAILURE](Resource.eval(this.configLoader))
-        _         <- appResLogger.info(appMessages.configSuccessfullyLoaded)
-        _         <- appResLogger.info(appConfig.show)
-
-        // other resources
-        otherResources <- EitherT.right[FAILURE](Resource.eval(resourcesLoader))
-
-        // group resources
-        appResources: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = App.Resources(
-          info      = this.appInfo,
-          args      = AppArgs(appArgs),
-          logger    = appLogger,
-          config    = appConfig,
-          resources = otherResources
-        )
-
-        // ------------------- DEPENDENCIES -----------------
-        _              <- appResLogger.info(appMessages.buildingServicesEnv)
-        appDepServices <- EitherT(dependenciesLoader(appResources))
-        _              <- appResLogger.info(appMessages.servicesEnvSuccessfullyBuilt)
-        appDependencies = App.Dependencies(appResources, appDepServices)
-
-        // --------------------- SERVICES -------------------
-        _               <- appResLogger.info(appMessages.buildingApp)
-        appProvServices <- EitherT(Resource.eval(provideBuilder(appDependencies)))
-        _               <- appResLogger.info(appMessages.appSuccessfullyBuilt)
-
-        // --------------------- APP ------------------------
-        appLogic = for {
-          fibers   <- Ref[F].of(List.empty[Fiber[F, Throwable, Unit]])
-          failures <- Ref[F].of(List.empty[FAILURE])
-          failureHandler = failureHandlerLoader(appResources)
-          onFailureTask: (FAILURE => F[Unit]) =
-            failureHandler
-              .handleFailureWithF(_)
-              .flatMap {
-                case Left(failure) =>
-                  failureHandler
-                    .onFailureF(failure)
-                    .attemptT
-                    .semiflatMap {
-                      case OnFailureBehaviour.CancelAll =>
-                        fibers.get.flatMap(_.parTraverse(_.cancel.start).void)
-                      case OnFailureBehaviour.DoNothing =>
-                        Async[F].unit
-                    }
-                    .rethrowT
-                case Right(_) =>
-                  Async[F].unit
-              }
-
-          services = appProvServices.map(_.flatTap {
-            case Left(failure) =>
-              failures.update(_ :+ failure) >> onFailureTask(failure)
-            case Right(_) => Async[F].unit
-          })
-          _                    <- services.parTraverse(t => t.void.start.flatMap(f => fibers.update(_ :+ f)))
-          _                    <- fibers.get.flatMap(_.parTraverse(_.joinWithUnit))
-          maybeReducedFailures <- failures.get.map(NonEmptyList.fromList(_))
-        } yield maybeReducedFailures.toLeft(())
-      } yield {
-        appLoggerF.info(appMessages.startingApp) >>
-        beforeProvidingF(appDependencies) >>
-        appLogic
-          .onCancel(appLoggerF.info(appMessages.appWasStopped))
-          .onError(e => appLoggerF.error(e)(appMessages.appEnErrorOccurred))
-          .guarantee(
-            onFinalizeF(appDependencies) >> appLoggerF.info(appMessages.shuttingDownApp)
-          )
-      }
-    ).value
-
+  
   private[toolkit] def _updateFailureHandlerLoader(
     fh: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Endo[FailureHandler[F, FAILURE]]
   ): App[
@@ -521,16 +434,19 @@ sealed trait AppSyntax {
       app._updateFailureHandlerLoader(appRes => _.handleFailureWith(f.compose(app.Resourced(appRes, _))))
 
     // compile and run
-    def compile(args: List[String] = Nil): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
-      app._compile(args)
+    def compile(appArgs: List[String] = Nil)(implicit c: AppInterpreter[F]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
+      c.compile(appArgs, app)
 
-    def run(appArgs: List[String] = Nil): F[ExitCode] =
+    def run(appArgs: List[String] = Nil)(implicit c: AppInterpreter[F]): F[ExitCode] =
       runMap[ExitCode](appArgs).apply {
         case Left(_)  => ExitCode.Error
         case Right(_) => ExitCode.Success
       }
 
-    def runReduce[B](appArgs: List[String] = Nil, f: FAILURE \/ Unit => B)(implicit semigroup: Semigroup[FAILURE]): F[B] =
+    def runReduce[B](appArgs: List[String] = Nil, f: FAILURE \/ Unit => B)(implicit
+      c: AppInterpreter[F],
+      semigroup: Semigroup[FAILURE]
+    ): F[B] =
       runMap[FAILURE \/ Unit](appArgs)
         .apply {
           case Left(failures) => Left(failures.reduce)
@@ -538,27 +454,26 @@ sealed trait AppSyntax {
         }
         .map(f)
 
-    def runRaw(appArgs: List[String] = Nil): F[NonEmptyList[FAILURE] \/ Unit] =
+    def runRaw(appArgs: List[String] = Nil)(implicit c: AppInterpreter[F]): F[NonEmptyList[FAILURE] \/ Unit] =
       runMap[NonEmptyList[FAILURE] \/ Unit](appArgs)(identity)
 
-    def runMap[B](appArgs: List[String] = Nil)(f: NonEmptyList[FAILURE] \/ Unit => B): F[B] =
-      compile(appArgs)
-        .map {
+    def runMap[B](appArgs: List[String] = Nil)(f: NonEmptyList[FAILURE] \/ Unit => B)(implicit c: AppInterpreter[F]): F[B] =
+      c.run[B](
+        compile(appArgs).map {
           case Left(failure)   => f(Left(NonEmptyList.one(failure))).pure[F]
           case Right(appLogic) => appLogic.map(f)
         }
-        .use(_.pure[F])
-        .flatten
+      )
   }
 
   implicit class AppThrowOps[F[+_]: Async: Parallel, APP_INFO <: SimpleAppInfo[?], LOGGER_T[
     _[_]
-  ], CONFIG, RESOURCES, DEPENDENCIES](
+  ]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES](
     app: App[F, Throwable, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
   ) {
 
-    def compile(appArgs: List[String] = Nil): Resource[F, F[Unit]] =
-      app._compile(appArgs).flatMap {
+    def compile(appArgs: List[String] = Nil)(implicit c: AppInterpreter[F]): Resource[F, F[Unit]] =
+      c.compile(appArgs, app).flatMap {
         case Left(failure) =>
           Resource.raiseError(failure)
         case Right(value) =>
@@ -569,13 +484,10 @@ sealed trait AppSyntax {
           })
       }
 
-    def run_ : F[Unit] =
+    def run_(implicit c: AppInterpreter[F]): F[Unit] =
       run().void
 
-    def run(appArgs: List[String] = Nil): F[ExitCode] =
-      compile(appArgs)
-        .use(_.pure[F])
-        .flatten
-        .as(ExitCode.Success)
+    def run(appArgs: List[String] = Nil)(implicit c: AppInterpreter[F]): F[ExitCode] =
+      c.run(compile(appArgs)).as(ExitCode.Success)
   }
 }

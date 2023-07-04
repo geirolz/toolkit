@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.testing.*
+import com.geirolz.app.toolkit.testing.{LabeledResource, *}
 
 import scala.concurrent.duration.DurationInt
 
@@ -38,12 +38,15 @@ class AppTest extends munit.CatsEffectSuite {
               LabeledResource.appDependencies.starting,
               LabeledResource.appDependencies.succeeded,
               LabeledResource.appLoader.succeeded,
-              LabeledResource.appDependencies.finalized,
-              LabeledResource.appLoader.finalized,
+
               // runtime
               LabeledResource.appRuntime.starting,
               LabeledResource.appRuntime.succeeded,
-              LabeledResource.appRuntime.finalized
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appDependencies.finalized,
+              LabeledResource.appLoader.finalized
             )
           )
           _ <- assertIO(
@@ -54,7 +57,7 @@ class AppTest extends munit.CatsEffectSuite {
       })
   }
 
-  test("Loader released when app provideOneF fails") {
+  test("Loader and dependencies released when app provideOneF fails") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
@@ -64,7 +67,7 @@ class AppTest extends munit.CatsEffectSuite {
             .withInfo(TestAppInfo.value)
             .withLogger(ToolkitLogger.console[IO])
             .withConfig(TestConfig.defaultTest)
-            .withoutDependencies
+            .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
             .provideOneF(_ => IO.raiseError(ex"BOOM!"))
             .compile()
             .traceAsAppLoader
@@ -77,7 +80,12 @@ class AppTest extends munit.CatsEffectSuite {
             returns = List(
               // loading resources
               LabeledResource.appLoader.starting,
+              LabeledResource.appDependencies.starting,
+              LabeledResource.appDependencies.succeeded,
               LabeledResource.appLoader.errored("BOOM!"),
+
+              // finalizing dependencies
+              LabeledResource.appDependencies.finalized,
               LabeledResource.appLoader.finalized
             )
           )
@@ -113,12 +121,14 @@ class AppTest extends munit.CatsEffectSuite {
               // loading resources
               LabeledResource.appLoader.starting,
               LabeledResource.appLoader.succeeded,
-              LabeledResource.appLoader.finalized,
 
               // runtime
               LabeledResource.appRuntime.starting,
               LabeledResource.appRuntime.succeeded,
-              LabeledResource.appRuntime.finalized
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appLoader.finalized
             )
           )
         } yield ()
@@ -147,12 +157,14 @@ class AppTest extends munit.CatsEffectSuite {
               // loading resources
               LabeledResource.appLoader.starting,
               LabeledResource.appLoader.succeeded,
-              LabeledResource.appLoader.finalized,
 
               // runtime
               LabeledResource.appRuntime.starting,
               LabeledResource.appRuntime.succeeded,
-              LabeledResource.appRuntime.finalized
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appLoader.finalized
             )
           )
         } yield ()
@@ -189,12 +201,14 @@ class AppTest extends munit.CatsEffectSuite {
               // loading resources
               LabeledResource.appLoader.starting,
               LabeledResource.appLoader.succeeded,
-              LabeledResource.appLoader.finalized,
 
               // runtime
               LabeledResource.appRuntime.starting,
               LabeledResource.appRuntime.succeeded,
-              LabeledResource.appRuntime.finalized
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appLoader.finalized
             )
           )
         } yield ()
@@ -213,7 +227,7 @@ class AppTest extends munit.CatsEffectSuite {
               .withInfo(TestAppInfo.value)
               .withLogger(ToolkitLogger.console[IO])
               .withConfig(TestConfig.defaultTest)
-              .withoutDependencies
+              .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
               .provideOne(_ => IO.raiseError(ex"BOOM!"))
               .compile()
               .runFullTracedApp
@@ -225,13 +239,18 @@ class AppTest extends munit.CatsEffectSuite {
             returns = List(
               // loading resources
               LabeledResource.appLoader.starting,
+              LabeledResource.appDependencies.starting,
+              LabeledResource.appDependencies.succeeded,
               LabeledResource.appLoader.succeeded,
-              LabeledResource.appLoader.finalized,
 
               // runtime
               LabeledResource.appRuntime.starting,
               LabeledResource.appRuntime.errored("BOOM!"),
-              LabeledResource.appRuntime.finalized
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appDependencies.finalized,
+              LabeledResource.appLoader.finalized
             )
           )
         } yield ()
@@ -289,7 +308,7 @@ class AppTest extends munit.CatsEffectSuite {
             )
           )
           .onFailure_(res =>
-            res.useTupledAll[IO[Unit]] { case (_, _, logger, failures, _) =>
+            res.useTupledAll[IO[Unit]] { case (_, _, logger, _, failures) =>
               logger.error(failures.toString)
             }
           )
@@ -330,7 +349,7 @@ class AppTest extends munit.CatsEffectSuite {
               IO.sleep(1.seconds) >> state.set(true).as(Right(()))
             )
           }
-          .onFailure(_.useTupledAll { case (_, _, logger, failures, _) =>
+          .onFailure(_.useTupledAll { case (_, _, logger, _, failures) =>
             logger.error(failures.toString).as(OnFailureBehaviour.DoNothing)
           })
           .runRaw()
