@@ -14,8 +14,6 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
 
 ## Getting Started
 
----
-
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
 ```
@@ -106,8 +104,6 @@ object Main extends IOApp {
 ```
 
 ## Integrations
-
----
 
 ### [pureconfig](https://github.com/pureconfig/pureconfig)
 
