@@ -60,19 +60,10 @@ class App[
     copyWith(appMessages = messages)
 
   def onFinalize(
-    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
+    fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
   ): Self =
-    onFinalizeUpdate(_ => f)
-
-  def onFinalizeAppend(
-    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
-  ): Self =
-    onFinalizeUpdate(p => deps => p >> f(deps))
-
-  def onFinalizeUpdate(
-    f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
-  ): Self =
-    copyWith(onFinalizeF = deps => f(onFinalizeF(deps))(deps))
+    copyWith(onFinalizeF = (f +: fN).reduce(_ >> _))
 
   private[toolkit] def _updateFailureHandlerLoader(
     fh: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Endo[FailureHandler[F, FAILURE]]
@@ -329,19 +320,10 @@ object App extends AppSyntax {
 
     // ------- BEFORE PROVIDING -------
     def beforeProviding(
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
+      fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      beforeProvidingUpdate(_ => f)
-
-    def beforeProvidingAppend(
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
-    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      beforeProvidingUpdate(p => deps => p >> f(deps))
-
-    def beforeProvidingUpdate(
-      f: F[Unit] => App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
-    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      copy(beforeProvidingF = deps => f(beforeProvidingF(deps))(deps))
+      copy(beforeProvidingF = (f +: fN).reduce(_ >> _))
 
     // ------- PROVIDE -------
     def provideOne(
