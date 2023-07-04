@@ -1,9 +1,11 @@
 package com.geirolz.app.toolkit.logger
 
 import cats.effect.kernel.Async
-import cats.~>
+import cats.kernel.Order
+import cats.{~>, Show}
 import com.geirolz.app.toolkit.SimpleAppInfo
 import com.geirolz.app.toolkit.console.AnsiValue
+import com.geirolz.app.toolkit.console.AnsiValue.AnsiText
 
 import java.io.PrintStream
 
@@ -22,6 +24,8 @@ trait ToolkitLogger[F[_]] {
 }
 object ToolkitLogger {
 
+  import cats.implicits.*
+
   sealed trait Level {
 
     def index: Int = this match {
@@ -32,7 +36,7 @@ object ToolkitLogger {
       case Level.Trace => 0
     }
 
-    def asString: String = this match {
+    override def toString: String = this match {
       case Level.Error => "ERROR"
       case Level.Warn  => "WARN"
       case Level.Info  => "INFO"
@@ -47,47 +51,49 @@ object ToolkitLogger {
     case object Debug extends Level
     case object Trace extends Level
   }
+  object Level {
+    implicit val show: Show[Level]   = Show.fromToString
+    implicit val order: Order[Level] = Order.by(_.index)
+  }
 
   def console[F[_]: Async](appInfo: SimpleAppInfo[?], minLevel: Level = Level.Warn): ToolkitLogger[F] = new ToolkitLogger[F] {
-    override def error(message: => String): F[Unit]                = log(Level.Error, Console.err)(message)
-    override def error(ex: Throwable)(message: => String): F[Unit] = logEx(Level.Error, Console.err)(ex, message)
-    override def warn(message: => String): F[Unit]                 = log(Level.Warn, Console.out)(message)
-    override def warn(ex: Throwable)(message: => String): F[Unit]  = logEx(Level.Warn, Console.out)(ex, message)
-    override def info(message: => String): F[Unit]                 = log(Level.Info, Console.out)(message)
-    override def info(ex: Throwable)(message: => String): F[Unit]  = logEx(Level.Info, Console.out)(ex, message)
-    override def debug(message: => String): F[Unit]                = log(Level.Debug, Console.out)(message)
-    override def debug(ex: Throwable)(message: => String): F[Unit] = logEx(Level.Debug, Console.out)(ex, message)
-    override def trace(message: => String): F[Unit]                = log(Level.Trace, Console.out)(message)
-    override def trace(ex: Throwable)(message: => String): F[Unit] = logEx(Level.Trace, Console.out)(ex, message)
+    override def error(message: => String): F[Unit]                = log(Level.Error, message)
+    override def error(ex: Throwable)(message: => String): F[Unit] = log(Level.Error, message, Some(ex))
+    override def warn(message: => String): F[Unit]                 = log(Level.Warn, message)
+    override def warn(ex: Throwable)(message: => String): F[Unit]  = log(Level.Warn, message, Some(ex))
+    override def info(message: => String): F[Unit]                 = log(Level.Info, message)
+    override def info(ex: Throwable)(message: => String): F[Unit]  = log(Level.Info, message, Some(ex))
+    override def debug(message: => String): F[Unit]                = log(Level.Debug, message)
+    override def debug(ex: Throwable)(message: => String): F[Unit] = log(Level.Debug, message, Some(ex))
+    override def trace(message: => String): F[Unit]                = log(Level.Trace, message)
+    override def trace(ex: Throwable)(message: => String): F[Unit] = log(Level.Trace, message, Some(ex))
 
-    private def log(level: Level, ps: PrintStream)(message: => String): F[Unit] =
-      doIfNeeded(level) {
-        Async[F].delay(ps.println(normalize(level, message)))
-      }
+    private def log(level: Level, message: => String, ex: Option[Throwable] = None): F[Unit] =
+      Async[F].whenA(level.index >= minLevel.index) {
 
-    private def logEx(level: Level, ps: PrintStream)(ex: Throwable, message: => String): F[Unit] =
-      doIfNeeded(level) {
-        Async[F].delay {
-          ps.println(normalize(level, message))
-          ex.printStackTrace(Console.err)
+        val ps: PrintStream = level match {
+          case Level.Error => System.err
+          case Level.Trace => System.out
+        }
+
+        val color: AnsiValue = level match {
+          case Level.Error => AnsiValue.F.RED
+          case Level.Warn  => AnsiValue.F.YELLOW
+          case Level.Info  => AnsiValue.F.WHITE
+          case Level.Debug => AnsiValue.F.MAGENTA
+          case Level.Trace => AnsiValue.F.CYAN
+        }
+
+        val formattedMsg: AnsiText =
+          color(s"[${appInfo.name.toString.toLowerCase}] $level - $message")
+
+        Async[F].delay(ps.println(formattedMsg)).flatMap { _ =>
+          ex match {
+            case Some(e) => Async[F].delay { e.printStackTrace(ps) }
+            case None    => Async[F].unit
+          }
         }
       }
-
-    private def doIfNeeded(level: Level)(f: F[Unit]): F[Unit] =
-      if (level.index >= minLevel.index) f else Async[F].unit
-
-    private def normalize(lvl: Level, msg: String): String = {
-
-      val color: AnsiValue = lvl match {
-        case Level.Error => AnsiValue.F.RED
-        case Level.Warn  => AnsiValue.F.YELLOW
-        case Level.Info  => AnsiValue.F.WHITE
-        case Level.Debug => AnsiValue.F.MAGENTA
-        case Level.Trace => AnsiValue.F.CYAN
-      }
-
-      color(s"[${appInfo.name.toString.toLowerCase}] ${lvl.asString} - $msg")
-    }
   }
 
   def mapK[F[_], G[_]](i: ToolkitLogger[F])(nat: F ~> G): ToolkitLogger[G] = new ToolkitLogger[G] {
