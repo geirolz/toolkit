@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit
 
-import io.odin.{consoleLogger, Logger}
+import io.odin.Logger
 
 package object logger {
 
