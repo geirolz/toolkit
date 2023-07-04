@@ -1,4 +1,4 @@
-# toolkit
+# Toolkit
 
 [![Build Status](https://github.com/geirolz/toolkit/actions/workflows/cicd.yml/badge.svg)](https://github.com/geirolz/toolkit/actions)
 [![codecov](https://img.shields.io/codecov/c/github/geirolz/toolkit)](https://codecov.io/gh/geirolz/toolkit)
@@ -9,6 +9,12 @@
 [![GitHub license](https://img.shields.io/github/license/geirolz/toolkit)](https://github.com/geirolz/toolkit/blob/main/LICENSE)
 
 A small toolkit to build functional app with managed resources
+
+Please, drop a ⭐️ if you are interested in this project and you want to support it
+
+## Getting Started
+
+---
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
