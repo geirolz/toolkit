@@ -65,13 +65,13 @@ jobs:
       - name: Compile, Test and Coverage for ${{ matrix.scala }}
         run: sbt ++${{ matrix.scala }} clean ${{ matrix.test-tasks }}
 
+      #----------- COVERAGE -----------
+      - name: Submit Code Coverage
+        run: bash <(curl -s https://codecov.io/bash)
+
       #----------- CHECK DOC -----------
       - name: Check Doc
         run: sbt gen-doc
-
-      #----------- COVERAGE -----------
-      - name: Codecov
-        run: bash <(curl -s https://codecov.io/bash)
 
   deploy:
     runs-on: ubuntu-latest
