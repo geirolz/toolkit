@@ -50,8 +50,7 @@ object ToolkitLogger {
     case object Info extends Level
     case object Debug extends Level
     case object Trace extends Level
-  }
-  object Level {
+
     implicit val show: Show[Level]   = Show.fromToString
     implicit val order: Order[Level] = Order.by(_.index)
   }
@@ -69,7 +68,7 @@ object ToolkitLogger {
     override def trace(ex: Throwable)(message: => String): F[Unit] = log(Level.Trace, message, Some(ex))
 
     private def log(level: Level, message: => String, ex: Option[Throwable] = None): F[Unit] =
-      Async[F].whenA(level.index >= minLevel.index) {
+      Async[F].whenA(level >= minLevel) {
 
         val ps: PrintStream = level match {
           case Level.Error => System.err
