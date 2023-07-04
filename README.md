@@ -11,7 +11,7 @@
 A small toolkit to build functional app with managed resources
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.8"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.9"
 ```
 
 Check the full example [here](https://github.com/geirolz/toolkit/tree/main/example)
@@ -99,12 +99,14 @@ object Main extends IOApp {
 }
 ```
 
-### Integrations
+## Integrations
 
-#### pureconfig
+---
+
+### [pureconfig](https://github.com/pureconfig/pureconfig)
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.8"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.9"
 ```
 
 Import the loader
@@ -145,22 +147,22 @@ App[IO]
   .run_
 ```
 
-#### log4cats
+### [log4cats](https://github.com/typelevel/log4cats)
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.8"
+libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.9"
 ```
 
-#### odin
+### [odin](https://github.com/valskalla/odin)
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.8"
+libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.9"
 ```
 
-#### fly4s
+### [fly4s](https://github.com/geirolz/fly4s)
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.8"
+libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.9"
 ```
 
 Import the tasks

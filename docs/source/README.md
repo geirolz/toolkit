@@ -99,9 +99,11 @@ object Main extends IOApp {
 }
 ```
 
-### Integrations
+## Integrations
 
-#### pureconfig
+---
+
+### [pureconfig](https://github.com/pureconfig/pureconfig)
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@"
@@ -145,19 +147,19 @@ App[IO]
   .run_
 ```
 
-#### log4cats
+### [log4cats](https://github.com/typelevel/log4cats)
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "@VERSION@"
 ```
 
-#### odin
+### [odin](https://github.com/valskalla/odin)
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "@VERSION@"
 ```
 
-#### fly4s
+### [fly4s](https://github.com/geirolz/fly4s)
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "@VERSION@"
