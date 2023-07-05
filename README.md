@@ -12,8 +12,7 @@
  <img src="images/LOGO_1.png" alt="logo" width="50%"/>
 </div>
 
-A small toolkit to build functional app with managed resources
-
+A small toolkit to build functional app with managed resources.
 Please, drop a ⭐️ if you are interested in this project and you want to support it
 
 ## Getting Started
@@ -28,6 +27,10 @@ Check the full example [here](https://github.com/geirolz/toolkit/tree/main/examp
 - `provideOne` let you define the app logic expressed by an `F[?]`
 - `provide` let you define the app provided services expressed by a `List[F[?]]` which will be run in parallel
 - `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
+
+NOTE:
+- All dependencies and resources are released at the end of the app execution.
+- If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
 
 Given
 
