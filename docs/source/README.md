@@ -29,7 +29,8 @@ Check the full example [here](https://github.com/geirolz/toolkit/tree/main/examp
 - `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
 
 NOTE:
-- All dependencies and resources are released at the end of the app execution.
+- All dependencies and resources are released at the end of the app execution as defined as `Resource[F, *]`.
+- If you need to release a resource before the end of the app execution you should use `Resource.use` or equivalent to build what you need as dependency.
 - If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
 
 Given
