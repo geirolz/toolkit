@@ -8,6 +8,10 @@
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/geirolz/toolkit&style=flat)](https://mergify.io)
 [![GitHub license](https://img.shields.io/github/license/geirolz/toolkit)](https://github.com/geirolz/toolkit/blob/main/LICENSE)
 
+<div style="text-align:center">
+ <img src="images/LOGO_1.png" alt="logo" width="50%"/>
+</div>
+
 A small toolkit to build functional app with managed resources
 
 Please, drop a ⭐️ if you are interested in this project and you want to support it
