@@ -34,7 +34,7 @@ and YAML.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.9"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.10"
 ```
 
 Import the integration module in your application:
@@ -93,7 +93,7 @@ configuration options to suit your needs.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.9"
+libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.10"
 ```
 
 And just use the `withLogger` method to configure the logger.
@@ -115,7 +115,7 @@ Odin provides flexible configuration options to meet your logging requirements.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.9"
+libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.10"
 ```
 
 And just use the `withLogger` method to configure the logger.
@@ -136,7 +136,7 @@ ensuring that your application operates with the correct database schema.
 Import this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.9"
+libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.10"
 ```
 
 Import the tasks

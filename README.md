@@ -18,6 +18,9 @@ declarative applications in Scala.
 It offers a functional approach to building applications by managing resources and
 dependencies, allowing developers to focus on the core aspects of their application logic.
 
+Read this article about this library:
+[Semantic of a functional app in Scala](https://www.reddit.com/r/scala/comments/14g3uxo/semantic_of_a_functional_app_in_scala/)
+
 Please, drop a ⭐️ if you are interested in this project and you want to support it.
 
 - [Features](#features)
@@ -57,7 +60,7 @@ To get started with Toolkit, follow these steps:
    installation instructions in the [Toolkit GitHub repository](https://github.com/geirolz/toolkit).
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.9"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.10"
 ```
 
 2. **Define Your Application:** Create a new Scala objects or classes that represents your application dependencies and
