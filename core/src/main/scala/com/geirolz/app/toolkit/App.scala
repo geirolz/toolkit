@@ -411,7 +411,7 @@ sealed trait AppSyntax {
         provideBuilder       = app.provideBuilder.andThen(_.map(_.leftMap(f).map(_.map(_.map(_.leftMap(f))))))
       )
 
-    def onFailure_(
+    def onFailure(
       f: app.Resourced[FAILURE] => F[Unit]
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       app._updateFailureHandlerLoader(appRes =>
