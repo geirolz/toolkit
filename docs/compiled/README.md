@@ -20,6 +20,15 @@ dependencies, allowing developers to focus on the core aspects of their applicat
 
 Please, drop a ⭐️ if you are interested in this project and you want to support it.
 
+- [Features](#features)
+- [Notes](#notes)
+- [Getting Started](#getting-started)
+- [Integrations](#integrations)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+- [Contact](#contact)
+
 ## Features
 
 - **Resource Management:** Toolkit simplifies the management of application resources, such as configuration

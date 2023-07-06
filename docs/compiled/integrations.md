@@ -7,10 +7,10 @@ strengths of both Toolkit and the respective libraries.
 
 Below is a list of some notable integrations:
 
-- [Pureconfig](#Pureconfig)
-- [Log4cats](#Log4cats)
-- [Odin](#Odin)
-- [Fly4s](#Fly4s)
+- [Pureconfig](#pureconfig)
+- [Log4cats](#log4cats)
+- [Odin](#odin)
+- [Fly4s](#fly4s)
 
 We are always open to expanding the list of integrations to further empower Toolkit users.
 If you have suggestions for new integrations or would like to contribute to an existing integration,
