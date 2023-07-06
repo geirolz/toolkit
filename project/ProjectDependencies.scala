@@ -66,6 +66,7 @@ object ProjectDependencies {
 
       // config
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
+      "com.github.pureconfig" %% "pureconfig-ip4s" % pureConfigVersion,
 
       // json
       "io.circe" %% "circe-core" % circeVersion,

@@ -35,7 +35,7 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, testing, log4cats, odin, pureconfig, fly4s)
+  .aggregate(core, docs, examples, config, testing, log4cats, odin, pureconfig, fly4s)
 
 lazy val docs: Project =
   project
@@ -88,12 +88,11 @@ lazy val testing: Project =
     libraryDependencies ++= ProjectDependencies.Testing.dedicated
   )
 
-lazy val example: Project = {
+lazy val examples: Project = {
   val appPackage: String = "com.geirolz.example.app"
-  module("example")(
-    folder = "./example"
-  )
-    .enablePlugins(BuildInfoPlugin)
+  module("examples")(
+    folder = "./examples"
+  ).enablePlugins(BuildInfoPlugin)
     .settings(
       noPublishSettings,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
