@@ -12,29 +12,47 @@
  <img src="images/LOGO_1.png" alt="logo" width="50%"/>
 </div>
 
-A small toolkit to build functional app with managed resources.
+Toolkit is a lightweight and non-intrusive open-source library designed to simplify the development of typed and
+declarative applications in Scala.
 
-Please, drop a ⭐️ if you are interested in this project and you want to support it
+It offers a functional approach to building applications by managing resources and
+dependencies, allowing developers to focus on the core aspects of their application logic.
+
+Please, drop a ⭐️ if you are interested in this project and you want to support it.
+
+## Features
+
+- **Resource Management:** Toolkit simplifies the management of application resources, such as configuration
+  settings, logging, and custom resources. By abstracting away the resource handling, it reduces boilerplate code and
+  provides a clean and concise syntax for managing resources.
+
+- **Dependency Injection:** The library provides a straightforward way to handle application dependencies. It allows you
+  to define and inject application-specific services and repositories, encouraging modular and testable code.
+
+- **Declarative Syntax:** Toolkit promotes a declarative coding style, where you can describe the structure and
+  behavior of your application in a clear and concise manner. This leads to code that is easier to understand, reason
+  about, and maintain.
+
+## Notes
+
+- All dependencies and resources are released at the end of the app execution as defined as `Resource[F, *]`.
+- If you need to release a resource before the end of the app execution you should use `Resource.use` or equivalent to
+  build what you need as dependency.
+- If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
 
 ## Getting Started
+
+To get started with Toolkit, follow these steps:
+
+1. **Installation:** Include the library as a dependency in your Scala project. You can find the latest version and
+   installation instructions in the [Toolkit GitHub repository](https://github.com/geirolz/toolkit).
 
 ```sbt
 libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
 ```
 
-Check the full example [here](https://github.com/geirolz/toolkit/tree/main/example)
-
-- `dependsOn` let you define the app dependencies expressed by a `Resource[F, DEPENDENCIES]`
-- `provideOne` let you define the app logic expressed by an `F[?]`
-- `provide` let you define the app provided services expressed by a `List[F[?]]` which will be run in parallel
-- `provideF` let you define the app provided services expressed by a `F[List[F[?]]]` which will be run in parallel
-
-NOTE:
-- All dependencies and resources are released at the end of the app execution as defined as `Resource[F, *]`.
-- If you need to release a resource before the end of the app execution you should use `Resource.use` or equivalent to build what you need as dependency.
-- If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
-
-Given
+2. **Define Your Application:** Create a new Scala objects or classes that represents your application dependencies and
+   resources.
 
 ```scala mdoc:silent
 import cats.Show
@@ -77,7 +95,8 @@ object KafkaConsumer {
 }
 ```
 
-You can write your app as
+3. **Build Your Application:** Build your application using the Toolkit DSL and execute it. Toolkit
+   takes care of managing resources, handling dependencies, and orchestrating the execution of your application logic.
 
 ```scala mdoc:silent
 import cats.effect.{ExitCode, IO, IOApp}
@@ -112,118 +131,52 @@ object Main extends IOApp {
 }
 ```
 
+Check a full example [here](https://github.com/geirolz/toolkit/tree/main/example)
+
+For detailed usage examples and API documentation, please refer to
+the [Toolkit Wiki](https://github.com/geirolz/toolkit/wiki).
+
 ## Integrations
 
-### [pureconfig](https://github.com/pureconfig/pureconfig)
+For a comprehensive list of integrations between Toolkit and other popular libraries,
+please refer to the [integrations.md](docs/compiled/integrations.md) file.
 
-```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "@VERSION@"
-```
+It provides an overview of the integrations available, including libraries such as PureConfig, Log4cats, Odin, and more.
 
-Import the loader
+Each integration showcases the benefits and features it brings to your Toolkit-based applications,
+enabling you to enhance functionality and streamline development. Explore the integrations to leverage the power of
+Toolkit
+in combination with other powerful libraries.
 
-```scala mdoc:silent:reset:warn
-import com.geirolz.app.toolkit.config.pureconfig.*
-```
+## Contributing
 
-Which allows you to use `withConfigLoader` with `pureconfigLoader[F, CONF]` to load the config from
-a `ConfigSource.default` or other sources
+We welcome contributions from the open-source community to make Toolkit even better. If you have any bug reports,
+feature requests, or suggestions, please submit them via GitHub issues. Pull requests are also welcome.
 
-```scala mdoc:silent:reset
-import cats.Show
-import cats.effect.IO
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.config.pureconfig.*
+Before contributing, please read
+our [Contribution Guidelines](https://github.com/geirolz/toolkit/blob/main/CONTRIBUTING.md) to understand the
+development process and coding conventions.
 
-case class TestConfig(value: String)
+Please remember te following:
+- Run `sbt scalafmtAll` before submitting a PR.
+- Run `sbt gen-doc` to update the documentation.
 
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-  implicit val configReader: pureconfig.ConfigReader[TestConfig] =
-    pureconfig.ConfigReader.forProduct1("value")(TestConfig.apply)
-}
+## License
 
-App[IO]
-  .withInfo(
-    SimpleAppInfo.string(
-      name = "toolkit",
-      version = "0.0.1",
-      scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
-    )
-  )
-  .withConfigLoader(pureconfigLoader[IO, TestConfig])
-  .withoutDependencies
-  .provideOne(_ => IO.unit)
-  .run_
-```
+Toolkit is released under the [Apache License 2.0](https://github.com/geirolz/toolkit/blob/main/LICENSE).
+Feel free to use it in your open-source or commercial projects.
 
-### [log4cats](https://github.com/typelevel/log4cats)
+## Acknowledgements
 
-```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "@VERSION@"
-```
+We would like to thank all the contributors who have made Toolkit possible. Your valuable feedback, bug reports, and
+code contributions have helped shape and improve the library.
 
-### [odin](https://github.com/valskalla/odin)
+## Contact
 
-```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "@VERSION@"
-```
+For any questions or inquiries, you can reach out to the maintainers of Toolkit via email or open an issue in the
+GitHub repository.
 
-### [fly4s](https://github.com/geirolz/fly4s)
+---
 
-```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "@VERSION@"
-```
+Happy coding with Toolkit!
 
-Import the tasks
-
-```scala mdoc:silent:reset:warn
-import com.geirolz.app.toolkit.fly4s.*
-```
-
-Which allows you to use `beforeProvidingMigrateDatabaseWithConfig` on `App` to migrate the database before running the
-app.
-To have access to the whole app dependencies you can use `beforeProvidingMigrateDatabaseWith` instead while to have
-access to
-the whole app dependencies to provide a custom `Fly4s` instance you can use `beforeProvidingMigrateDatabase`.
-
-```scala mdoc:silent:reset
-import cats.Show
-import cats.effect.IO
-import com.geirolz.app.toolkit.fly4s.*
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-
-case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
-
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-}
-
-App[IO]
-  .withInfo(
-    SimpleAppInfo.string(
-      name = "toolkit",
-      version = "0.0.1",
-      scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
-    )
-  )
-  .withConfig(
-    TestConfig(
-      dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
-      dbUser = Some("postgres"),
-      dbPassword = Some("postgres".toCharArray)
-    )
-  )
-  .withoutDependencies
-  .beforeProviding(
-    migrateDatabaseWithConfig(
-      url = _.dbUrl,
-      user = _.dbUser,
-      password = _.dbPassword
-    )
-  )
-  .provideOne(_ => IO.unit)
-  .run_
-```
