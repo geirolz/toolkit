@@ -9,7 +9,7 @@
 [![GitHub license](https://img.shields.io/github/license/geirolz/toolkit)](https://github.com/geirolz/toolkit/blob/main/LICENSE)
 
 <div align="center">
- <img src="images/LOGO_1.png" alt="logo" width="50%"/>
+ <img src="images/logo.png" alt="logo" width="50%"/>
 </div>
 
 Toolkit is a lightweight and non-intrusive open-source library designed to simplify the development of typed and
