@@ -143,7 +143,7 @@ object Main extends IOApp {
 }
 ```
 
-Check a full example [here](https://github.com/geirolz/toolkit/tree/main/example)
+Check a full example [here](https://github.com/geirolz/toolkit/tree/main/examples)
 
 For detailed usage examples and API documentation, please refer to
 the [Toolkit Wiki](https://github.com/geirolz/toolkit/wiki).

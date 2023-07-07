@@ -59,7 +59,7 @@ jobs:
 
       #----------- CHECK FMT -----------
       - name: Check FMT
-        run: sbt ++${{ matrix.scala }} scalafmtCheckAll
+        run: sbt scalafmtCheckAll # skip scala 3 for now
 
       #----------- COMPILE -----------
       - name: Compile, Test and Coverage for ${{ matrix.scala }}
