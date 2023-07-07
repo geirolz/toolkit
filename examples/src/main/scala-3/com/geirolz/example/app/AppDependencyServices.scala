@@ -17,4 +17,3 @@ object AppDependencyServices:
         KafkaConsumer.fake(res.config.kafkaBroker.host)
       )
     )
-

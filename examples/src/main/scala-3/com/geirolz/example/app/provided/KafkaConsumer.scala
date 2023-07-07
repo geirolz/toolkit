@@ -19,4 +19,3 @@ object KafkaConsumer:
       fs2.Stream
         .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
         .repeat
-

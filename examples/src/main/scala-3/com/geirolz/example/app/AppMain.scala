@@ -30,4 +30,3 @@ object AppMain extends IOApp:
       )
       .onFinalize(_.logger.info("CUSTOM END"))
       .run(args)
-

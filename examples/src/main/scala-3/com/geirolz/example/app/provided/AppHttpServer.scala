@@ -23,4 +23,3 @@ object AppHttpServer:
           .orNotFound
       )
       .build
-
