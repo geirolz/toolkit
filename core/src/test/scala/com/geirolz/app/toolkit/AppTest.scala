@@ -307,7 +307,7 @@ class AppTest extends munit.CatsEffectSuite {
               IO.sleep(5.seconds) >> state.set(true).as(Right(()))
             )
           )
-          .onFailure_(res =>
+          .onFailure(res =>
             res.useTupledAll[IO[Unit]] { case (_, _, logger, _, failures) =>
               logger.error(failures.toString)
             }
