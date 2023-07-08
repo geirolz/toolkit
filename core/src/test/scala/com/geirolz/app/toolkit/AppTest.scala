@@ -307,7 +307,7 @@ class AppTest extends munit.CatsEffectSuite {
               IO.sleep(5.seconds) >> state.set(true).as(Right(()))
             )
           )
-          .onFailure(res =>
+          .onFailure_(res =>
             res.useTupledAll[IO[Unit]] { case (_, _, logger, _, failures) =>
               logger.error(failures.toString)
             }
@@ -349,8 +349,8 @@ class AppTest extends munit.CatsEffectSuite {
               IO.sleep(1.seconds) >> state.set(true).as(Right(()))
             )
           }
-          .onFailure(_.useTupledAll { case (_, _, logger, _, failures) =>
-            logger.error(failures.toString).as(OnFailureBehaviour.DoNothing)
+          .onFailure(_.useTupledAll { case (_, _, logger: ToolkitLogger[IO], _, failure: AppError) =>
+            logger.error(failure.toString).as(OnFailureBehaviour.DoNothing)
           })
           .runRaw()
         finalState <- state.get
