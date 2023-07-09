@@ -3,7 +3,7 @@ import sbt.project
 lazy val prjName                = "toolkit"
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
-lazy val scala213               = "2.13.10"
+lazy val scala213               = "2.13.11"
 lazy val scala32                = "3.3.0"
 lazy val supportedScalaVersions = List(scala213, scala32)
 
