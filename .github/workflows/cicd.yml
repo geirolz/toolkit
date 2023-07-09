@@ -30,7 +30,7 @@ jobs:
         include:
           - scala: 2.13.10
             name: Scala2_13
-            test-tasks: coverage test coverageReport
+            test-tasks: coverage test coverageReport gen-doc
           - scala: 3.3.0
             name: Scala3_3
             test-tasks: coverage test coverageReport
@@ -56,22 +56,13 @@ jobs:
           # An explicit key for restoring and saving the cache
           key: ${{ runner.os }}-sbt-${{ matrix.scala }}-${{ hashFiles('**/build.sb') }}
 
-
-      #----------- CHECK FMT -----------
-      - name: Check FMT
-        run: sbt scalafmtCheckAll # skip scala 3 for now
-
       #----------- COMPILE -----------
-      - name: Compile, Test and Coverage for ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean ${{ matrix.test-tasks }}
+      - name: Compile, Format, Test and Coverage for ${{ matrix.scala }}
+        run: sbt ++${{ matrix.scala }} clean scalafmtCheck ${{ matrix.test-tasks }}
 
       #----------- COVERAGE -----------
       - name: Submit Code Coverage
         run: bash <(curl -s https://codecov.io/bash)
-
-      #----------- CHECK DOC -----------
-      - name: Check Doc
-        run: sbt gen-doc
 
   deploy:
     runs-on: ubuntu-latest
