@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.data.NonEmptyList
 import cats.effect.*
-import cats.{Endo, Foldable, Parallel, Semigroup, Show, Traverse}
+import cats.{Endo, Foldable, Parallel, Semigroup, Show}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.error.MultiException
 import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
