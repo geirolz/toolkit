@@ -3,7 +3,9 @@ package com.geirolz.app.toolkit.testing
 import java.util.UUID
 
 sealed trait Event
-
+object Event {
+  case class Custom(key: String) extends Event
+}
 sealed trait LabelEvent extends Event {
   val resource: LabeledResource
 

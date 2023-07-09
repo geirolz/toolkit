@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.data.NonEmptyList
 import cats.effect.*
-import cats.{Endo, Parallel, Semigroup, Show}
+import cats.{Endo, Foldable, Parallel, Semigroup, Show, Traverse}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.error.MultiException
 import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
@@ -63,7 +63,12 @@ class App[
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
     fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
   ): Self =
-    copyWith(onFinalizeF = (f +: fN).reduce(_ >> _))
+    onFinalize(deps => (f +: fN).map(_(deps)))
+
+  def onFinalize[G[_]: Foldable](
+    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
+  ): Self =
+    copyWith(onFinalizeF = f(_).sequence_)
 
   private[toolkit] def _updateFailureHandlerLoader(
     fh: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Endo[FailureHandler[F, FAILURE]]
@@ -323,7 +328,12 @@ object App extends AppSyntax {
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
       fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      copy(beforeProvidingF = (f +: fN).reduce(_ >> _))
+      beforeProviding(deps => (f +: fN).map(_(deps)))
+
+    def beforeProviding[G[_]: Foldable](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      copy(beforeProvidingF = f(_).sequence_)
 
     // ------- PROVIDE -------
     def provideOne(
