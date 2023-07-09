@@ -30,7 +30,7 @@ jobs:
         include:
           - scala: 2.13.10
             name: Scala2_13
-            test-tasks: coverage test coverageReport gen-doc
+            test-tasks: scalafmtCheck coverage test coverageReport gen-doc
           - scala: 3.3.0
             name: Scala3_3
             test-tasks: coverage test coverageReport
@@ -58,7 +58,7 @@ jobs:
 
       #----------- COMPILE -----------
       - name: Compile, Format, Test and Coverage for ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean scalafmtCheck ${{ matrix.test-tasks }}
+        run: sbt ++${{ matrix.scala }} clean ${{ matrix.test-tasks }}
 
       #----------- COVERAGE -----------
       - name: Submit Code Coverage
