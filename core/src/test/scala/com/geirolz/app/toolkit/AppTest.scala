@@ -257,6 +257,132 @@ class AppTest extends munit.CatsEffectSuite {
       })
   }
 
+  test("beforeProviding and onFinalize with varargs work as expected") {
+    EventLogger
+      .create[IO]
+      .flatMap(logger => {
+        implicit val loggerImplicit: EventLogger[IO] = logger
+        for {
+          _ <- App[IO]
+            .withInfo(TestAppInfo.value)
+            .withLogger(ToolkitLogger.console[IO](_))
+            .withConfig(TestConfig.defaultTest)
+            .withoutDependencies
+            .beforeProviding(
+              _ => logger.append(Event.Custom("beforeProviding_1")),
+              _ => logger.append(Event.Custom("beforeProviding_2")),
+              _ => logger.append(Event.Custom("beforeProviding_3"))
+            )
+            .provideOne(_ => logger.append(Event.Custom("provide")))
+            .onFinalize(
+              _ => logger.append(Event.Custom("onFinalize_1")),
+              _ => logger.append(Event.Custom("onFinalize_2")),
+              _ => logger.append(Event.Custom("onFinalize_3"))
+            )
+            .compile()
+            .runFullTracedApp
+
+          // assert
+          _ <- assertIO(
+            obtained = logger.events,
+            returns = List(
+              // loading resources
+              LabeledResource.appLoader.starting,
+              LabeledResource.appLoader.succeeded,
+
+              // runtime
+              LabeledResource.appRuntime.starting,
+
+              // before providing
+              Event.Custom("beforeProviding_1"),
+              Event.Custom("beforeProviding_2"),
+              Event.Custom("beforeProviding_3"),
+
+              // providing
+              Event.Custom("provide"),
+
+              // on finalize
+              Event.Custom("onFinalize_1"),
+              Event.Custom("onFinalize_2"),
+              Event.Custom("onFinalize_3"),
+
+              // runtime
+              LabeledResource.appRuntime.succeeded,
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appLoader.finalized
+            )
+          )
+        } yield ()
+      })
+  }
+
+  test("beforeProviding and onFinalize with List work as expected") {
+    EventLogger
+      .create[IO]
+      .flatMap(logger => {
+        implicit val loggerImplicit: EventLogger[IO] = logger
+        for {
+          _ <- App[IO]
+            .withInfo(TestAppInfo.value)
+            .withLogger(ToolkitLogger.console[IO](_))
+            .withConfig(TestConfig.defaultTest)
+            .withoutDependencies
+            .beforeProviding(_ =>
+              List(
+                logger.append(Event.Custom("beforeProviding_1")),
+                logger.append(Event.Custom("beforeProviding_2")),
+                logger.append(Event.Custom("beforeProviding_3"))
+              )
+            )
+            .provideOne(_ => logger.append(Event.Custom("provide")))
+            .onFinalize(_ =>
+              List(
+                logger.append(Event.Custom("onFinalize_1")),
+                logger.append(Event.Custom("onFinalize_2")),
+                logger.append(Event.Custom("onFinalize_3"))
+              )
+            )
+            .compile()
+            .runFullTracedApp
+
+          // assert
+          _ <- assertIO(
+            obtained = logger.events,
+            returns = List(
+              // loading resources
+              LabeledResource.appLoader.starting,
+              LabeledResource.appLoader.succeeded,
+
+              // runtime
+              LabeledResource.appRuntime.starting,
+
+              // before providing
+              Event.Custom("beforeProviding_1"),
+              Event.Custom("beforeProviding_2"),
+              Event.Custom("beforeProviding_3"),
+
+              // providing
+              Event.Custom("provide"),
+
+              // on finalize
+              Event.Custom("onFinalize_1"),
+              Event.Custom("onFinalize_2"),
+              Event.Custom("onFinalize_3"),
+
+              // runtime
+              LabeledResource.appRuntime.succeeded,
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appLoader.finalized
+            )
+          )
+        } yield ()
+      })
+  }
+
   test("App can use args from Run method") {
 
     for {
