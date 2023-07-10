@@ -169,10 +169,7 @@ def module(modName: String)(folder: String, publishAs: Option[String] = None): P
         moduleName := pubName,
         publish / skip := false
       )
-    case None =>
-      Seq(
-        publish / skip := true
-      )
+    case None => noPublishSettings
   }
   Project(modName, file(folder))
     .settings(
