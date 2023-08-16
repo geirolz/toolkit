@@ -27,6 +27,7 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
 - [Notes](#notes)
 - [Getting Started](#getting-started)
 - [Integrations](#integrations)
+- [Adopters](#adopters)
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
@@ -159,6 +160,10 @@ Each integration showcases the benefits and features it brings to your Toolkit-b
 enabling you to enhance functionality and streamline development. Explore the integrations to leverage the power of
 Toolkit
 in combination with other powerful libraries.
+
+## Adopters
+
+If you are using Toolkit in your company, please let me know and I'll add it to the list! It means a lot to me.
 
 ## Contributing
 
