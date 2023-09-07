@@ -130,7 +130,7 @@ object App extends AppSyntax {
 
   import cats.syntax.all.*
 
-  final case class Dependencies[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
+  final case class Dependencies[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES] private[toolkit] (
     private val _resources: App.Resources[APP_INFO, LOGGER, CONFIG, RESOURCES],
     private val _dependencies: DEPENDENCIES
   ) {
@@ -152,8 +152,23 @@ object App extends AppSyntax {
         |  dependencies = $dependencies
         |)""".stripMargin
   }
+  object Dependencies {
+    def unapply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
+      deps: Dependencies[APP_INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES]
+    ): Option[(APP_INFO, AppArgs, LOGGER, CONFIG, RESOURCES, DEPENDENCIES)] =
+      Some(
+        (
+          deps.info,
+          deps.args,
+          deps.logger,
+          deps.config,
+          deps.resources,
+          deps.dependencies
+        )
+      )
+  }
 
-  final case class Resources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+  final case class Resources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES] private[toolkit] (
     info: APP_INFO,
     args: AppArgs,
     logger: LOGGER,
@@ -173,6 +188,20 @@ object App extends AppSyntax {
          |  config = $config,
          |  resources = $resources
          |)""".stripMargin
+  }
+  object Resources {
+    def unapply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+      res: Resources[APP_INFO, LOGGER, CONFIG, RESOURCES]
+    ): Option[(APP_INFO, AppArgs, LOGGER, CONFIG, RESOURCES)] =
+      Some(
+        (
+          res.info,
+          res.args,
+          res.logger,
+          res.config,
+          res.resources
+        )
+      )
   }
 
   def apply[F[+_]: Async: Parallel](implicit dummyImplicit: DummyImplicit): AppBuilderRuntimeSelected[F, Throwable] =
