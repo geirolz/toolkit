@@ -8,7 +8,7 @@ import com.geirolz.app.toolkit.testing.{LabeledResource, *}
 
 import scala.concurrent.duration.DurationInt
 
-class AppTest extends munit.CatsEffectSuite {
+class AppSuite extends munit.CatsEffectSuite {
 
   import EventLogger.*
   import com.geirolz.app.toolkit.error.*
