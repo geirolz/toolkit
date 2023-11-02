@@ -28,7 +28,7 @@ jobs:
       matrix:
         # supported scala versions
         include:
-          - scala: 2.13.11
+          - scala: 2.13.12
             name: Scala2_13
             test-tasks: scalafmtCheck test gen-doc
           - scala: 3.3.0
