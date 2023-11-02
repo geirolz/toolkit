@@ -26,7 +26,7 @@ object LabelEvent {
 }
 
 //------------------------------------------------------
-case class LabeledResource private (label: String, token: UUID) {
+case class LabeledResource(label: String, token: UUID) {
   def starting: LabelEvent             = LabelEvent.Starting(this)
   def succeeded: LabelEvent            = LabelEvent.Succeeded(this)
   def finalized: LabelEvent            = LabelEvent.Finalized(this)
@@ -34,11 +34,12 @@ case class LabeledResource private (label: String, token: UUID) {
   def errored(msg: String): LabelEvent = LabelEvent.Errored(this, msg)
 }
 object LabeledResource {
-  private val resourceToken: UUID                 = UUID.randomUUID()
-  def resource(id: String): LabeledResource       = new LabeledResource(id, resourceToken)
-  def uniqueResource(id: String): LabeledResource = new LabeledResource(id, UUID.randomUUID())
-  val http: LabeledResource                       = LabeledResource.uniqueResource("http")
-  val appRuntime: LabeledResource                 = LabeledResource.uniqueResource("app-runtime")
-  val appLoader: LabeledResource                  = LabeledResource.uniqueResource("app-loader")
-  val appDependencies: LabeledResource            = LabeledResource.uniqueResource("app-dependencies")
+  private val resourceToken: UUID                                              = UUID.randomUUID()
+  private[LabeledResource] def apply(id: String, token: UUID): LabeledResource = new LabeledResource(id, token)
+  def resource(id: String): LabeledResource                                    = LabeledResource(id, resourceToken)
+  def uniqueResource(id: String): LabeledResource                              = LabeledResource(id, UUID.randomUUID())
+  val http: LabeledResource                                                    = LabeledResource.uniqueResource("http")
+  val appRuntime: LabeledResource                                              = LabeledResource.uniqueResource("app-runtime")
+  val appLoader: LabeledResource                                               = LabeledResource.uniqueResource("app-loader")
+  val appDependencies: LabeledResource                                         = LabeledResource.uniqueResource("app-dependencies")
 }
