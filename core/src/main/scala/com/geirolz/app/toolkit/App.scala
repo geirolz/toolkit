@@ -130,7 +130,7 @@ object App extends AppSyntax {
 
   import cats.syntax.all.*
 
-  final case class Dependencies[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES] private[toolkit] (
+  final case class Dependencies[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
     private val _resources: App.Resources[APP_INFO, LOGGER, CONFIG, RESOURCES],
     private val _dependencies: DEPENDENCIES
   ) {
@@ -153,6 +153,16 @@ object App extends AppSyntax {
         |)""".stripMargin
   }
   object Dependencies {
+
+    private[toolkit] def apply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
+      resources: App.Resources[APP_INFO, LOGGER, CONFIG, RESOURCES],
+      dependencies: DEPENDENCIES
+    ): Dependencies[APP_INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES] =
+      new Dependencies[APP_INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
+        _resources    = resources,
+        _dependencies = dependencies
+      )
+
     def unapply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
       deps: Dependencies[APP_INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES]
     ): Option[(APP_INFO, AppArgs, LOGGER, CONFIG, RESOURCES, DEPENDENCIES)] =
@@ -168,7 +178,7 @@ object App extends AppSyntax {
       )
   }
 
-  final case class Resources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES] private[toolkit] (
+  final case class Resources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
     info: APP_INFO,
     args: AppArgs,
     logger: LOGGER,
@@ -190,6 +200,22 @@ object App extends AppSyntax {
          |)""".stripMargin
   }
   object Resources {
+
+    private[toolkit] def apply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+      info: APP_INFO,
+      args: AppArgs,
+      logger: LOGGER,
+      config: CONFIG,
+      resources: RESOURCES
+    ): Resources[APP_INFO, LOGGER, CONFIG, RESOURCES] =
+      new Resources[APP_INFO, LOGGER, CONFIG, RESOURCES](
+        info      = info,
+        args      = args,
+        logger    = logger,
+        config    = config,
+        resources = resources
+      )
+
     def unapply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
       res: Resources[APP_INFO, LOGGER, CONFIG, RESOURCES]
     ): Option[(APP_INFO, AppArgs, LOGGER, CONFIG, RESOURCES)] =
@@ -336,11 +362,15 @@ object App extends AppSyntax {
     )
   }
 
-  final case class AppBuilderSelectProvide[F[+_]: Async: Parallel, FAILURE, APP_INFO <: SimpleAppInfo[
-    ?
-  ], LOGGER_T[
-    _[_]
-  ]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES] private[App] (
+  final case class AppBuilderSelectProvide[
+    F[+_]: Async: Parallel,
+    FAILURE,
+    APP_INFO <: SimpleAppInfo[?],
+    LOGGER_T[_[_]]: LoggerAdapter,
+    CONFIG: Show,
+    RESOURCES,
+    DEPENDENCIES
+  ](
     private val appInfo: APP_INFO,
     private val loggerBuilder: F[LOGGER_T[F]],
     private val configLoader: Resource[F, CONFIG],
@@ -418,6 +448,35 @@ object App extends AppSyntax {
         configLoader         = configLoader,
         dependenciesLoader   = dependenciesLoader,
         provideBuilder       = f
+      )
+  }
+  object AppBuilderSelectProvide {
+    private[App] def apply[
+      F[+_]: Async: Parallel,
+      FAILURE,
+      APP_INFO <: SimpleAppInfo[?],
+      LOGGER_T[_[_]]: LoggerAdapter,
+      CONFIG: Show,
+      RESOURCES,
+      DEPENDENCIES
+    ](
+      appInfo: APP_INFO,
+      loggerBuilder: F[LOGGER_T[F]],
+      configLoader: Resource[F, CONFIG],
+      resourcesLoader: Resource[F, RESOURCES],
+      dependenciesLoader: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[
+        F,
+        FAILURE \/ DEPENDENCIES
+      ],
+      beforeProvidingF: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      new AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES](
+        appInfo            = appInfo,
+        loggerBuilder      = loggerBuilder,
+        configLoader       = configLoader,
+        resourcesLoader    = resourcesLoader,
+        dependenciesLoader = dependenciesLoader,
+        beforeProvidingF   = beforeProvidingF
       )
   }
 }

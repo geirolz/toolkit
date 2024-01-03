@@ -95,7 +95,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
   ): AnsiValue =
     AnsiValue.Rich(foreground, background, style)
 
-  private[console] case class Rich private (
+  private[console] case class Rich(
     fg: AnsiValue.F,
     bg: AnsiValue.B,
     s: AnsiValue.S
@@ -120,7 +120,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     ): AnsiValue.Rich = new Rich(foreground, background, style)
   }
 
-  case class F private (value: String) extends AnsiValue
+  case class F(value: String) extends AnsiValue
   object F {
 
     private[F] def apply(value: String): AnsiValue.F =
@@ -177,13 +177,11 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     final val WHITE: AnsiValue.F = F(scala.Console.WHITE)
   }
 
-  case class B private (value: String) extends AnsiValue
+  case class B(value: String) extends AnsiValue
   object B {
 
     private[B] def apply(value: String): AnsiValue.B =
-      new B(
-        value
-      )
+      new B(value)
 
     final val NONE: AnsiValue.B = B(AnsiValue.emptyString)
 
@@ -236,7 +234,7 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     final val WHITE: AnsiValue.B = B(scala.Console.WHITE)
   }
 
-  case class S private (value: String) extends AnsiValue
+  case class S(value: String) extends AnsiValue
   object S {
 
     private[S] def apply(value: String): AnsiValue.S = new S(value)
