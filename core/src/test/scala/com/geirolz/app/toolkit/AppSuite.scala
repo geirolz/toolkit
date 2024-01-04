@@ -257,7 +257,7 @@ class AppSuite extends munit.CatsEffectSuite {
       })
   }
 
-  test("beforeProviding and onFinalize with varargs work as expected") {
+  test("beforeProviding and onFinalizeSeq with varargs work as expected") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
@@ -274,7 +274,7 @@ class AppSuite extends munit.CatsEffectSuite {
               _ => logger.append(Event.Custom("beforeProviding_3"))
             )
             .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalize(
+            .onFinalizeSeq(
               _ => logger.append(Event.Custom("onFinalize_1")),
               _ => logger.append(Event.Custom("onFinalize_2")),
               _ => logger.append(Event.Custom("onFinalize_3"))
@@ -318,7 +318,7 @@ class AppSuite extends munit.CatsEffectSuite {
       })
   }
 
-  test("beforeProviding and onFinalize with List work as expected") {
+  test("beforeProviding and onFinalizeSeq with List work as expected") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
@@ -329,7 +329,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO](_))
             .withConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .beforeProviding(_ =>
+            .beforeProvidingSeq(_ =>
               List(
                 logger.append(Event.Custom("beforeProviding_1")),
                 logger.append(Event.Custom("beforeProviding_2")),
@@ -337,7 +337,7 @@ class AppSuite extends munit.CatsEffectSuite {
               )
             )
             .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalize(_ =>
+            .onFinalizeSeq(_ =>
               List(
                 logger.append(Event.Custom("onFinalize_1")),
                 logger.append(Event.Custom("onFinalize_2")),

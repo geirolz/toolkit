@@ -64,13 +64,13 @@ class App[
   ): Self =
     copyWith(onFinalizeF = f)
 
-  def onFinalizeSequence(
+  def onFinalizeSeq(
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
     fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
   ): Self =
-    onFinalizeSequence(deps => (f +: fN).map(_(deps)))
+    onFinalizeSeq(deps => (f +: fN).map(_(deps)))
 
-  def onFinalizeSequence[G[_]: Foldable](
+  def onFinalizeSeq[G[_]: Foldable](
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
   ): Self =
     copyWith(onFinalizeF = f(_).sequence_)
@@ -393,13 +393,13 @@ object App extends AppSyntax {
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       copy(beforeProvidingF = f)
 
-    def beforeProvidingSequence(
+    def beforeProvidingSeq(
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
       fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      beforeProvidingSequence(deps => (f +: fN).map(_(deps)))
+      beforeProvidingSeq(deps => (f +: fN).map(_(deps)))
 
-    def beforeProvidingSequence[G[_]: Foldable](
+    def beforeProvidingSeq[G[_]: Foldable](
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       copy(beforeProvidingF = f(_).sequence_)
