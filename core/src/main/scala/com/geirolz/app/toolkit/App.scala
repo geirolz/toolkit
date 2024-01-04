@@ -340,8 +340,8 @@ object App extends AppSyntax {
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOn[DEPENDENCIES, FAILURE](f.andThen(_.map(_.asRight[FAILURE])))
 
-    def dependsOn[DEPENDENCIES, F2 <: FAILURE](
-      f: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, F2 \/ DEPENDENCIES]
+    def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE](
+      f: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE2 \/ DEPENDENCIES]
     )(implicit dummyImplicit: DummyImplicit): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       AppBuilderSelectProvide(
         appInfo            = appInfo,
@@ -412,15 +412,15 @@ object App extends AppSyntax {
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideOne[FAILURE](f.andThen(_.map(_.asRight[FAILURE])))
 
-    def provideOne[F2 <: FAILURE](
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[F2 \/ Any]
+    def provideOne[FAILURE2 <: FAILURE](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ Any]
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provide[F2](f.andThen(List(_)))
+      provide[FAILURE2](f.andThen(List(_)))
 
-    def provideOneF[F2 <: FAILURE](
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[F2 \/ F[Any]]
+    def provideOneF[FAILURE2 <: FAILURE](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ F[Any]]
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideAttemptF[F2](f.andThen((fa: F[F2 \/ F[Any]]) => fa.map(_.map(v => List(v.map(_.asRight[F2]))))))
+      provideAttemptF[FAILURE2](f.andThen((fa: F[FAILURE2 \/ F[Any]]) => fa.map(_.map(v => List(v.map(_.asRight[FAILURE2]))))))
 
     // provide
     def provide(
@@ -428,10 +428,10 @@ object App extends AppSyntax {
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provide[FAILURE](f.andThen(_.map(_.map(_.asRight[FAILURE]))))
 
-    def provide[F2 <: FAILURE](
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => List[F[F2 \/ Any]]
+    def provide[FAILURE2 <: FAILURE](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => List[F[FAILURE2 \/ Any]]
     )(implicit dummyImplicit: DummyImplicit): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideF[F2](f.andThen(_.pure[F]))
+      provideF[FAILURE2](f.andThen(_.pure[F]))
 
     // provideF
     def provideF(
@@ -439,13 +439,13 @@ object App extends AppSyntax {
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideF[FAILURE](f.andThen(_.map(_.map(_.map(_.asRight[FAILURE])))))
 
-    def provideF[F2 <: FAILURE](
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[List[F[F2 \/ Any]]]
+    def provideF[FAILURE2 <: FAILURE](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[List[F[FAILURE2 \/ Any]]]
     )(implicit dummyImplicit: DummyImplicit): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideAttemptF(f.andThen(_.map(Right(_))))
 
-    def provideAttemptF[F2 <: FAILURE](
-      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[F2 \/ List[F[F2 \/ Any]]]
+    def provideAttemptF[FAILURE2 <: FAILURE](
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ List[F[FAILURE2 \/ Any]]]
     ): App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       new App(
         appInfo              = appInfo,

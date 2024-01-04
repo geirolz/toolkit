@@ -26,6 +26,7 @@ object AppMain extends IOApp {
             .evalTap(record => deps.logger.info(s"Received record $record"))
             .compile
             .drain
+            .foreverM
         )
       )
       .onFinalize(_.logger.info("CUSTOM END"))
