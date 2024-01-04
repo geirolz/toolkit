@@ -60,12 +60,17 @@ class App[
     copyWith(appMessages = messages)
 
   def onFinalize(
+    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+  ): Self =
+    copyWith(onFinalizeF = f)
+
+  def onFinalizeSequence(
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
     fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
   ): Self =
-    onFinalize(deps => (f +: fN).map(_(deps)))
+    onFinalizeSequence(deps => (f +: fN).map(_(deps)))
 
-  def onFinalize[G[_]: Foldable](
+  def onFinalizeSequence[G[_]: Foldable](
     f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
   ): Self =
     copyWith(onFinalizeF = f(_).sequence_)
@@ -384,12 +389,17 @@ object App extends AppSyntax {
 
     // ------- BEFORE PROVIDING -------
     def beforeProviding(
+      f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      copy(beforeProvidingF = f)
+
+    def beforeProvidingSequence(
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
       fN: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      beforeProviding(deps => (f +: fN).map(_(deps)))
+      beforeProvidingSequence(deps => (f +: fN).map(_(deps)))
 
-    def beforeProviding[G[_]: Foldable](
+    def beforeProvidingSequence[G[_]: Foldable](
       f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
     ): AppBuilderSelectProvide[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       copy(beforeProvidingF = f(_).sequence_)
