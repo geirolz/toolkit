@@ -54,7 +54,7 @@ lazy val docs: Project =
       ).flatten,
       // config
       scalacOptions --= Seq("-Werror", "-Xfatal-warnings"),
-      mdocIn := file("docs/source"),
+      mdocIn  := file("docs/source"),
       mdocOut := file("docs/compiled"),
       mdocVariables := Map(
         "VERSION"  -> previousStableVersion.value.getOrElse("<version>"),
@@ -160,20 +160,32 @@ lazy val fly4s: Project =
     )
 
 //=============================== MODULES UTILS ===============================
-def module(modName: String)(folder: String, publishAs: Option[String] = None): Project = {
+def module(modName: String)(
+  folder: String,
+  publishAs: Option[String]       = None,
+  mimaCompatibleWith: Set[String] = Set.empty
+): Project = {
   val keys       = modName.split("-")
   val modDocName = keys.mkString(" ")
   val publishSettings = publishAs match {
     case Some(pubName) =>
       Seq(
-        moduleName := pubName,
+        moduleName     := pubName,
         publish / skip := false
       )
     case None => noPublishSettings
   }
+  val mimaSettings = Seq(
+    mimaFailOnNoPrevious := false,
+    mimaPreviousArtifacts := mimaCompatibleWith.map { version =>
+      organization.value % s"${moduleName.value}_${scalaBinaryVersion.value}" % version
+    }
+  )
+
   Project(modName, file(folder))
     .settings(
       name := s"$prjName $modDocName",
+      mimaSettings,
       publishSettings,
       baseSettings
     )
@@ -183,20 +195,21 @@ def subProjectName(modPublishName: String): String = s"$prjName-$modPublishName"
 
 //=============================== SETTINGS ===============================
 lazy val noPublishSettings: Seq[Def.Setting[_]] = Seq(
-  publish := {},
-  publishLocal := {},
-  publishArtifact := false,
-  publish / skip := true
+  publish              := {},
+  publishLocal         := {},
+  publishArtifact      := false,
+  publish / skip       := true,
+  mimaFailOnNoPrevious := false
 )
 
 lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
   // project
-  name := prjName,
-  description := prjDescription,
+  name         := prjName,
+  description  := prjDescription,
   organization := org,
   // scala
   crossScalaVersions := supportedScalaVersions,
-  scalaVersion := supportedScalaVersions.head,
+  scalaVersion       := supportedScalaVersions.head,
   scalacOptions ++= scalacSettings(scalaVersion.value),
   versionScheme := Some("early-semver"),
   // dependencies
