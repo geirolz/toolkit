@@ -66,7 +66,7 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
 
 object Secret extends Instances {
 
-  val placeHolder = "** MASKED **"
+  val placeHolder = "** SECRET **"
 
   case class NoLongerValidSecret() extends RuntimeException("This key is no longer valid")
 
