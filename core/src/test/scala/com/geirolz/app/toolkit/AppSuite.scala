@@ -268,7 +268,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withLogger(ToolkitLogger.console[IO](_))
             .withConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .beforeProviding(
+            .beforeProvidingSeq(
               _ => logger.append(Event.Custom("beforeProviding_1")),
               _ => logger.append(Event.Custom("beforeProviding_2")),
               _ => logger.append(Event.Custom("beforeProviding_3"))

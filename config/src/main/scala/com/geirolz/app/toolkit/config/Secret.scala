@@ -1,23 +1,22 @@
 package com.geirolz.app.toolkit.config
 
 import cats.{Eq, Show}
-import com.geirolz.app.toolkit.config.Secret.{DeOffuser, NoLongerValidSecret, Offuser, OffuserTuple, Seed}
+import com.geirolz.app.toolkit.config.Secret.{DeObfuser, NoLongerValidSecret, Obfuser, ObfuserTuple, Seed}
 
-import java.nio.charset.StandardCharsets
 import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.util
 import java.util.Objects
-import scala.collection.BuildFrom
-import scala.util.hashing.Hashing
 import scala.util.Random
+import scala.util.hashing.Hashing
 
 /** The `Secret` class represent a secret value of type `T`.
   *
-  * The value is implicitly offuscated when creating the `Secret` instance using an implicit `Offuser` instance which, by default, transform the value
-  * into a shuffled `Array[Byte]`.
+  * The value is implicitly obfuscated when creating the `Secret` instance using an implicit `Obfuser` instance which, by default, transform the value
+  * into a shuffled xor-ed `Array[Byte]`.
   *
-  * The offuscated value is de-offuscated using an implicit `DeOffuser` instance every time the method `use` is invoked which returns the original
-  * value un-shuffling the bytes and converting them back to `T`.
+  * The obfuscated value is de-obfuscated using an implicit `DeObfuser` instance every time the method `use` is invoked which returns the original
+  * value un-shuffling the bytes and converting them back to `T` re-apply the xor.
   *
   * Example
   * {{{
@@ -25,24 +24,24 @@ import scala.util.Random
   *   val secretValue: Either[NoLongerValidSecret, String]  = secretString.use
   * }}}
   */
-final class Secret[T](private var offuscatedValue: Array[Byte], seed: Seed) {
+final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
 
   private var destroyed: Boolean = false
 
-  def unsafeUse(implicit deOffuser: DeOffuser[T]): T =
+  def unsafeUse(implicit deObfuser: DeObfuser[T]): T =
     use match {
       case Left(ex)     => throw ex
       case Right(value) => value
     }
 
-  def use(implicit deOffuser: DeOffuser[T]): Either[NoLongerValidSecret, T] = {
+  def use(implicit deObfuser: DeObfuser[T]): Either[NoLongerValidSecret, T] = {
     if (isDestroyed)
       Left(NoLongerValidSecret())
     else
-      Right(deOffuser(offuscatedValue, seed))
+      Right(deObfuser(obfuscatedValue, seed))
   }
 
-  def useAndDestroy(implicit deOffuser: DeOffuser[T]): Either[NoLongerValidSecret, T] =
+  def useAndDestroy(implicit deObfuser: DeObfuser[T]): Either[NoLongerValidSecret, T] =
     use.map(value => {
       destroy()
       value
@@ -50,7 +49,7 @@ final class Secret[T](private var offuscatedValue: Array[Byte], seed: Seed) {
 
   def destroy(): Unit =
     if (!destroyed) {
-      util.Arrays.fill(offuscatedValue, 0.toByte)
+      util.Arrays.fill(obfuscatedValue, 0.toByte)
       destroyed = true
       System.gc()
     }
@@ -71,109 +70,114 @@ object Secret extends Instances {
 
   case class NoLongerValidSecret() extends RuntimeException("This key is no longer valid")
 
-  def apply[T: Offuser](value: T, seed: Seed = Random.nextLong()): Secret[T] =
-    new Secret(Offuser[T].apply(value, seed), seed)
+  def apply[T: Obfuser](value: T, seed: Seed = Random.nextLong()): Secret[T] =
+    new Secret(Obfuser[T].apply(value, seed), seed)
 
-  // ---------------- OFFUSER ----------------
+  // ---------------- OBFUSER ----------------
   private[Secret] type Seed = Long
-  trait Offuser[P] extends ((P, Seed) => Array[Byte])
-  object Offuser {
-    def apply[P: Offuser]: Offuser[P] = implicitly[Offuser[P]]
+  trait Obfuser[P] extends ((P, Seed) => Array[Byte])
+  object Obfuser {
+    def apply[P: Obfuser]: Obfuser[P] =
+      implicitly[Obfuser[P]]
 
-    def of[P](f: (P, Seed) => Array[Byte]): Offuser[P] = (p, s) => f(p, s)
+    def of[P](f: (P, Seed) => Array[Byte]): Obfuser[P] =
+      (p, s) => f(p, s)
 
-    def shuffle[P](f: P => Array[Byte]): Offuser[P] =
-      Offuser.of((plain, seed) => {
-        Secret.shuffleWithSeed(seed)(f(plain)).toArray
-      })
+    def default[P](f: P => Array[Byte]): Obfuser[P] =
+      Obfuser.of((plain, seed) => shuffleAndXorBytes(seed, f(plain)))
+
+    def shuffleAndXorBytes(seed: Seed, bytes: Array[Byte]): Array[Byte] = {
+      val random: Random = new Random(seed)
+      val key: Byte      = random.nextLong().toByte
+      random.shuffle(bytes.toSeq).map(b => (b ^ key).toByte).toArray
+    }
   }
 
-  trait DeOffuser[P] extends ((Array[Byte], Seed) => P)
-  object DeOffuser {
-    def apply[P: DeOffuser]: DeOffuser[P] = implicitly[DeOffuser[P]]
+  trait DeObfuser[P] extends ((Array[Byte], Seed) => P)
+  object DeObfuser {
+    def apply[P: DeObfuser]: DeObfuser[P] =
+      implicitly[DeObfuser[P]]
 
-    def of[P](f: (Array[Byte], Seed) => P): DeOffuser[P] = (b, s) => f(b, s)
+    def of[P](f: (Array[Byte], Seed) => P): DeObfuser[P] =
+      (b, s) => f(b, s)
 
-    def unshuffle[P](f: Array[Byte] => P): DeOffuser[P] =
-      DeOffuser.of((bytes, seed) => {
-        val perm          = Range(1, bytes.length + 1)
-        val shuffled_perm = Secret.shuffleWithSeed(seed)(perm)
-        val zipped_ls     = bytes.zip(shuffled_perm)
-        f(zipped_ls.sortBy(_._2).map(_._1))
-      })
+    def default[P](f: Array[Byte] => P): DeObfuser[P] =
+      DeObfuser.of((bytes, seed) => f(unshuffleAndXorBytes(seed, bytes)))
+
+    def unshuffleAndXorBytes(seed: Seed, shuffled: Array[Byte]): Array[Byte] = {
+      val random: Random                = new Random(seed)
+      val key: Byte                     = random.nextLong().toByte
+      val shuffled_perm: Seq[Int]       = random.shuffle(1 to shuffled.length)
+      val zipped_ls: Array[(Byte, Int)] = shuffled.zip(shuffled_perm)
+
+      zipped_ls.sortBy(_._2).map(t => (t._1 ^ key).toByte)
+    }
   }
 
-  case class OffuserTuple[P](offuser: Offuser[P], deOffuser: DeOffuser[P]) {
-    def bimap[U](fO: U => P, fD: P => U): OffuserTuple[U] =
-      OffuserTuple[U](
-        offuser   = Offuser.of((plain, seed) => offuser(fO(plain), seed)),
-        deOffuser = DeOffuser.of((bytes, seed) => fD(deOffuser(bytes, seed)))
+  case class ObfuserTuple[P](obfuser: Obfuser[P], deObfuser: DeObfuser[P]) {
+    def bimap[U](fO: U => P, fD: P => U): ObfuserTuple[U] =
+      ObfuserTuple[U](
+        obfuser   = Obfuser.of((plain, seed) => obfuser(fO(plain), seed)),
+        deObfuser = DeObfuser.of((bytes, seed) => fD(deObfuser(bytes, seed)))
       )
   }
-  object OffuserTuple {
+  object ObfuserTuple {
     def allocateByteBuffer[P](capacity: Int)(
-      bOffuser: ByteBuffer => P => ByteBuffer,
-      bDeOffuser: ByteBuffer => P
-    ): OffuserTuple[P] =
-      OffuserTuple(
-        offuser   = Offuser.shuffle(p => bOffuser(ByteBuffer.allocate(capacity)).apply(p).array()),
-        deOffuser = DeOffuser.unshuffle(b => bDeOffuser(ByteBuffer.wrap(b)))
+      bObfuser: ByteBuffer => P => ByteBuffer,
+      bDeObfuser: ByteBuffer => P
+    ): ObfuserTuple[P] =
+      ObfuserTuple(
+        obfuser   = Obfuser.default(p => bObfuser(ByteBuffer.allocate(capacity)).apply(p).array()),
+        deObfuser = DeObfuser.default(b => bDeObfuser(ByteBuffer.wrap(b)))
       )
-  }
-
-  private def shuffleWithSeed[T, C](
-    seed: Seed
-  )(xs: IterableOnce[T])(implicit bf: BuildFrom[xs.type, T, C]): C = synchronized {
-    Random.setSeed(seed)
-    Random.shuffle(xs)
   }
 }
 sealed trait Instances {
 
-  implicit val stringBiOffuser: OffuserTuple[String] =
-    OffuserTuple(
-      Offuser.shuffle(_.getBytes(StandardCharsets.UTF_8)),
-      DeOffuser.unshuffle(off => new String(off, StandardCharsets.UTF_8))
+  implicit val stringBiObfuser: ObfuserTuple[String] =
+    ObfuserTuple(
+      Obfuser.default(_.getBytes(StandardCharsets.UTF_8)),
+      DeObfuser.default(off => new String(off, StandardCharsets.UTF_8))
     )
 
-  implicit val byteBiOffuser: OffuserTuple[Byte] =
-    OffuserTuple(Offuser.shuffle(i => Array(i)), DeOffuser.unshuffle(_.head))
+  implicit val byteBiObfuser: ObfuserTuple[Byte] =
+    ObfuserTuple(Obfuser.default(i => Array(i)), DeObfuser.default(_.head))
 
-  implicit val charBiOffuser: OffuserTuple[Char] =
-    OffuserTuple.allocateByteBuffer(2)(_.putChar, _.getChar)
+  implicit val charBiObfuser: ObfuserTuple[Char] =
+    ObfuserTuple.allocateByteBuffer(2)(_.putChar, _.getChar)
 
-  implicit val intBiOffuser: OffuserTuple[Int] =
-    OffuserTuple.allocateByteBuffer(4)(_.putInt, _.getInt)
+  implicit val intBiObfuser: ObfuserTuple[Int] =
+    ObfuserTuple.allocateByteBuffer(4)(_.putInt, _.getInt)
 
-  implicit val shortBiOffuser: OffuserTuple[Short] =
-    OffuserTuple.allocateByteBuffer(2)(_.putShort, _.getShort)
+  implicit val shortBiObfuser: ObfuserTuple[Short] =
+    ObfuserTuple.allocateByteBuffer(2)(_.putShort, _.getShort)
 
-  implicit val floatBiOffuser: OffuserTuple[Float] =
-    OffuserTuple.allocateByteBuffer(4)(_.putFloat, _.getFloat)
+  implicit val floatBiObfuser: ObfuserTuple[Float] =
+    ObfuserTuple.allocateByteBuffer(4)(_.putFloat, _.getFloat)
 
-  implicit val doubleBiOffuser: OffuserTuple[Double] =
-    OffuserTuple.allocateByteBuffer(8)(_.putDouble, _.getDouble)
+  implicit val doubleBiObfuser: ObfuserTuple[Double] =
+    ObfuserTuple.allocateByteBuffer(8)(_.putDouble, _.getDouble)
 
-  implicit val boolBiOffuser: OffuserTuple[Boolean] =
-    OffuserTuple(
-      Offuser.shuffle(i => if (i) Array(1) else Array(0)),
-      DeOffuser.unshuffle(_.head match {
+  implicit val boolBiObfuser: ObfuserTuple[Boolean] =
+    ObfuserTuple(
+      Obfuser.default(i => if (i) Array(1) else Array(0)),
+      DeObfuser.default(_.head match {
         case 1 => true
         case 0 => false
       })
     )
 
-  implicit val bigIntBiOffuser: OffuserTuple[BigInt] =
-    OffuserTuple(Offuser.shuffle(_.toByteArray), DeOffuser.unshuffle(BigInt(_)))
+  implicit val bigIntBiObfuser: ObfuserTuple[BigInt] =
+    ObfuserTuple(Obfuser.default(_.toByteArray), DeObfuser.default(BigInt(_)))
 
-  implicit val bigDecimalBiOffuser: OffuserTuple[BigDecimal] =
-    stringBiOffuser.bimap(_.toString, str => BigDecimal(str))
+  implicit val bigDecimalBiObfuser: ObfuserTuple[BigDecimal] =
+    stringBiObfuser.bimap(_.toString, str => BigDecimal(str))
 
-  implicit def unzipBiOffuserToOffuser[P: OffuserTuple]: Offuser[P] =
-    implicitly[OffuserTuple[P]].offuser
+  implicit def unzipBiObfuserToObfuser[P: ObfuserTuple]: Obfuser[P] =
+    implicitly[ObfuserTuple[P]].obfuser
 
-  implicit def unzipBiOffuserToDeOffuser[P: OffuserTuple]: DeOffuser[P] =
-    implicitly[OffuserTuple[P]].deOffuser
+  implicit def unzipBiObfuserTodeObfuser[P: ObfuserTuple]: DeObfuser[P] =
+    implicitly[ObfuserTuple[P]].deObfuser
 
   implicit def hashing[T]: Hashing[Secret[T]] =
     Hashing.fromFunction(_.hashCode())
