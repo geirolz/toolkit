@@ -1,7 +1,6 @@
 package com.geirolz.app.toolkit.config
 
 import cats.{Eq, MonadThrow, Show}
-import com.geirolz.app.toolkit.=:!=
 import com.geirolz.app.toolkit.config.Secret.{DeObfuser, Obfuser, ObfuserTuple, SecretNoLongerValid, Seed}
 
 import java.nio.ByteBuffer
@@ -35,56 +34,48 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
     *
     * If the secret is destroyed it will raise a `NoLongerValidSecret` exception.
     *
-    * Type-inequality is used to avoid using this method with the same type of the secret.
-    *
     * @throws NoLongerValidSecret
     *   if the secret is destroyed
     */
-  def unsafeUse[U: =:!=[*, T]](f: T => U)(implicit deObfuser: DeObfuser[T]): U =
+  def unsafeUse[U](f: T => U)(implicit deObfuser: DeObfuser[T]): U =
     use[Either[Throwable, *], U](f).fold(throw _, identity)
 
   /** Apply `f` with the de-obfuscated value WITHOUT destroying it.
     *
     * If the secret is destroyed it will raise a `NoLongerValidSecret` exception.
     *
-    * Type-inequality is used to avoid using this method with the same type of the secret.
-    *
     * Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy`, `evalUse`, `evalUseAndDestroy` and
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
-  def use[F[_]: MonadThrow, U: =:!=[*, T]](f: T => U)(implicit deObfuser: DeObfuser[T]): F[U] =
+  def use[F[_]: MonadThrow, U](f: T => U)(implicit deObfuser: DeObfuser[T]): F[U] =
     evalUse[F, U](f.andThen(_.pure[F]))
 
   /** Alias for `use` with `Either[Throwable, *]`
     */
-  def useE[U: =:!=[*, T]](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[Throwable, U] =
+  def useE[U](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[Throwable, U] =
     use[Either[Throwable, *], U](f)
 
   /** Alias for `useAndDestroy` with `Either[Throwable, *]`
     */
-  def useAndDestroyE[U: =:!=[*, T]](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[Throwable, U] =
+  def useAndDestroyE[U](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[Throwable, U] =
     useAndDestroy[Either[Throwable, *], U](f)
 
   /** Apply `f` with the de-obfuscated value and then destroy the secret value by invoking `destroy` method.
     *
-    * Type-inequality is used to avoid using this method with the same type of the secret.
-    *
     * Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy`, `evalUse`, `evalUseAndDestroy` and
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
-  def useAndDestroy[F[_]: MonadThrow, U: =:!=[*, T]](f: T => U)(implicit deObfuser: DeObfuser[T]): F[U] =
+  def useAndDestroy[F[_]: MonadThrow, U](f: T => U)(implicit deObfuser: DeObfuser[T]): F[U] =
     evalUseAndDestroy[F, U](f.andThen(_.pure[F]))
 
   /** Apply `f` with the de-obfuscated value WITHOUT destroying it.
     *
     * If the secret is destroyed it will raise a `NoLongerValidSecret` exception.
     *
-    * Type-inequality is used to avoid using this method with the same type of the secret.
-    *
     * Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy`, `evalUse`, `evalUseAndDestroy` and
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
-  def evalUse[F[_]: MonadThrow, U: =:!=[*, T]](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
+  def evalUse[F[_]: MonadThrow, U](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
     if (destroyed)
       MonadThrow[F].raiseError(SecretNoLongerValid())
     else
@@ -92,12 +83,10 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
 
   /** Apply `f` with the de-obfuscated value and then destroy the secret value by invoking `destroy` method.
     *
-    * Type-inequality is used to avoid using this method with the same type of the secret.
-    *
     * Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy`, `evalUse`, `evalUseAndDestroy` and
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
-  def evalUseAndDestroy[F[_]: MonadThrow, U: =:!=[*, T]](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
+  def evalUseAndDestroy[F[_]: MonadThrow, U](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
     evalUse(f).map { u => destroy(); u }
 
   /** Destroy the secret value by filling the obfuscated value with 0.
