@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.config
 
-import cats.{Eq, MonadError, MonadThrow, Show}
+import cats.{Eq, MonadError, Show}
 import com.geirolz.app.toolkit.config.Secret.{DeObfuser, Obfuser, ObfuserTuple, SecretNoLongerValid, Seed}
 
 import java.nio.ByteBuffer
