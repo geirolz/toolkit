@@ -43,17 +43,17 @@ object AppInterpreter {
 
           // -------------------- RESOURCES-------------------
           // logger
-          appLogger <- EitherT.right[FAILURE](Resource.eval(app.loggerBuilder))
-          appLoggerF = LoggerAdapter[LOGGER_T].toToolkit[F](appLogger)
-          appResLogger = appLoggerF.mapK(
+          userLogger <- EitherT.right[FAILURE](Resource.eval(app.loggerBuilder))
+          toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](userLogger)
+          toolkitResLogger = toolkitLogger.mapK(
             Resource.liftK[F].andThen(EitherT.liftK[Resource[F, *], FAILURE])
           )
 
           // config
-          _         <- appResLogger.debug(app.appMessages.loadingConfig)
+          _         <- toolkitResLogger.debug(app.appMessages.loadingConfig)
           appConfig <- EitherT.right[FAILURE](app.configLoader)
-          _         <- appResLogger.info(app.appMessages.configSuccessfullyLoaded)
-          _         <- appResLogger.info(appConfig.show)
+          _         <- toolkitResLogger.info(app.appMessages.configSuccessfullyLoaded)
+          _         <- toolkitResLogger.info(appConfig.show)
 
           // other resources
           otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
@@ -62,21 +62,21 @@ object AppInterpreter {
           appResources: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = App.Resources(
             info      = app.appInfo,
             args      = AppArgs(appArgs),
-            logger    = appLogger,
+            logger    = userLogger,
             config    = appConfig,
             resources = otherResources
           )
 
           // ------------------- DEPENDENCIES -----------------
-          _              <- appResLogger.debug(app.appMessages.buildingServicesEnv)
+          _              <- toolkitResLogger.debug(app.appMessages.buildingServicesEnv)
           appDepServices <- EitherT(app.dependenciesLoader(appResources))
-          _              <- appResLogger.info(app.appMessages.servicesEnvSuccessfullyBuilt)
+          _              <- toolkitResLogger.info(app.appMessages.servicesEnvSuccessfullyBuilt)
           appDependencies = App.Dependencies(appResources, appDepServices)
 
           // --------------------- SERVICES -------------------
-          _               <- appResLogger.debug(app.appMessages.buildingApp)
+          _               <- toolkitResLogger.debug(app.appMessages.buildingApp)
           appProvServices <- EitherT(Resource.eval(app.provideBuilder(appDependencies)))
-          _               <- appResLogger.info(app.appMessages.appSuccessfullyBuilt)
+          _               <- toolkitResLogger.info(app.appMessages.appSuccessfullyBuilt)
 
           // --------------------- APP ------------------------
           appLogic = for {
@@ -112,13 +112,13 @@ object AppInterpreter {
             maybeReducedFailures <- failures.get.map(NonEmptyList.fromList(_))
           } yield maybeReducedFailures.toLeft(())
         } yield {
-          appLoggerF.info(app.appMessages.startingApp) >>
+          toolkitLogger.info(app.appMessages.startingApp) >>
           app.beforeProvidingF(appDependencies) >>
           appLogic
-            .onCancel(appLoggerF.info(app.appMessages.appWasStopped))
-            .onError(e => appLoggerF.error(e)(app.appMessages.appEnErrorOccurred))
+            .onCancel(toolkitLogger.info(app.appMessages.appWasStopped))
+            .onError(e => toolkitLogger.error(e)(app.appMessages.appEnErrorOccurred))
             .guarantee(
-              app.onFinalizeF(appDependencies) >> appLoggerF.info(app.appMessages.shuttingDownApp)
+              app.onFinalizeF(appDependencies) >> toolkitLogger.info(app.appMessages.shuttingDownApp)
             )
         }
       ).value
