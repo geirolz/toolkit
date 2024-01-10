@@ -44,9 +44,16 @@ class PureconfigSecretSupportSuite extends munit.CatsEffectSuite {
       config.getValue("conf.secret-value")
     )
 
-    assertEquals(
-      obtained = result.flatMap(_.useE),
-      expected = Right("my-super-secret-password")
+    assert(
+      result
+        .flatMap(_.useE(secretValue => {
+          assertEquals(
+            obtained = secretValue,
+            expected = "my-super-secret-password"
+          )
+        }))
+        .isRight
     )
+
   }
 }

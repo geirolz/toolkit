@@ -5,7 +5,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 class SecretSuite extends munit.ScalaCheckSuite {
 
@@ -52,18 +52,15 @@ class SecretSuite extends munit.ScalaCheckSuite {
     // use
     property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - use") {
       forAll { (value: T) =>
-        assertEquals(
-          obtained = Secret(value).use[Try],
-          expected = Success(value)
-        )
-      }
-    }
-
-    property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - useE") {
-      forAll { (value: T) =>
-        assertEquals(
-          obtained = Secret(value).useE,
-          expected = Right(value)
+        assert(
+          Secret(value)
+            .use[Try, Unit](result => {
+              assertEquals(
+                obtained = result,
+                expected = value
+              )
+            })
+            .isSuccess
         )
       }
     }
@@ -72,31 +69,21 @@ class SecretSuite extends munit.ScalaCheckSuite {
     property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - useAndDestroy") {
       forAll { (value: T) =>
         val secret: Secret[T] = Secret(value)
-        assertEquals(
-          obtained = secret.useAndDestroy[Try],
-          expected = Success(value)
-        )
-        assertEquals(
-          obtained = secret.useAndDestroy[Try],
-          expected = Failure(SecretNoLongerValid())
-        )
-        assertEquals(
-          obtained = secret.isDestroyed,
-          expected = true
-        )
-      }
-    }
 
-    property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - useAndDestroyE") {
-      forAll { (value: T) =>
-        val secret: Secret[T] = Secret(value)
-        assertEquals(
-          obtained = secret.useAndDestroyE,
-          expected = Right(value)
+        assert(
+          secret
+            .useAndDestroy[Try, Unit] { result =>
+              assertEquals(
+                obtained = result,
+                expected = value
+              )
+            }
+            .isSuccess
         )
+
         assertEquals(
-          obtained = secret.useAndDestroyE,
-          expected = Left(SecretNoLongerValid())
+          obtained = secret.useAndDestroy[Try, Int](_.hashCode()),
+          expected = Failure(SecretNoLongerValid())
         )
         assertEquals(
           obtained = secret.isDestroyed,
