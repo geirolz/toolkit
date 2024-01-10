@@ -35,8 +35,7 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
     *
     * If the secret is destroyed it will raise a `NoLongerValidSecret` exception.
     *
-    * @throws SecretNoLongerValid
-    *   if the secret is destroyed
+    * Throws `SecretNoLongerValid` if the secret is destroyed
     */
   def unsafeUse[U](f: T => U)(implicit deObfuser: DeObfuser[T]): U =
     use[Either[SecretNoLongerValid, *], U](f).fold(throw _, identity)
