@@ -1,13 +1,13 @@
 package com.geirolz.app.toolkit.config
 
-import cats.{Eq, Show}
-import com.geirolz.app.toolkit.config.Secret.{DeObfuser, NoLongerValidSecret, Obfuser, ObfuserTuple, Seed}
+import cats.{Eq, MonadThrow, Show}
+import com.geirolz.app.toolkit.config.Secret.{DeObfuser, Obfuser, ObfuserTuple, SecretNoLongerValid, Seed}
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.util
-import java.util.Objects
 import scala.util.Random
+import scala.util.control.NoStackTrace
 import scala.util.hashing.Hashing
 
 /** The `Secret` class represent a secret value of type `T`.
@@ -28,47 +28,127 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
 
   private var destroyed: Boolean = false
 
+  /** Unsafe version of `Secret#use` method. Avoid it if possible.
+    *
+    * This method should be used only when the secret is still valid, otherwise it will throw a `NoLongerValidSecret` exception.
+    *
+    * @throws SecretNoLongerValid
+    *   if the secret is no longer valid
+    * @param deObfuser
+    *   the implicit de-obfuser to use to de-obfuscate the value
+    * @return
+    *   the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance
+    */
   def unsafeUse(implicit deObfuser: DeObfuser[T]): T =
-    use match {
-      case Left(ex)     => throw ex
-      case Right(value) => value
-    }
+    useE.fold(throw _, identity)
 
-  def use(implicit deObfuser: DeObfuser[T]): Either[NoLongerValidSecret, T] = {
+  /** Access the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance.
+    *
+    * This method is safe because it returns the original checking if the secret is still valid. If the secret is no longer valid it will raise a
+    * `NoLongerValidSecret` exception through monadic `F`.
+    *
+    * @param deObfuser
+    *   the implicit de-obfuser to use to de-obfuscate the value
+    * @param F
+    *   MonadThrow typeclass instance
+    * @tparam F
+    *   Effect type
+    * @return
+    *   the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance wrapped in `F`
+    */
+  def use[F[_]: MonadThrow](implicit deObfuser: DeObfuser[T]): F[T] =
+    MonadThrow[F].fromEither(useE)
+
+  /** Access the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance.
+    *
+    * This method is safe because it returns the original checking if the secret is still valid. If the secret is no longer valid it will raise a
+    * `NoLongerValidSecret` exception through monadic `F`.
+    *
+    * Once the secret is used it will be destroyed invoking `destroy` method.
+    *
+    * @param deObfuser
+    *   the implicit de-obfuser to use to de-obfuscate the value
+    * @param F
+    *   MonadThrow typeclass instance
+    * @tparam F
+    *   Effect type
+    * @return
+    *   the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance wrapped in `F`
+    */
+  def useAndDestroy[F[_]: MonadThrow](implicit deObfuser: DeObfuser[T]): F[T] =
+    MonadThrow[F].fromEither(useAndDestroyE)
+
+  /** Access the original value of type `T` de-obfuscated using the implicit `DeObfuser` instance.
+    *
+    * This method is safe because it returns the original checking if the secret is still valid. If the secret is no longer valid it will raise a
+    * `NoLongerValidSecret` exception through monadic `F`.
+    *
+    * @param deObfuser
+    *   the implicit de-obfuser to use to de-obfuscate the value
+    * @return
+    *   `Left` if the secret is destroyed, `Right` with T value de-obfuscate otherwise
+    */
+  def useE(implicit deObfuser: DeObfuser[T]): Either[SecretNoLongerValid, T] =
     if (isDestroyed)
-      Left(NoLongerValidSecret())
+      Left(SecretNoLongerValid())
     else
       Right(deObfuser(obfuscatedValue, seed))
-  }
 
-  def useAndDestroy(implicit deObfuser: DeObfuser[T]): Either[NoLongerValidSecret, T] =
-    use.map(value => {
-      destroy()
-      value
-    })
+  /** This method is safe because it returns the original checking if the secret is still valid. If the secret is no longer valid it will return a
+    * `NoLongerValidSecret` as `Left` side of the `Either`.
+    *
+    * Once the secret is used it will be destroyed invoking `destroy` method.
+    *
+    * @param deObfuser
+    *   the implicit de-obfuser to use to de-obfuscate the value
+    * @return
+    *   `Left` if the secret is destroyed, `Right` with T value de-obfuscate otherwise
+    */
+  def useAndDestroyE(implicit deObfuser: DeObfuser[T]): Either[SecretNoLongerValid, T] =
+    useE.map { value => destroy(); value }
 
+  /** Destroy the secret value by filling the obfuscated value with 0.
+    *
+    * This method is idempotent.
+    *
+    * @note
+    *   Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy` and other methods, it will raise a
+    *   `NoLongerValidSecret` exception.
+    */
   def destroy(): Unit =
     if (!destroyed) {
       util.Arrays.fill(obfuscatedValue, 0.toByte)
-      destroyed = true
-      System.gc()
+      obfuscatedValue = null
+      destroyed       = true
     }
 
+  /** Check if the secret is destroyed
+    * @return
+    *   `true` if the secret is destroyed, `false` otherwise
+    */
   def isDestroyed: Boolean = destroyed
 
+  /** @return
+    *   always returns `false` to avoid leaking information
+    */
   override def equals(obj: Any): Boolean = false
 
+  /** @return
+    *   always returns a static place holder string "** SECRET **" to avoid leaking information
+    */
   override def toString: String = Secret.placeHolder
 
-  override def hashCode(): Int =
-    if (isDestroyed) -1 else Objects.hash(seed)
+  /** @return
+    *   always returns `-1` to avoid leaking information
+    */
+  override def hashCode(): Int = -1
 }
 
 object Secret extends Instances {
 
   val placeHolder = "** MASKED **"
 
-  case class NoLongerValidSecret() extends RuntimeException("This key is no longer valid")
+  case class SecretNoLongerValid() extends RuntimeException("This secret value is no longer valid") with NoStackTrace
 
   def apply[T: Obfuser](value: T, seed: Seed = Random.nextLong()): Secret[T] =
     new Secret(Obfuser[T].apply(value, seed), seed)
@@ -134,31 +214,31 @@ object Secret extends Instances {
 }
 sealed trait Instances {
 
-  implicit val stringBiObfuser: ObfuserTuple[String] =
+  implicit val stringObfuserTuple: ObfuserTuple[String] =
     ObfuserTuple(
       Obfuser.default(_.getBytes(StandardCharsets.UTF_8)),
       DeObfuser.default(off => new String(off, StandardCharsets.UTF_8))
     )
 
-  implicit val byteBiObfuser: ObfuserTuple[Byte] =
+  implicit val byteObfuserTuple: ObfuserTuple[Byte] =
     ObfuserTuple(Obfuser.default(i => Array(i)), DeObfuser.default(_.head))
 
-  implicit val charBiObfuser: ObfuserTuple[Char] =
+  implicit val charObfuserTuple: ObfuserTuple[Char] =
     ObfuserTuple.allocateByteBuffer(2)(_.putChar, _.getChar)
 
-  implicit val intBiObfuser: ObfuserTuple[Int] =
+  implicit val intObfuserTuple: ObfuserTuple[Int] =
     ObfuserTuple.allocateByteBuffer(4)(_.putInt, _.getInt)
 
-  implicit val shortBiObfuser: ObfuserTuple[Short] =
+  implicit val shortObfuserTuple: ObfuserTuple[Short] =
     ObfuserTuple.allocateByteBuffer(2)(_.putShort, _.getShort)
 
-  implicit val floatBiObfuser: ObfuserTuple[Float] =
+  implicit val floatObfuserTuple: ObfuserTuple[Float] =
     ObfuserTuple.allocateByteBuffer(4)(_.putFloat, _.getFloat)
 
-  implicit val doubleBiObfuser: ObfuserTuple[Double] =
+  implicit val doubleObfuserTuple: ObfuserTuple[Double] =
     ObfuserTuple.allocateByteBuffer(8)(_.putDouble, _.getDouble)
 
-  implicit val boolBiObfuser: ObfuserTuple[Boolean] =
+  implicit val boolObfuserTuple: ObfuserTuple[Boolean] =
     ObfuserTuple(
       Obfuser.default(i => if (i) Array(1) else Array(0)),
       DeObfuser.default(_.head match {
@@ -167,16 +247,16 @@ sealed trait Instances {
       })
     )
 
-  implicit val bigIntBiObfuser: ObfuserTuple[BigInt] =
+  implicit val bigIntObfuserTuple: ObfuserTuple[BigInt] =
     ObfuserTuple(Obfuser.default(_.toByteArray), DeObfuser.default(BigInt(_)))
 
-  implicit val bigDecimalBiObfuser: ObfuserTuple[BigDecimal] =
-    stringBiObfuser.bimap(_.toString, str => BigDecimal(str))
+  implicit val bigDecimalObfuserTuple: ObfuserTuple[BigDecimal] =
+    stringObfuserTuple.bimap(_.toString, str => BigDecimal(str))
 
-  implicit def unzipBiObfuserToObfuser[P: ObfuserTuple]: Obfuser[P] =
+  implicit def unzipObfuserTupleToObfuser[P: ObfuserTuple]: Obfuser[P] =
     implicitly[ObfuserTuple[P]].obfuser
 
-  implicit def unzipBiObfuserTodeObfuser[P: ObfuserTuple]: DeObfuser[P] =
+  implicit def unzipObfuserTupleTodeObfuser[P: ObfuserTuple]: DeObfuser[P] =
     implicitly[ObfuserTuple[P]].deObfuser
 
   implicit def hashing[T]: Hashing[Secret[T]] =
