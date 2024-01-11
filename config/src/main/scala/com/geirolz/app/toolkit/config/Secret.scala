@@ -28,7 +28,6 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
 
   import cats.syntax.all.*
 
-  private var destroyed: Boolean = false
   private type MonadSecretError[F[_]] = MonadError[F, ? >: SecretNoLongerValid]
 
   /** Avoid this method if possible. Unsafely apply `f` with the de-obfuscated value WITHOUT destroying it.
@@ -76,7 +75,7 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
   def evalUse[F[_]: MonadSecretError, U](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
-    if (destroyed) {
+    if (isDestroyed) {
       implicitly[MonadSecretError[F]].raiseError(SecretNoLongerValid())
     } else
       f(deObfuser(obfuscatedValue, seed))
@@ -97,17 +96,16 @@ final class Secret[T](private var obfuscatedValue: Array[Byte], seed: Seed) {
     * other methods, it will raise a `NoLongerValidSecret` exception.
     */
   def destroy(): Unit =
-    if (!destroyed) {
+    if (!isDestroyed) {
       util.Arrays.fill(obfuscatedValue, 0.toByte)
       obfuscatedValue = null
-      destroyed       = true
     }
 
   /** Check if the secret is destroyed
     * @return
     *   `true` if the secret is destroyed, `false` otherwise
     */
-  def isDestroyed: Boolean = destroyed
+  def isDestroyed: Boolean = obfuscatedValue == null
 
   /** @return
     *   always returns `false` to avoid leaking information
