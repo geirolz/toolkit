@@ -7,6 +7,7 @@ import com.geirolz.app.toolkit.config.Secret.{DeObfuser, MonadSecretError, Obfus
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.security.SecureRandom
+import scala.util.Try
 import scala.util.control.NoStackTrace
 import scala.util.hashing.{Hashing, MurmurHash3}
 
@@ -70,8 +71,14 @@ sealed trait Secret[T] extends AutoCloseable {
     */
   def isDestroyed: Boolean
 
-  /** @return
-    *   the hash code of this secret
+  /** Calculate the non-deterministic hash code for this Secret.
+    *
+    * This hash code is NOT the hash code of the original value. It is the hash code of the obfuscated value.
+    *
+    * Since the obfuscated value based on a random key, the hash code will be different every time. This function is not deterministic.
+    *
+    * @return
+    *   the hash code of this secret. If the secret is destroyed it will return `-1`.
     */
   def hashCode(): Int
 
@@ -100,10 +107,6 @@ sealed trait Secret[T] extends AutoCloseable {
   final def useE[U](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[SecretNoLongerValid, U] =
     use[Either[SecretNoLongerValid, *], U](f)
 
-  /** Alias for `useAndDestroy` with `Either[Throwable, *]` */
-  final def useAndDestroyE[U](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[SecretNoLongerValid, U] =
-    useAndDestroy[Either[SecretNoLongerValid, *], U](f)
-
   /** Apply `f` with the de-obfuscated value and then destroy the secret value by invoking `destroy` method.
     *
     * Once the secret is destroyed it can't be used anymore. If you try to use it using `use`, `useAndDestroy`, `evalUse`, `evalUseAndDestroy` and
@@ -111,6 +114,10 @@ sealed trait Secret[T] extends AutoCloseable {
     */
   final def useAndDestroy[F[_]: MonadSecretError, U](f: T => U)(implicit deObfuser: DeObfuser[T]): F[U] =
     evalUseAndDestroy[F, U](f.andThen(_.pure[F]))
+
+  /** Alias for `useAndDestroy` with `Either[Throwable, *]` */
+  final def useAndDestroyE[U](f: T => U)(implicit deObfuser: DeObfuser[T]): Either[SecretNoLongerValid, U] =
+    useAndDestroy[Either[SecretNoLongerValid, *], U](f)
 
   /** Apply `f` with the de-obfuscated value and then destroy the secret value by invoking `destroy` method.
     *
@@ -123,17 +130,17 @@ sealed trait Secret[T] extends AutoCloseable {
   /** Alias for `destroy` */
   final override def close(): Unit = destroy()
 
-  /** Compare the hash code of this secret with the hash code of provided `Secret`.
+  /** Safely compare this secret with the provided `Secret`.
     *
-    * If the secret is destroyed it will return `false`.
-    *
-    * If the provided object is not a `Secret` it will return `false`.
+    * @return
+    *   `true` if the secrets are equal, `false` if they are not equal or if one of the secret is destroyed
     */
-  final override def equals(obj: Any): Boolean =
-    obj match {
-      case that: Secret[_] if !this.isDestroyed && !that.isDestroyed => this.hashCode() == that.hashCode()
-      case _                                                         => false
-    }
+  final def isEquals(that: Secret[T])(implicit deObfuser: DeObfuser[T]): Boolean =
+    evalUse[Try, Boolean](value => that.use[Try, Boolean](_ == value)).getOrElse(false)
+
+  /** Always returns `false`, use `isEqual` instead */
+  @deprecated("Use isEquals instead", "0.0.1")
+  final override def equals(obj: Any): Boolean = false
 
   /** @return
     *   always returns a static place holder string "** SECRET **" to avoid leaking information
@@ -150,13 +157,30 @@ object Secret extends Instances {
   private type MonadSecretError[F[_]]        = MonadError[F, ? >: SecretNoLongerValid]
 
   case class SecretNoLongerValid() extends RuntimeException("This secret value is no longer valid") with NoStackTrace
-  private[Secret] class KeyValueTuple(_keyBuffer: KeyBuffer, _valueBuffer: ObfuscatedValueBuffer) {
-    val readOnlyKeyBuffer: KeyBuffer               = _keyBuffer.asReadOnlyBuffer()
-    val readOnlyValueBuffer: ObfuscatedValueBuffer = _valueBuffer.asReadOnlyBuffer()
+  private[Secret] class KeyValueTuple(
+    _keyBuffer: KeyBuffer,
+    _obfuscatedBuffer: ObfuscatedValueBuffer
+  ) {
+
+    val roKeyBuffer: KeyBuffer = _keyBuffer.asReadOnlyBuffer()
+
+    val roObfuscatedBuffer: ObfuscatedValueBuffer = _obfuscatedBuffer.asReadOnlyBuffer()
+
+    lazy val obfuscatedHashCode: Int = {
+      val capacity           = roObfuscatedBuffer.capacity()
+      var bytes: Array[Byte] = new scala.Array[Byte](capacity)
+      for (i <- 0 until capacity) {
+        bytes(i) = roObfuscatedBuffer.get(i)
+      }
+      val hashCode: Int = MurmurHash3.bytesHash(bytes)
+      bytes = clearByteArray(bytes)
+
+      hashCode
+    }
 
     def destroy(): Unit = {
       clearByteBuffer(_keyBuffer)
-      clearByteBuffer(_valueBuffer)
+      clearByteBuffer(_obfuscatedBuffer)
       ()
     }
   }
@@ -164,6 +188,7 @@ object Secret extends Instances {
   def apply[T: Obfuser](value: T): Secret[T] = {
 
     var bufferTuple: KeyValueTuple = Obfuser[T].apply(value)
+
     new Secret[T] {
 
       override def evalUse[F[_]: MonadSecretError, U](f: T => F[U])(implicit deObfuser: DeObfuser[T]): F[U] =
@@ -181,7 +206,7 @@ object Secret extends Instances {
         bufferTuple == null
 
       override def hashCode(): Int =
-        if (isDestroyed) -1 else MurmurHash3.stringHash(value.toString)
+        if (isDestroyed) -1 else bufferTuple.obfuscatedHashCode
     }
   }
 
@@ -274,13 +299,13 @@ object Secret extends Instances {
       */
     def default[P](f: PlainValueBuffer => P): DeObfuser[P] =
       of { bufferTuple =>
-        val capacity: Int                      = bufferTuple.readOnlyKeyBuffer.capacity()
+        val capacity: Int                      = bufferTuple.roKeyBuffer.capacity()
         var plainValueBuffer: PlainValueBuffer = ByteBuffer.allocateDirect(capacity)
 
         for (i <- 0 until capacity) {
           plainValueBuffer.put(
             (
-              bufferTuple.readOnlyValueBuffer.get(i) ^ (bufferTuple.readOnlyKeyBuffer.get(capacity - 1 - i) ^ (capacity * i).toByte)
+              bufferTuple.roObfuscatedBuffer.get(i) ^ (bufferTuple.roKeyBuffer.get(capacity - 1 - i) ^ (capacity * i).toByte)
             ).toByte
           )
         }

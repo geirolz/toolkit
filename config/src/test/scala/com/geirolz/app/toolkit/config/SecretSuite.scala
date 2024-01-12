@@ -70,9 +70,23 @@ class SecretSuite extends munit.ScalaCheckSuite {
       }
     }
 
-    property(s"Secret[$typeName] equals works as expected") {
+    property(s"Secret[$typeName] equals always return false") {
       forAll { (value: T) =>
-        assertEquals(Secret(value), Secret(value))
+        assertNotEquals(Secret(value), Secret(value))
+      }
+    }
+
+    property(s"Secret[$typeName] isEquals works properly") {
+      forAll { (value: T) =>
+        val s1 = Secret(value)
+        val s2 = Secret(value)
+
+        assert(s1.isEquals(s2))
+        s1.destroy()
+        assert(!s1.isEquals(s2))
+        assert(!s2.isEquals(s1))
+        s2.destroy()
+        assert(!s1.isEquals(s2))
       }
     }
 
