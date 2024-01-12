@@ -139,7 +139,6 @@ sealed trait Secret[T] extends AutoCloseable {
     evalUse[Try, Boolean](value => that.use[Try, Boolean](_ == value)).getOrElse(false)
 
   /** Always returns `false`, use `isEqual` instead */
-  @deprecated("Use isEquals instead", "0.0.1")
   final override def equals(obj: Any): Boolean = false
 
   /** @return
