@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.config
 
-import com.geirolz.app.toolkit.config.Secret.{DeObfuser, Obfuser, ObfuserTuple, SecretNoLongerValid}
+import com.geirolz.app.toolkit.config.Secret.{ObfuserTuple, SecretNoLongerValid}
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.forAll
 
@@ -11,6 +11,7 @@ class SecretSuite extends munit.ScalaCheckSuite {
 
   testObfuserTupleFor[String]
   testObfuserTupleFor[Int]
+  testObfuserTupleFor[Long]
   testObfuserTupleFor[Short]
   testObfuserTupleFor[Char]
   testObfuserTupleFor[Byte]
@@ -20,37 +21,83 @@ class SecretSuite extends munit.ScalaCheckSuite {
   testObfuserTupleFor[BigInt]
   testObfuserTupleFor[BigDecimal]
 
-  test("shuffleAndXorBytes works properly returning the same value for the same seed and value") {
-    val seed: Long    = 1111
-    val value: String = "12345678"
-    assertEquals(
-      obtained = new String(Obfuser.shuffleAndXorBytes(seed, value.getBytes)),
-      expected = new String(Obfuser.shuffleAndXorBytes(seed, value.getBytes))
-    )
+  test("Simple Secret String") {
+    Secret("TEST").useAndDestroyE(_ => ())
   }
 
-  test("shuffleAndXorBytes works properly obfuscating and de-obfuscating a String value") {
-    val seed: Long                = 1111
-    val value: String             = "12345678"
-    val obfuscated: Array[Byte]   = Obfuser.shuffleAndXorBytes(seed, value.getBytes)
-    val deObfuscated: Array[Byte] = DeObfuser.unshuffleAndXorBytes(seed, obfuscated)
-
-    assertEquals(
-      obtained = new String(deObfuscated),
-      expected = value
-    )
+  test("Simple Secret with long String") {
+    Secret(
+      """|C#iur0#UsxTWzUZ5QPn%KGo$922SMvc5zYLqrcdE6SU6ZpFQrk3&W
+        |1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!uPoG%dxTab0QtTab0Qta
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |KGo$922SMvc5zYLqrcdEKGo$922SMvc5zYLqrcdE6SU6ZpFQrk36S
+        |U6ZpFQrk31hRbc48obb1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!u
+        |PoG%dxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMvc5zY
+        |LqrcdE6SdxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMv
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!uPoG%dxTab0QtTab0Qta
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |KGo$922SMvc5zYLqrcdEKGo$922SMvc5zYLqrcdE6SU6ZpFQrk36S
+        |U6ZpFQrk31hRbc48obb1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!u
+        |PoG%dxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMvc5zY
+        |LqrcdE6SdxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMv
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |qrcdEKGo$922SMvc5zYU6ZpFQrk31hRbc48obb1c48obbQrqgk36S
+        |PoG%dxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMvc5zY
+        |LqrcdE6SdxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMv
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!uPoG%dxTab0QtTab0Qta
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |KGo$922SMvc5zYLqrcdEKGo$922SMvc5zYLqrcdE6SU6ZpFQrk36S
+        |U6ZpFQrk31hRbc48obb1c48obb&Rngv9twgMHTuXG@hRb@FZg@u!u
+        |PoG%dxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMvc5zY
+        |LqrcdE6SdxTab0QtTab0QtaKGo$922SMvc5zYLqrcdEKGo$922SMv
+        |c5zYU6ZpRngv9twgMHTuXGFdxTab0QtTab0QtaKGo$922SMvc5zYL
+        |qrcdEKGo$922SMvc5zYU6ZpFQrk31hRbc48obb1c48obbQrqgk36S
+        |qrcdEKGo$922SMvc5zYU6ZpFQrk31hRbc48obb1c48obbQrqgk36S
+        |""".stripMargin
+    ).useAndDestroyE(_ => ())
   }
 
   private def testObfuserTupleFor[T: Arbitrary: ObfuserTuple](implicit c: ClassTag[T]): Unit = {
 
-    property(s"Secret equals for type ${c.runtimeClass.getSimpleName} always return false") {
+    val typeName = c.runtimeClass.getSimpleName.capitalize
+
+    property(s"Secret[$typeName] succesfully obfuscate") {
       forAll { (value: T) =>
-        assert(Secret(value) != Secret(value))
+        Secret(value)
+        assert(cond = true)
+      }
+    }
+
+    property(s"Secret[$typeName] equals always return false") {
+      forAll { (value: T) =>
+        assertNotEquals(Secret(value), Secret(value))
+      }
+    }
+
+    property(s"Secret[$typeName] isEquals works properly") {
+      forAll { (value: T) =>
+        val s1 = Secret(value)
+        val s2 = Secret(value)
+
+        assert(s1.isEquals(s2))
+        s1.destroy()
+        assert(!s1.isEquals(s2))
+        assert(!s2.isEquals(s1))
+        s2.destroy()
+        assert(!s1.isEquals(s2))
+      }
+    }
+
+    property(s"Secret[$typeName] hashCode is different from the value one") {
+      forAll { (value: T) =>
+        assert(Secret(value).hashCode() != value.hashCode())
       }
     }
 
     // use
-    property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - use") {
+    property(s"Secret[$typeName] obfuscate and de-obfuscate properly - use") {
       forAll { (value: T) =>
         assert(
           Secret(value)
@@ -66,7 +113,7 @@ class SecretSuite extends munit.ScalaCheckSuite {
     }
 
     // useAndDestroy
-    property(s"Secret obfuscate and de-obfuscate type ${c.runtimeClass.getSimpleName} properly - useAndDestroy") {
+    property(s"Secret[$typeName] obfuscate and de-obfuscate properly - useAndDestroy") {
       forAll { (value: T) =>
         val secret: Secret[T] = Secret(value)
 

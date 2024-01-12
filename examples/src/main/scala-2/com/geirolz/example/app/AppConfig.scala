@@ -2,12 +2,14 @@ package com.geirolz.example.app
 
 import cats.Show
 import com.comcast.ip4s.{Hostname, Port}
+import com.geirolz.app.toolkit.config.Secret
 import io.circe.Encoder
 import pureconfig.ConfigReader
 
 case class AppConfig(
   httpServer: HttpServerConfig,
-  kafkaBroker: KafkaBrokerSetting
+  kafkaBroker: KafkaBrokerSetting,
+  databasePassword: Secret[String]
 )
 object AppConfig {
 
@@ -25,6 +27,9 @@ object AppConfig {
 
   implicit val portCirceEncoder: Encoder[Port] =
     Encoder.encodeInt.contramap(_.value)
+
+  implicit def secretEncoder[T]: Encoder[Secret[T]] =
+    Encoder.encodeString.contramap(_.toString)
 
   implicit val showInstanceForConfig: Show[AppConfig] = _.asJson.toString()
 }
