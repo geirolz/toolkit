@@ -8,7 +8,7 @@ import cats.effect.{Async, Fiber, Ref, Resource}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
-trait AppInterpreter[F[+_]]:
+trait AppCompiler[F[+_]]:
 
   def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T]
 
@@ -24,13 +24,13 @@ trait AppInterpreter[F[+_]]:
     P: Parallel[F]
   ): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]]
 
-object AppInterpreter:
+object AppCompiler:
 
   import cats.syntax.all.*
 
-  def apply[F[+_]](implicit ac: AppInterpreter[F]): AppInterpreter[F] = ac
+  def apply[F[+_]](using ac: AppCompiler[F]): AppCompiler[F] = ac
 
-  given [F[+_]]: AppInterpreter[F] = new AppInterpreter[F] {
+  given [F[+_]]: AppCompiler[F] = new AppCompiler[F] {
 
     override def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T] = compiledApp.useEval
 
@@ -59,7 +59,7 @@ object AppInterpreter:
           otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
 
           // group resources
-          appResources: App.Resources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = App.Resources(
+          appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppResources(
             info      = app.appInfo,
             args      = AppArgs(appArgs),
             logger    = userLogger,
@@ -71,7 +71,7 @@ object AppInterpreter:
           _              <- toolkitResLogger.debug(app.appMessages.buildingServicesEnv)
           appDepServices <- EitherT(app.dependenciesLoader(appResources))
           _              <- toolkitResLogger.info(app.appMessages.servicesEnvSuccessfullyBuilt)
-          appDependencies = App.Dependencies(appResources, appDepServices)
+          appDependencies = AppDependencies(appResources, appDepServices)
 
           // --------------------- SERVICES -------------------
           _               <- toolkitResLogger.debug(app.appMessages.buildingApp)

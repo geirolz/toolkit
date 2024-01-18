@@ -7,12 +7,12 @@ import com.geirolz.app.toolkit.testing.{TestAppInfo, TestConfig}
 class AppResourcesAndDependenciesSuite extends munit.FunSuite {
 
   // false positive not exhaustive pattern matching ? TODO: investigate
-  test("App.Resources unapply works as expected") {
+  test("AppResources unapply works as expected") {
     App[IO]
       .withInfo(TestAppInfo.value)
       .withLogger(ToolkitLogger.console[IO](_))
       .withConfig(TestConfig.defaultTest)
-      .dependsOn { case _ | App.Resources(_, _, _, _, _) =>
+      .dependsOn { case _ | AppResources(_, _, _, _, _) =>
         Resource.eval(IO.unit)
       }
       .provideOne(_ => IO.unit)
@@ -20,13 +20,13 @@ class AppResourcesAndDependenciesSuite extends munit.FunSuite {
   }
 
   // false positive not exhaustive pattern matching ? TODO: investigate
-  test("App.Dependencies unapply works as expected") {
+  test("AppDependencies unapply works as expected") {
     App[IO]
       .withInfo(TestAppInfo.value)
       .withLogger(ToolkitLogger.console[IO](_))
       .withConfig(TestConfig.defaultTest)
       .withoutDependencies
-      .provideOne { case _ | App.Dependencies(_, _, _, _, _, _) =>
+      .provideOne { case _ | AppDependencies(_, _, _, _, _, _) =>
         IO.unit
       }
       .run_

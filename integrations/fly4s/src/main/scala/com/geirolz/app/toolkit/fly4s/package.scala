@@ -15,7 +15,7 @@ package object fly4s {
     password: CONFIG => Option[Array[Char]] = (_: CONFIG) => None,
     config: CONFIG => Fly4sConfig           = (_: CONFIG) => Fly4sConfig.default,
     classLoader: ClassLoader                = Thread.currentThread.getContextClassLoader
-  ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
+  ): AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     migrateDatabaseWith(
       url         = d => url(d.config),
       user        = d => user(d.config),
@@ -25,12 +25,12 @@ package object fly4s {
     )
 
   def migrateDatabaseWith[F[_]: Async, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG, DEPENDENCIES, RESOURCES](
-    url: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => String,
-    user: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = (_: Any) => None,
-    password: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = (_: Any) => None,
-    config: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Fly4sConfig           = (_: Any) => Fly4sConfig.default,
+    url: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => String,
+    user: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = (_: Any) => None,
+    password: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = (_: Any) => None,
+    config: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Fly4sConfig           = (_: Any) => Fly4sConfig.default,
     classLoader: ClassLoader = Thread.currentThread.getContextClassLoader
-  ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
+  ): AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     migrateDatabase(dep =>
       Fly4s
         .make[F](
@@ -43,8 +43,8 @@ package object fly4s {
     )
 
   def migrateDatabase[F[_]: Async, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG, DEPENDENCIES, RESOURCES](
-    f: App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Resource[F, Fly4s[F]]
-  ): App.Dependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
+    f: AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Resource[F, Fly4s[F]]
+  ): AppDependencies[APP_INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     dep =>
       f(dep)
         .evalMap(fl4s =>
