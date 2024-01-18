@@ -72,12 +72,7 @@ object ProjectDependencies {
       "io.circe" %% "circe-refined" % circeVersion
     )
 
-    lazy val dedicated_2_13: Seq[ModuleID] = dedicatedCommon ++ Seq(
-      "com.github.pureconfig" %% "pureconfig-generic" % pureConfigVersion,
-      "io.circe" %% "circe-generic-extras" % circeGenericExtraVersion
-    )
-
-    lazy val dedicated_3_2: Seq[ModuleID] = dedicatedCommon ++ Seq(
+    lazy val dedicated_3: Seq[ModuleID] = dedicatedCommon ++ Seq(
       "io.circe" %% "circe-generic" % circeVersion
     )
   }
@@ -111,16 +106,10 @@ object ProjectDependencies {
   }
 
   object Plugins {
-    val compilerPluginsFor2_13: Seq[ModuleID] = Seq(
-      compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-      compilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
-    )
-
-    val compilerPluginsFor3: Seq[ModuleID] = Nil
+    val compilerPlugins: Seq[ModuleID] = Nil
   }
 
   object Docs {
-    lazy val dedicated_2_13: Seq[ModuleID] = Examples.dedicated_2_13
-    lazy val dedicated_3_2: Seq[ModuleID]  = Examples.dedicated_3_2
+    lazy val dedicated: Seq[ModuleID]  = Examples.dedicated_3
   }
 }
