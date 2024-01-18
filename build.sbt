@@ -34,23 +34,17 @@ lazy val root: Project = project
   .settings(
     copyReadMe := IO.copyFile(file("docs/compiled/README.md"), file("README.md"))
   )
-  .aggregate(core, docs, config, testing, log4cats, odin, pureconfig, fly4s)
+  .aggregate(core, docs, testing, log4cats, odin, pureconfig, fly4s)
 
 lazy val docs: Project =
   project
     .in(file("docs"))
     .enablePlugins(MdocPlugin)
-    .dependsOn(core, config, log4cats, odin, pureconfig, fly4s)
+    .dependsOn(core, log4cats, odin, pureconfig, fly4s)
     .settings(
       baseSettings,
       noPublishSettings,
-      libraryDependencies ++= Seq(
-        CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((2, 13)) => ProjectDependencies.Docs.dedicated_2_13
-          case Some((3, _))  => ProjectDependencies.Docs.dedicated_3_2
-          case _             => Nil
-        }
-      ).flatten,
+      libraryDependencies ++=ProjectDependencies.Docs.dedicated,
       // config
       scalacOptions --= Seq("-Werror", "-Xfatal-warnings"),
       mdocIn  := file("docs/source"),
@@ -71,14 +65,6 @@ lazy val core: Project =
     libraryDependencies ++= ProjectDependencies.Core.dedicated
   ).dependsOn(testing)
 
-lazy val config: Project =
-  module("config")(
-    folder    = "./config",
-    publishAs = Some(subProjectName("config"))
-  ).settings(
-    libraryDependencies ++= ProjectDependencies.Config.dedicated
-  )
-
 lazy val testing: Project =
   module("testing")(
     folder    = "./testing",
@@ -95,13 +81,7 @@ lazy val examples: Project = {
     .settings(
       noPublishSettings,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
-      libraryDependencies ++= {
-        CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((2, 13)) => ProjectDependencies.Examples.dedicated_2_13
-          case Some((3, _))  => ProjectDependencies.Examples.dedicated_3_2
-          case _             => Nil
-        }
-      },
+      libraryDependencies ++= ProjectDependencies.Examples.dedicated,
       buildInfoKeys ++= List[BuildInfoKey](
         name,
         description,
@@ -117,7 +97,7 @@ lazy val examples: Project = {
       ),
       buildInfoPackage := appPackage
     )
-    .dependsOn(core, config, log4cats, pureconfig)
+    .dependsOn(core, log4cats, pureconfig)
 }
 
 // integrations
@@ -144,7 +124,7 @@ lazy val pureconfig: Project =
   module("pureconfig")(
     folder    = s"$integrationsFolder/pureconfig",
     publishAs = Some(subProjectName("pureconfig"))
-  ).dependsOn(core, config)
+  ).dependsOn(core)
     .settings(
       libraryDependencies ++= ProjectDependencies.Integrations.Pureconfig.dedicated
     )

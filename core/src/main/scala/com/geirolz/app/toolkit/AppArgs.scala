@@ -5,7 +5,7 @@ import com.geirolz.app.toolkit.ArgDecoder.{ArgDecodingError, MissingArgAtIndex, 
 
 import scala.util.Try
 
-final case class AppArgs(private val value: List[String]) extends AnyVal {
+final case class AppArgs(private val value: List[String]) extends AnyVal:
 
   def exists(p: AppArgs => Boolean, pN: AppArgs => Boolean*): Boolean =
     (p +: pN).forall(_.apply(this))
@@ -69,49 +69,44 @@ final case class AppArgs(private val value: List[String]) extends AnyVal {
 
   private def orThrow[T](result: Either[ArgDecodingError, T]): T =
     result.fold(e => throw e.toException, identity)
-}
-object AppArgs {
 
-  def fromList(args: List[String]): AppArgs =
-    AppArgs(args)
+object AppArgs:
+  def fromList(args: List[String]): AppArgs = AppArgs(args)
+  given Show[AppArgs]                       = Show.fromToString
 
-  implicit val show: Show[AppArgs] = Show.fromToString
-}
-
-trait ArgDecoder[T] {
+// ---------------------------------
+trait ArgDecoder[T]:
   def decode(value: String): Either[ArgDecodingError, T]
-}
-object ArgDecoder {
+
+object ArgDecoder:
 
   def apply[T: ArgDecoder]: ArgDecoder[T] = implicitly[ArgDecoder[T]]
 
   def fromTry[T](t: String => Try[T]): ArgDecoder[T] =
     (value: String) => t(value).toEither.left.map(ArgDecodingException(_))
 
-  sealed trait ArgDecodingError {
+  sealed trait ArgDecodingError:
     def toException                     = new RuntimeException(toString)
     final override def toString: String = Show[ArgDecodingError].show(this)
-  }
-  object ArgDecodingError {
-    implicit val show: Show[ArgDecodingError] = {
+
+  object ArgDecodingError:
+    given Show[ArgDecodingError] =
       case ArgDecodingException(cause) => s"ArgDecodingException(${cause.getMessage})"
       case MissingVariable(name)       => s"Missing variable $name"
       case MissingArgAtIndex(idx)      => s"Missing argument at index $idx"
-    }
-  }
+
   case class ArgDecodingException(cause: Throwable) extends ArgDecodingError
   case class MissingVariable(name: String) extends ArgDecodingError
   case class MissingArgAtIndex(idx: Int) extends ArgDecodingError
 
-  implicit val stringDecoder: ArgDecoder[String]         = s => Right(s)
-  implicit val charDecoder: ArgDecoder[Char]             = fromTry(s => Try(s.head))
-  implicit val byteDecoder: ArgDecoder[Byte]             = fromTry(s => Try(s.toByte))
-  implicit val shortDecoder: ArgDecoder[Short]           = fromTry(s => Try(s.toShort))
-  implicit val intDecoder: ArgDecoder[Int]               = fromTry(s => Try(s.toInt))
-  implicit val longDecoder: ArgDecoder[Long]             = fromTry(s => Try(s.toLong))
-  implicit val floatDecoder: ArgDecoder[Float]           = fromTry(s => Try(s.toFloat))
-  implicit val doubleDecoder: ArgDecoder[Double]         = fromTry(s => Try(s.toDouble))
-  implicit val booleanDecoder: ArgDecoder[Boolean]       = fromTry(s => Try(s.toBoolean))
-  implicit val bigIntDecoder: ArgDecoder[BigInt]         = fromTry(s => Try(BigInt(s)))
-  implicit val bigDecimalDecoder: ArgDecoder[BigDecimal] = fromTry(s => Try(BigDecimal(s)))
-}
+  given ArgDecoder[String]     = s => Right(s)
+  given ArgDecoder[Char]       = fromTry(s => Try(s.head))
+  given ArgDecoder[Byte]       = fromTry(s => Try(s.toByte))
+  given ArgDecoder[Short]      = fromTry(s => Try(s.toShort))
+  given ArgDecoder[Int]        = fromTry(s => Try(s.toInt))
+  given ArgDecoder[Long]       = fromTry(s => Try(s.toLong))
+  given ArgDecoder[Float]      = fromTry(s => Try(s.toFloat))
+  given ArgDecoder[Double]     = fromTry(s => Try(s.toDouble))
+  given ArgDecoder[Boolean]    = fromTry(s => Try(s.toBoolean))
+  given ArgDecoder[BigInt]     = fromTry(s => Try(BigInt(s)))
+  given ArgDecoder[BigDecimal] = fromTry(s => Try(BigDecimal(s)))

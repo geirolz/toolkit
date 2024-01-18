@@ -29,7 +29,7 @@ case class FailureHandler[F[_], FAILURE](
   ): FailureHandler[F, NonEmptyList[EE]] =
     this.asInstanceOf[FailureHandler[F, NonEmptyList[EE]]]
 }
-object FailureHandler extends FailureHandlerSyntax {
+object FailureHandler extends FailureHandlerSyntax:
 
   def summon[F[_], E](implicit ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
 
@@ -40,11 +40,10 @@ object FailureHandler extends FailureHandlerSyntax {
     )
 
   sealed trait OnFailureBehaviour
-  object OnFailureBehaviour {
+  object OnFailureBehaviour:
     case object CancelAll extends OnFailureBehaviour
     case object DoNothing extends OnFailureBehaviour
-  }
-}
+
 sealed trait FailureHandlerSyntax {
 
   import cats.syntax.all.*

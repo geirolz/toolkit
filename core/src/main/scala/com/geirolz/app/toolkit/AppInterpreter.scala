@@ -8,7 +8,7 @@ import cats.effect.{Async, Fiber, Ref, Resource}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
-trait AppInterpreter[F[+_]] {
+trait AppInterpreter[F[+_]]:
 
   def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T]
 
@@ -23,14 +23,14 @@ trait AppInterpreter[F[+_]] {
     F: Async[F],
     P: Parallel[F]
   ): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]]
-}
-object AppInterpreter {
+
+object AppInterpreter:
 
   import cats.syntax.all.*
 
   def apply[F[+_]](implicit ac: AppInterpreter[F]): AppInterpreter[F] = ac
 
-  implicit def default[F[+_]]: AppInterpreter[F] = new AppInterpreter[F] {
+  given [F[+_]]: AppInterpreter[F] = new AppInterpreter[F] {
 
     override def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T] = compiledApp.useEval
 
@@ -123,4 +123,3 @@ object AppInterpreter {
         }
       ).value
   }
-}

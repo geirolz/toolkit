@@ -50,7 +50,7 @@ object ProjectDependencies {
 
   object Examples {
 
-    private lazy val dedicatedCommon: Seq[ModuleID] = Seq(
+    lazy val dedicated: Seq[ModuleID] = Seq(
       // http
       "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
@@ -69,10 +69,7 @@ object ProjectDependencies {
 
       // json
       "io.circe" %% "circe-core" % circeVersion,
-      "io.circe" %% "circe-refined" % circeVersion
-    )
-
-    lazy val dedicated_3: Seq[ModuleID] = dedicatedCommon ++ Seq(
+      "io.circe" %% "circe-refined" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion
     )
   }
@@ -110,6 +107,6 @@ object ProjectDependencies {
   }
 
   object Docs {
-    lazy val dedicated: Seq[ModuleID]  = Examples.dedicated_3
+    lazy val dedicated: Seq[ModuleID]  = Examples.dedicated
   }
 }

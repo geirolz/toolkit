@@ -5,15 +5,15 @@ import cats.implicits.showInterpolator
 
 import java.time.LocalDateTime
 
-trait SimpleAppInfo[T] {
+trait SimpleAppInfo[T]:
   val name: T
   val version: T
   val scalaVersion: T
   val sbtVersion: T
   val buildRefName: T
   val builtOn: LocalDateTime
-}
-object SimpleAppInfo {
+
+object SimpleAppInfo:
 
   def apply[T: Show](
     name: T,
@@ -74,8 +74,6 @@ object SimpleAppInfo {
     val builtOn: LocalDateTime
   ) extends SimpleAppInfo[T]
 
-  def genRefNameString[T: Show](name: T, version: T, builtOn: LocalDateTime): String = {
-    implicit val showLocalDataTime: Show[LocalDateTime] = Show.fromToString[LocalDateTime]
+  def genRefNameString[T: Show](name: T, version: T, builtOn: LocalDateTime): String =
+    given Show[LocalDateTime] = Show.fromToString[LocalDateTime]
     show"$name:$version-$builtOn"
-  }
-}
