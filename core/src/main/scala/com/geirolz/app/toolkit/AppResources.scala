@@ -8,7 +8,7 @@ final case class AppResources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESO
   logger: LOGGER,
   config: CONFIG,
   resources: RESOURCES
-):
+) {
   type AppInfo   = APP_INFO
   type Logger    = LOGGER
   type Config    = CONFIG
@@ -22,6 +22,7 @@ final case class AppResources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESO
        |  config = $config,
        |  resources = $resources
        |)""".stripMargin
+}
 
 object AppResources:
 
