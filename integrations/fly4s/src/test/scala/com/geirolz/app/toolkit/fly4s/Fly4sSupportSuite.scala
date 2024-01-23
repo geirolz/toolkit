@@ -16,7 +16,7 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
           sbtVersion   = "1.8.0"
         )
       )
-      .withConfig(
+      .withPureConfig(
         TestConfig(
           dbUrl      = "jdbc:postgresql://localhost:5432/toolkit",
           dbUser     = Some("postgres"),

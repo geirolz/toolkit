@@ -69,7 +69,7 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withConfigLoader(pureconfigLoader[IO, TestConfig])
+  .withConfigF(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
   .provideOne(_ => IO.unit)
   .run_
@@ -172,7 +172,7 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withConfig(
+  .withPureConfig(
     TestConfig(
       dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
       dbUser = Some("postgres"),

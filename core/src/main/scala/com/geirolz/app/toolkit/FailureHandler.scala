@@ -1,8 +1,10 @@
 package com.geirolz.app.toolkit
 
-import cats.{~>, Applicative, Functor}
+import cats.{~>, Applicative, Functor, Monad, Show}
 import cats.data.NonEmptyList
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.logger.ToolkitLogger
+import cats.syntax.all.*
 
 case class FailureHandler[F[_], FAILURE](
   onFailureF: FAILURE => F[OnFailureBehaviour],
@@ -33,9 +35,15 @@ object FailureHandler extends FailureHandlerSyntax:
 
   def summon[F[_], E](implicit ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
 
+  def logAndCancelAll[F[_]: Monad, FAILURE](appMessages: AppMessages, logger: ToolkitLogger[F]): FailureHandler[F, FAILURE] =
+    doNothing[F, FAILURE]().onFailure(failure => logger.error(s"${appMessages.appAFailureOccurred} $failure").as(OnFailureBehaviour.CancelAll))
+
   def cancelAll[F[_]: Applicative, FAILURE]: FailureHandler[F, FAILURE] =
+    doNothing[F, FAILURE]().onFailure(_ => OnFailureBehaviour.CancelAll.pure[F])
+
+  def doNothing[F[_]: Applicative, FAILURE](): FailureHandler[F, FAILURE] =
     FailureHandler[F, FAILURE](
-      onFailureF         = (_: FAILURE) => Applicative[F].pure(OnFailureBehaviour.CancelAll),
+      onFailureF         = (_: FAILURE) => Applicative[F].pure(OnFailureBehaviour.DoNothing),
       handleFailureWithF = (e: FAILURE) => Applicative[F].pure(Left(e))
     )
 

@@ -127,8 +127,8 @@ object Main extends IOApp {
           sbtVersion = "1.8.0"
         )
       )
-      .withLogger(ToolkitLogger.console[IO](_))
-      .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
+      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withConfigF(_ => IO.pure(Config("localhost", 8080)))
       .dependsOn(AppDependencyServices.resource(_))
       .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
       .provideOne(deps =>

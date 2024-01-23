@@ -41,7 +41,7 @@ object ToolkitLogger:
         case Level.Warn  => "WARN"
         case Level.Info  => "INFO"
         case Level.Debug => "DEBUG"
-        case Level.Trace => "Trace"
+        case Level.Trace => "TRACE"
 
   object Level:
     case object Error extends Level

@@ -10,8 +10,8 @@ class AppResourcesAndDependenciesSuite extends munit.FunSuite {
   test("AppResources unapply works as expected") {
     App[IO]
       .withInfo(TestAppInfo.value)
-      .withLogger(ToolkitLogger.console[IO](_))
-      .withConfig(TestConfig.defaultTest)
+      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withPureConfig(TestConfig.defaultTest)
       .dependsOn { case _ | AppResources(_, _, _, _, _) =>
         Resource.eval(IO.unit)
       }
@@ -23,8 +23,8 @@ class AppResourcesAndDependenciesSuite extends munit.FunSuite {
   test("AppDependencies unapply works as expected") {
     App[IO]
       .withInfo(TestAppInfo.value)
-      .withLogger(ToolkitLogger.console[IO](_))
-      .withConfig(TestConfig.defaultTest)
+      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withPureConfig(TestConfig.defaultTest)
       .withoutDependencies
       .provideOne { case _ | AppDependencies(_, _, _, _, _, _) =>
         IO.unit

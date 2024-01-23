@@ -21,7 +21,7 @@ class PureconfigSecretSupportSuite extends munit.CatsEffectSuite {
             sbtVersion   = "1.8.0"
           )
         )
-        .withConfigLoader(pureconfigLoader[IO, TestConfig])
+        .withConfigF(pureconfigLoader[IO, TestConfig])
         .withoutDependencies
         .provideOne(_ => IO.unit)
         .run_

@@ -18,7 +18,7 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
             sbtVersion   = "1.8.0"
           )
         )
-        .withLogger(Logger.noop[IO])
+        .withPureLogger(Logger.noop[IO])
         .withoutDependencies
         .provideOne(_ => IO.unit)
         .run_

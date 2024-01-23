@@ -1,25 +1,23 @@
 package com.geirolz.app.toolkit
 
-import cats.{Parallel, Show}
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
 import cats.effect.kernel.MonadCancelThrow
 import cats.effect.{Async, Fiber, Ref, Resource}
+import cats.{Parallel, Show}
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
 trait AppCompiler[F[+_]]:
 
-  def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T]
-
   def compile[
     FAILURE,
-    APP_INFO <: SimpleAppInfo[?],
+    INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
     CONFIG: Show,
     RESOURCES,
     DEPENDENCIES
-  ](appArgs: List[String], app: App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES])(implicit
+  ](appArgs: List[String], app: App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES])(using
     F: Async[F],
     P: Parallel[F]
   ): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]]
@@ -32,12 +30,10 @@ object AppCompiler:
 
   given [F[+_]]: AppCompiler[F] = new AppCompiler[F] {
 
-    override def run[T](compiledApp: Resource[F, F[T]])(implicit F: MonadCancelThrow[F]): F[T] = compiledApp.useEval
-
-    override def compile[FAILURE, APP_INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES](
+    override def compile[FAILURE, INFO <: SimpleAppInfo[?], LOGGER_T[_[_]]: LoggerAdapter, CONFIG: Show, RESOURCES, DEPENDENCIES](
       appArgs: List[String],
-      app: App[F, FAILURE, APP_INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
-    )(implicit F: Async[F], P: Parallel[F]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
+      app: App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
+    )(using F: Async[F], P: Parallel[F]): Resource[F, FAILURE \/ F[NonEmptyList[FAILURE] \/ Unit]] =
       (
         for {
 
@@ -50,17 +46,18 @@ object AppCompiler:
           )
 
           // config
-          _         <- toolkitResLogger.debug(app.appMessages.loadingConfig)
+          _         <- toolkitResLogger.debug(app.messages.loadingConfig)
           appConfig <- EitherT.right[FAILURE](app.configLoader)
-          _         <- toolkitResLogger.info(app.appMessages.configSuccessfullyLoaded)
+          _         <- toolkitResLogger.info(app.messages.configSuccessfullyLoaded)
           _         <- toolkitResLogger.info(appConfig.show)
 
           // other resources
           otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
 
           // group resources
-          appResources: AppResources[APP_INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppResources(
-            info      = app.appInfo,
+          appResources: AppResources[INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppResources(
+            info      = app.info,
+            messages  = app.messages,
             args      = AppArgs(appArgs),
             logger    = userLogger,
             config    = appConfig,
@@ -68,15 +65,15 @@ object AppCompiler:
           )
 
           // ------------------- DEPENDENCIES -----------------
-          _              <- toolkitResLogger.debug(app.appMessages.buildingServicesEnv)
-          appDepServices <- EitherT(app.dependenciesLoader(appResources))
-          _              <- toolkitResLogger.info(app.appMessages.servicesEnvSuccessfullyBuilt)
+          _              <- toolkitResLogger.debug(app.messages.buildingServicesEnv)
+          appDepServices <- EitherT(app.depsLoader(appResources))
+          _              <- toolkitResLogger.info(app.messages.servicesEnvSuccessfullyBuilt)
           appDependencies = AppDependencies(appResources, appDepServices)
 
           // --------------------- SERVICES -------------------
-          _               <- toolkitResLogger.debug(app.appMessages.buildingApp)
-          appProvServices <- EitherT(Resource.eval(app.provideBuilder(appDependencies)))
-          _               <- toolkitResLogger.info(app.appMessages.appSuccessfullyBuilt)
+          _               <- toolkitResLogger.debug(app.messages.buildingApp)
+          appProvServices <- EitherT(Resource.eval(app.servicesBuilder(appDependencies)))
+          _               <- toolkitResLogger.info(app.messages.appSuccessfullyBuilt)
 
           // --------------------- APP ------------------------
           appLogic = for {
@@ -112,13 +109,13 @@ object AppCompiler:
             maybeReducedFailures <- failures.get.map(NonEmptyList.fromList(_))
           } yield maybeReducedFailures.toLeft(())
         } yield {
-          toolkitLogger.info(app.appMessages.startingApp) >>
+          toolkitLogger.info(app.messages.startingApp) >>
           app.beforeProvidingF(appDependencies) >>
           appLogic
-            .onCancel(toolkitLogger.info(app.appMessages.appWasStopped))
-            .onError(e => toolkitLogger.error(e)(app.appMessages.appEnErrorOccurred))
+            .onCancel(toolkitLogger.info(app.messages.appWasStopped))
+            .onError(e => toolkitLogger.error(e)(app.messages.appAnErrorOccurred))
             .guarantee(
-              app.onFinalizeF(appDependencies) >> toolkitLogger.info(app.appMessages.shuttingDownApp)
+              app.onFinalizeF(appDependencies) >> toolkitLogger.info(app.messages.shuttingDownApp)
             )
         }
       ).value

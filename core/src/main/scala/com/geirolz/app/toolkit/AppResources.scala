@@ -2,20 +2,21 @@ package com.geirolz.app.toolkit
 
 import cats.syntax.all.given
 
-final case class AppResources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
-  info: APP_INFO,
+final case class AppResources[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+  info: INFO,
+  messages: AppMessages,
   args: AppArgs,
   logger: LOGGER,
   config: CONFIG,
   resources: RESOURCES
 ) {
-  type AppInfo   = APP_INFO
+  type AppInfo   = INFO
   type Logger    = LOGGER
   type Config    = CONFIG
   type Resources = RESOURCES
 
   override def toString: String =
-    s"""AppDependencies(
+    s"""AppResources(
        |  info = $info,
        |  args = $args,
        |  logger = $logger,
@@ -26,26 +27,29 @@ final case class AppResources[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESO
 
 object AppResources:
 
-  private[toolkit] def apply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
-    info: APP_INFO,
+  private[toolkit] def apply[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+    info: INFO,
+    messages: AppMessages,
     args: AppArgs,
     logger: LOGGER,
     config: CONFIG,
     resources: RESOURCES
-  ): AppResources[APP_INFO, LOGGER, CONFIG, RESOURCES] =
-    new AppResources[APP_INFO, LOGGER, CONFIG, RESOURCES](
+  ): AppResources[INFO, LOGGER, CONFIG, RESOURCES] =
+    new AppResources[INFO, LOGGER, CONFIG, RESOURCES](
       info      = info,
+      messages  = messages,
       args      = args,
       logger    = logger,
       config    = config,
       resources = resources
     )
 
-  def unapply[APP_INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
-    res: AppResources[APP_INFO, LOGGER, CONFIG, RESOURCES]
-  ): Option[(APP_INFO, AppArgs, LOGGER, CONFIG, RESOURCES)] =
+  def unapply[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+    res: AppResources[INFO, LOGGER, CONFIG, RESOURCES]
+  ): Option[(INFO, AppMessages, AppArgs, LOGGER, CONFIG, RESOURCES)] =
     (
       res.info,
+      res.messages,
       res.args,
       res.logger,
       res.config,
