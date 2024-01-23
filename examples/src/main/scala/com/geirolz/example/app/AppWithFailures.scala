@@ -14,8 +14,8 @@ object AppWithFailures extends IOApp:
       .withInfo(AppInfo.fromBuildInfo)
       .withPureLogger(Slf4jLogger.getLogger[IO])
       .withConfigF(pureconfigLoader[IO, AppConfig])
-      .dependsOn(AppDependencyServices.resource(_))
-      .beforeProviding(_.logger.info("CUSTOM PRE-RUN"))
+      .dependsOn(AppDependencyServices.resource)
+      .beforeProvidingSeq(_.logger.info("CUSTOM PRE-RUN"))
       .provide(deps =>
         List(
           // HTTP server
@@ -29,5 +29,5 @@ object AppWithFailures extends IOApp:
             .drain
         )
       )
-      .onFinalize(_.logger.info("CUSTOM END"))
-      .run(args)
+      .onFinalizeSeq(_.logger.info("CUSTOM END"))
+      .run()

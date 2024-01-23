@@ -33,7 +33,7 @@ case class FailureHandler[F[_], FAILURE](
 }
 object FailureHandler extends FailureHandlerSyntax:
 
-  def summon[F[_], E](implicit ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
+  inline def apply[F[_], E](using ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
 
   def logAndCancelAll[F[_]: Monad, FAILURE](appMessages: AppMessages, logger: ToolkitLogger[F]): FailureHandler[F, FAILURE] =
     doNothing[F, FAILURE]().onFailure(failure => logger.error(s"${appMessages.appAFailureOccurred} $failure").as(OnFailureBehaviour.CancelAll))

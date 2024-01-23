@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit
 import cats.syntax.all.given
 
 final case class AppDependencies[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
-  private val _resources: AppResources[INFO, LOGGER, CONFIG, RESOURCES],
+  private val _resources: AppContext[INFO, LOGGER, CONFIG, RESOURCES],
   private val _dependencies: DEPENDENCIES
 ):
 
@@ -23,7 +23,7 @@ final case class AppDependencies[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPEN
 object AppDependencies:
 
   private[toolkit] def apply[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
-    resources: AppResources[INFO, LOGGER, CONFIG, RESOURCES],
+    resources: AppContext[INFO, LOGGER, CONFIG, RESOURCES],
     dependencies: DEPENDENCIES
   ): AppDependencies[INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES] =
     new AppDependencies[INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES](

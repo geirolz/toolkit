@@ -2,6 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
+import com.geirolz.app.toolkit.App.ctx
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.{LabeledResource, *}
@@ -24,7 +25,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withInfo(TestAppInfo.value)
             .withPureLogger(ToolkitLogger.console[IO](_))
             .withPureConfig(TestConfig.defaultTest)
-            .dependsOn(_ => Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
+            .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
             .provideOne(_.dependencies.set(1))
             .compile()
             .runFullTracedApp
@@ -67,7 +68,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withInfo(TestAppInfo.value)
             .withPureLogger(ToolkitLogger.console[IO](_))
             .withPureConfig(TestConfig.defaultTest)
-            .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
+            .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
             .provideOneF(_ => IO.raiseError(ex"BOOM!"))
             .compile()
             .traceAsAppLoader
@@ -227,7 +228,7 @@ class AppSuite extends munit.CatsEffectSuite {
               .withInfo(TestAppInfo.value)
               .withPureLogger(ToolkitLogger.console[IO](_))
               .withPureConfig(TestConfig.defaultTest)
-              .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
+              .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
               .provideOne(_ => IO.raiseError(ex"BOOM!"))
               .compile()
               .runFullTracedApp
@@ -322,7 +323,7 @@ class AppSuite extends munit.CatsEffectSuite {
     EventLogger
       .create[IO]
       .flatMap(logger => {
-        implicit val loggerImplicit: EventLogger[IO] = logger
+        given EventLogger[IO] = logger
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
@@ -418,7 +419,7 @@ class AppSuite extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, NonEmptyList[AppError] \/ Unit)] =
+    val test =
       for {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
@@ -426,18 +427,14 @@ class AppSuite extends munit.CatsEffectSuite {
           .withPureLogger(ToolkitLogger.console[IO](_))
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
-          .provide(_ =>
+          .provideE(_ =>
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
               IO.sleep(5.seconds) >> state.set(true).as(Right(()))
             )
           )
-          .onFailure_(res =>
-            res.useTupledAll[IO[Unit]] { case (_, _, logger, _, failures) =>
-              logger.error(failures.toString)
-            }
-          )
+          .onFailure_(failures => ctx.logger.error(failures.toString))
           .runRaw()
         finalState <- state.get
       } yield (finalState, app)
@@ -468,16 +465,14 @@ class AppSuite extends munit.CatsEffectSuite {
           .withPureLogger(ToolkitLogger.console[IO](_))
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
-          .provide { _ =>
+          .provideE { _ =>
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> state.set(true).as(Right(()))
             )
           }
-          .onFailure(_.useTupledAll { case (_, _, logger: ToolkitLogger[IO], _, failure: AppError) =>
-            logger.error(failure.toString).as(OnFailureBehaviour.DoNothing)
-          })
+          .onFailure((failure: AppError) => ctx.logger.error(failure.toString).as(OnFailureBehaviour.DoNothing))
           .runRaw()
         finalState <- state.get
       } yield (finalState, app)

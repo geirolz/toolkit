@@ -15,7 +15,7 @@ case class AppMessages(
 )
 object AppMessages:
 
-  def fromAppInfo[INFO <: SimpleAppInfo[?]](info: INFO)(
+  inline def fromAppInfo[INFO <: SimpleAppInfo[?]](info: INFO)(
     f: INFO => AppMessages
   ): AppMessages = f(info)
 

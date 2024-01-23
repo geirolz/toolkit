@@ -18,7 +18,7 @@ object AppInfo:
 
   given Show[AppInfo] = Show.fromToString
 
-  val fromBuildInfo: AppInfo = {
+  val fromBuildInfo: AppInfo =
     val builtOn: LocalDateTime = LocalDateTime.ofInstant(
       Instant.ofEpochMilli(BuildInfo.builtAtMillis),
       ZoneOffset.UTC
@@ -36,6 +36,3 @@ object AppInfo:
       ),
       builtOn = builtOn
     )
-  }
-
-end AppInfo

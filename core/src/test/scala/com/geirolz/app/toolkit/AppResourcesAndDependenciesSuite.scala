@@ -4,19 +4,19 @@ import cats.effect.{IO, Resource}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.{TestAppInfo, TestConfig}
 
-class AppResourcesAndDependenciesSuite extends munit.FunSuite {
+class AppResourcesAndDependenciesSuite extends munit.FunSuite:
 
   // false positive not exhaustive pattern matching ? TODO: investigate
   test("AppResources unapply works as expected") {
-    App[IO]
+    val res = App[IO]
       .withInfo(TestAppInfo.value)
       .withPureLogger(ToolkitLogger.console[IO](_))
       .withPureConfig(TestConfig.defaultTest)
-      .dependsOn { case _ | AppResources(_, _, _, _, _) =>
-        Resource.eval(IO.unit)
-      }
+      .withoutResources
+      .withoutDependencies
       .provideOne(_ => IO.unit)
-      .run_
+      .run()
+      .void
   }
 
   // false positive not exhaustive pattern matching ? TODO: investigate
@@ -29,7 +29,6 @@ class AppResourcesAndDependenciesSuite extends munit.FunSuite {
       .provideOne { case _ | AppDependencies(_, _, _, _, _, _) =>
         IO.unit
       }
-      .run_
+      .run()
+      .void
   }
-
-}

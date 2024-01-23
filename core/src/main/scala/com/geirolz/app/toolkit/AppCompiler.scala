@@ -2,9 +2,9 @@ package com.geirolz.app.toolkit
 
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
-import cats.effect.kernel.MonadCancelThrow
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
+import com.geirolz.app.toolkit.App.ctx
 import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
@@ -55,7 +55,7 @@ object AppCompiler:
           otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
 
           // group resources
-          appResources: AppResources[INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppResources(
+          given AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppContext(
             info      = app.info,
             messages  = app.messages,
             args      = AppArgs(appArgs),
@@ -66,9 +66,9 @@ object AppCompiler:
 
           // ------------------- DEPENDENCIES -----------------
           _              <- toolkitResLogger.debug(app.messages.buildingServicesEnv)
-          appDepServices <- EitherT(app.depsLoader(appResources))
+          appDepServices <- EitherT(app.depsLoader)
           _              <- toolkitResLogger.info(app.messages.servicesEnvSuccessfullyBuilt)
-          appDependencies = AppDependencies(appResources, appDepServices)
+          appDependencies = AppDependencies(ctx, appDepServices)
 
           // --------------------- SERVICES -------------------
           _               <- toolkitResLogger.debug(app.messages.buildingApp)
@@ -79,7 +79,7 @@ object AppCompiler:
           appLogic = for {
             fibers   <- Ref[F].of(List.empty[Fiber[F, Throwable, Unit]])
             failures <- Ref[F].of(List.empty[FAILURE])
-            failureHandler = app.failureHandlerLoader(appResources)
+            failureHandler = app.failureHandlerLoader
             onFailureTask: (FAILURE => F[Unit]) =
               failureHandler
                 .handleFailureWithF(_)
@@ -110,12 +110,12 @@ object AppCompiler:
           } yield maybeReducedFailures.toLeft(())
         } yield {
           toolkitLogger.info(app.messages.startingApp) >>
-          app.beforeProvidingF(appDependencies) >>
+          app.beforeProvidingTask(appDependencies) >>
           appLogic
             .onCancel(toolkitLogger.info(app.messages.appWasStopped))
             .onError(e => toolkitLogger.error(e)(app.messages.appAnErrorOccurred))
             .guarantee(
-              app.onFinalizeF(appDependencies) >> toolkitLogger.info(app.messages.shuttingDownApp)
+              app.onFinalizeTask(appDependencies) >> toolkitLogger.info(app.messages.shuttingDownApp)
             )
         }
       ).value

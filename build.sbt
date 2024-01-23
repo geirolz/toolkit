@@ -202,6 +202,7 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
 def scalacSettings(scalaVersion: String): Seq[String] =
   Seq(
     "-encoding",
+    "-deprecation",
     "utf-8", // Specify character encoding used by source files.
     "-feature", // Emit warning and location for usages of features that should be imported explicitly.
     "-language:existentials", // Existential types (besides wildcard types) can be written and inferred

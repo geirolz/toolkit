@@ -24,7 +24,7 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
         )
       )
       .withoutDependencies
-      .beforeProviding(
+      .beforeProvidingSeq(
         migrateDatabaseWithConfig(
           url      = _.dbUrl,
           user     = _.dbUser,

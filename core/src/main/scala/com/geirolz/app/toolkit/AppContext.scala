@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.syntax.all.given
 
-final case class AppResources[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
+final case class AppContext[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
   info: INFO,
   messages: AppMessages,
   args: AppArgs,
@@ -25,7 +25,7 @@ final case class AppResources[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCE
        |)""".stripMargin
 }
 
-object AppResources:
+object AppContext:
 
   private[toolkit] def apply[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
     info: INFO,
@@ -34,8 +34,8 @@ object AppResources:
     logger: LOGGER,
     config: CONFIG,
     resources: RESOURCES
-  ): AppResources[INFO, LOGGER, CONFIG, RESOURCES] =
-    new AppResources[INFO, LOGGER, CONFIG, RESOURCES](
+  ): AppContext[INFO, LOGGER, CONFIG, RESOURCES] =
+    new AppContext[INFO, LOGGER, CONFIG, RESOURCES](
       info      = info,
       messages  = messages,
       args      = args,
@@ -45,7 +45,7 @@ object AppResources:
     )
 
   def unapply[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](
-    res: AppResources[INFO, LOGGER, CONFIG, RESOURCES]
+    res: AppContext[INFO, LOGGER, CONFIG, RESOURCES]
   ): Option[(INFO, AppMessages, AppArgs, LOGGER, CONFIG, RESOURCES)] =
     (
       res.info,

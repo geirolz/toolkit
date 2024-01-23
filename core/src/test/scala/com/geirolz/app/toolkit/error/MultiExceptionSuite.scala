@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit.error
 
 import cats.data.NonEmptyList
 
-class MultiExceptionSuite extends munit.FunSuite {
+class MultiExceptionSuite extends munit.FunSuite:
 
   test("Test printStackTrace") {
     val ex = MultiException.fromNel(
@@ -66,4 +66,3 @@ class MultiExceptionSuite extends munit.FunSuite {
 
     ex.printStackTrace()
   }
-}

@@ -12,15 +12,14 @@ case class TestAppInfo(
   sbtVersion: String,
   javaVersion: Option[String],
   builtOn: LocalDateTime
-) extends SimpleAppInfo[String] {
+) extends SimpleAppInfo[String]:
   override val buildRefName: String = SimpleAppInfo.genRefNameString(
     name    = name,
     version = version,
     builtOn = builtOn
   )
-}
 
-object TestAppInfo {
+object TestAppInfo:
   val value: TestAppInfo = TestAppInfo(
     name         = "AppTest",
     description  = "An app test",
@@ -30,4 +29,3 @@ object TestAppInfo {
     javaVersion  = None,
     builtOn      = LocalDateTime.now()
   )
-}

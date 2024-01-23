@@ -139,7 +139,7 @@ object Main extends IOApp {
           .compile
           .drain
       )
-      .onFinalize(_.logger.info("CUSTOM END"))
+      .onFinalizeSeq(_.logger.info("CUSTOM END"))
       .run(args)
 }
 ```
