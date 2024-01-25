@@ -44,7 +44,7 @@ lazy val docs: Project =
     .settings(
       baseSettings,
       noPublishSettings,
-      libraryDependencies ++=ProjectDependencies.Docs.dedicated,
+      libraryDependencies ++= ProjectDependencies.Docs.dedicated,
       // config
       scalacOptions --= Seq("-Werror", "-Xfatal-warnings"),
       mdocIn  := file("docs/source"),
@@ -202,8 +202,8 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
 def scalacSettings(scalaVersion: String): Seq[String] =
   Seq(
     "-encoding",
-    "-deprecation",
     "utf-8", // Specify character encoding used by source files.
+    "-deprecation",
     "-feature", // Emit warning and location for usages of features that should be imported explicitly.
     "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
     "-language:higherKinds", // Allow higher-kinded types

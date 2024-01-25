@@ -36,8 +36,7 @@ object EventLogger:
     def traceAsAppRuntime: F[Unit] =
       Resource.eval(app).trace(LabeledResource.appRuntime).use_
 
-  extension[F[_]: MonadCancelThrow: EventLogger, T](resource: Resource[F, T])
-
+  extension [F[_]: MonadCancelThrow: EventLogger, T](resource: Resource[F, T])
     def trace(labeledResource: LabeledResource): Resource[F, T] =
       val logger = EventLogger[F]
       resource

@@ -29,7 +29,7 @@ package object fly4s {
     user: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[String]          = (_: Any) => None,
     password: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Option[Array[Char]] = (_: Any) => None,
     config: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => Fly4sConfig           = (_: Any) => Fly4sConfig.default,
-    classLoader: ClassLoader = Thread.currentThread.getContextClassLoader
+    classLoader: ClassLoader                                                                             = Thread.currentThread.getContextClassLoader
   ): AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit] =
     migrateDatabase(dep =>
       Fly4s
