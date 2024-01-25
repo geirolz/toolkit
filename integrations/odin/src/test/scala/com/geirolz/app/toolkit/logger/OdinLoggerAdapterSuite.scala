@@ -31,7 +31,7 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
     val tkLogger                             = adapterLogger.toToolkit(Logger.noop[IO])
 
     assertIO_(
-      tkLogger.info("msg") >> tkLogger.error(ex"BOOM!")("msg")
+      tkLogger.info("msg") >> tkLogger.error(error"BOOM!")("msg")
     )
   }
 }

@@ -29,7 +29,7 @@ sealed trait AnsiValue:
 
   val value: String
 
-  def apply[T](msg: T)(implicit s: Show[T] = Show.fromToString[T]): AnsiText =
+  def apply[T](msg: T)(using s: Show[T] = Show.fromToString[T]): AnsiText =
     show"$value$msg${AnsiValue.S.RESET}"
 
   lazy val foreground: AnsiValue.F =

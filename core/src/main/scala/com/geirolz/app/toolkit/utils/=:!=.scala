@@ -1,4 +1,4 @@
-package com.geirolz.app.toolkit
+package com.geirolz.app.toolkit.utils
 
 import scala.annotation.{implicitAmbiguous, implicitNotFound}
 import scala.language.postfixOps

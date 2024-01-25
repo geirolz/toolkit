@@ -4,9 +4,10 @@ trait LoggerAdapter[LOGGER[_[_]]]:
   def toToolkit[F[_]](appLogger: LOGGER[F]): ToolkitLogger[F]
 
 object LoggerAdapter:
-  def apply[LOGGER[_[_]]: LoggerAdapter]: LoggerAdapter[LOGGER] = implicitly[LoggerAdapter[LOGGER]]
+  inline def apply[LOGGER[_[_]]: LoggerAdapter]: LoggerAdapter[LOGGER] = 
+    summon[LoggerAdapter[LOGGER]]
 
-  implicit def id[L[K[_]] <: ToolkitLogger[K]]: LoggerAdapter[L] =
+  given [L[K[_]] <: ToolkitLogger[K]]: LoggerAdapter[L] =
     new LoggerAdapter[L]:
       override def toToolkit[F[_]](u: L[F]): ToolkitLogger[F] =
         new ToolkitLogger[F]:

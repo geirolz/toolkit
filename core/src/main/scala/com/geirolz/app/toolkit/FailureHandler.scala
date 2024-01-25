@@ -9,12 +9,13 @@ import cats.syntax.all.*
 case class FailureHandler[F[_], FAILURE](
   onFailureF: FAILURE => F[OnFailureBehaviour],
   handleFailureWithF: FAILURE => F[FAILURE \/ Unit]
-) { $this =>
+):
+  $this =>
 
-  def onFailure(f: FAILURE => F[OnFailureBehaviour]): FailureHandler[F, FAILURE] =
+  inline def onFailure(f: FAILURE => F[OnFailureBehaviour]): FailureHandler[F, FAILURE] =
     copy(onFailureF = f)
 
-  def handleFailureWith(f: FAILURE => F[FAILURE \/ Unit]): FailureHandler[F, FAILURE] =
+  inline def handleFailureWith(f: FAILURE => F[FAILURE \/ Unit]): FailureHandler[F, FAILURE] =
     copy(handleFailureWithF = f)
 
   def mapK[G[_]](f: F ~> G): FailureHandler[G, FAILURE] =
@@ -26,11 +27,9 @@ case class FailureHandler[F[_], FAILURE](
   def widen[EE <: FAILURE]: FailureHandler[F, EE] =
     this.asInstanceOf[FailureHandler[F, EE]]
 
-  def widenNel[EE](implicit
-    env: FAILURE =:= NonEmptyList[EE]
-  ): FailureHandler[F, NonEmptyList[EE]] =
+  def widenNel[EE](using FAILURE =:= NonEmptyList[EE]): FailureHandler[F, NonEmptyList[EE]] =
     this.asInstanceOf[FailureHandler[F, NonEmptyList[EE]]]
-}
+
 object FailureHandler extends FailureHandlerSyntax:
 
   inline def apply[F[_], E](using ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
@@ -52,18 +51,16 @@ object FailureHandler extends FailureHandlerSyntax:
     case object CancelAll extends OnFailureBehaviour
     case object DoNothing extends OnFailureBehaviour
 
-sealed transparent trait FailureHandlerSyntax {
+sealed transparent trait FailureHandlerSyntax:
 
   import cats.syntax.all.*
 
-  implicit class FailureHandlerOps[F[+_], FAILURE]($this: FailureHandler[F, FAILURE]) {
-    final def liftNonEmptyList(implicit
-      F: Applicative[F]
-    ): FailureHandler[F, NonEmptyList[FAILURE]] =
+  extension [F[+_], FAILURE](fh: FailureHandler[F, FAILURE])
+    def liftNonEmptyList(using Applicative[F]): FailureHandler[F, NonEmptyList[FAILURE]] =
       FailureHandler[F, NonEmptyList[FAILURE]](
         onFailureF = (failures: NonEmptyList[FAILURE]) =>
           failures
-            .traverse($this.onFailureF(_))
+            .traverse(fh.onFailureF(_))
             .map(
               _.collectFirst { case OnFailureBehaviour.CancelAll =>
                 OnFailureBehaviour.CancelAll
@@ -71,22 +68,17 @@ sealed transparent trait FailureHandlerSyntax {
             ),
         handleFailureWithF = (failures: NonEmptyList[FAILURE]) =>
           failures.toList
-            .traverse($this.handleFailureWithF(_))
+            .traverse(fh.handleFailureWithF(_))
             .map(_.partitionEither(identity)._1.toNel)
             .map {
               case None       => ().asRight[NonEmptyList[FAILURE]]
               case Some(nelE) => nelE.asLeft[Unit]
             }
       )
-  }
 
-  implicit class FailureHandlerNelOps[F[+_], FAILURE](
-    $this: FailureHandler[F, NonEmptyList[FAILURE]]
-  ) {
-    final def single(implicit F: Functor[F]): FailureHandler[F, FAILURE] =
+  extension [F[+_], FAILURE](fh: FailureHandler[F, NonEmptyList[FAILURE]])
+    def single(using Functor[F]): FailureHandler[F, FAILURE] =
       FailureHandler[F, FAILURE](
-        onFailureF         = (e: FAILURE) => $this.onFailureF(NonEmptyList.one(e)),
-        handleFailureWithF = (e: FAILURE) => $this.handleFailureWithF(NonEmptyList.one(e)).map(_.leftMap(_.head))
+        onFailureF         = (e: FAILURE) => fh.onFailureF(NonEmptyList.one(e)),
+        handleFailureWithF = (e: FAILURE) => fh.handleFailureWithF(NonEmptyList.one(e)).map(_.leftMap(_.head))
       )
-  }
-}

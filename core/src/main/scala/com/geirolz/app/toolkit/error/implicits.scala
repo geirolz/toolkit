@@ -3,15 +3,12 @@ package com.geirolz.app.toolkit.error
 import cats.kernel.Semigroup
 
 extension (ctx: StringContext)
-  def ex(args: Any*): RuntimeException =
-    new RuntimeException(ctx.s(args*)).dropFirstStackTraceElement
+  inline def error(args: Any*): RuntimeException =
+    new RuntimeException(ctx.s(args*))
 
-extension [T <: Throwable](ex: T)
-  def dropFirstStackTraceElement: T =
-    val stackTrace = ex.getStackTrace
-    if (stackTrace != null && stackTrace.length > 1)
-      ex.setStackTrace(stackTrace.tail)
-    ex
+extension (str: String)
+  inline def asError: RuntimeException =
+    new RuntimeException(str)
 
 given Semigroup[Throwable] = (x: Throwable, y: Throwable) =>
   (x, y) match

@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.novalues
 
-import com.geirolz.app.toolkit.=:!=
+import com.geirolz.app.toolkit.utils.=:!=
 
 sealed trait NoFailure
 object NoFailure:

@@ -32,7 +32,7 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
     val tkLogger                             = adapterLogger.toToolkit(NoOpLogger[IO])
 
     assertIO_(
-      tkLogger.info("msg") >> tkLogger.error(ex"BOOM!")("msg")
+      tkLogger.info("msg") >> tkLogger.error(error"BOOM!")("msg")
     )
   }
 }

@@ -69,7 +69,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withPureLogger(ToolkitLogger.console[IO](_))
             .withPureConfig(TestConfig.defaultTest)
             .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
-            .provideOneF(_ => IO.raiseError(ex"BOOM!"))
+            .provideOneF(_ => IO.raiseError(error"BOOM!"))
             .compile()
             .traceAsAppLoader
             .attempt
@@ -229,7 +229,7 @@ class AppSuite extends munit.CatsEffectSuite {
               .withPureLogger(ToolkitLogger.console[IO](_))
               .withPureConfig(TestConfig.defaultTest)
               .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
-              .provideOne(_ => IO.raiseError(ex"BOOM!"))
+              .provideOne(_ => IO.raiseError(error"BOOM!"))
               .compile()
               .runFullTracedApp
               .attempt
@@ -440,9 +440,9 @@ class AppSuite extends munit.CatsEffectSuite {
       } yield (finalState, app)
 
     assertIO_(
-      test.map { case (state, appResult) =>
+      test.map { case (finalState, appResult) =>
         assertEquals(
-          obtained = state,
+          obtained = finalState,
           expected = false
         )
         assert(cond = appResult.isLeft)
