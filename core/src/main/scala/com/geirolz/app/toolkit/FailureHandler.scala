@@ -52,7 +52,7 @@ object FailureHandler extends FailureHandlerSyntax:
     case object CancelAll extends OnFailureBehaviour
     case object DoNothing extends OnFailureBehaviour
 
-sealed trait FailureHandlerSyntax {
+sealed transparent trait FailureHandlerSyntax {
 
   import cats.syntax.all.*
 

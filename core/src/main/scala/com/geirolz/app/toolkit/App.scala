@@ -108,7 +108,7 @@ object App extends AppFailureSyntax:
   inline def apply[F[+_]: Async: Parallel, FAILURE: ClassTag]: AppBuilder[F, FAILURE] =
     AppBuilder[F, FAILURE]
 
-sealed trait AppFailureSyntax:
+sealed transparent trait AppFailureSyntax:
 
   extension [
     F[+_]: Async: Parallel,

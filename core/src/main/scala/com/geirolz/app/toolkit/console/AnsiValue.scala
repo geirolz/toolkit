@@ -272,16 +272,15 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax:
     final val INVISIBLE: AnsiValue.S = S(scala.Console.INVISIBLE)
 end AnsiValue
 
-private[toolkit] sealed trait AnsiValueInstances:
+private[toolkit] sealed transparent trait AnsiValueInstances:
 
-  given Monoid[AnsiValue] = new Monoid[AnsiValue] {
+  given Monoid[AnsiValue] = new Monoid[AnsiValue]:
     override def empty: AnsiValue                               = AnsiValue.empty
     override def combine(x: AnsiValue, y: AnsiValue): AnsiValue = x.withValue(y)
-  }
 
   given Show[AnsiValue] = Show.fromToString
 
-private[toolkit] sealed trait AnsiValueSyntax {
+private[toolkit] sealed transparent trait AnsiValueSyntax:
 
   extension (t: AnsiText)
     def print[F[_]: Console]: F[Unit]   = Console[F].print(t)
@@ -314,4 +313,3 @@ private[toolkit] sealed trait AnsiValueSyntax {
     def ansiBlink: AnsiText                                         = ansiStyle(_.BLINK)
     def ansiReversed: AnsiText                                      = ansiStyle(_.REVERSED)
     def ansiInvisible: AnsiText                                     = ansiStyle(_.INVISIBLE)
-}
