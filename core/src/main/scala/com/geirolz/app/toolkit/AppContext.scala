@@ -16,7 +16,7 @@ final case class AppContext[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES]
   type Resources = RESOURCES
 
   override def toString: String =
-    s"""AppResources(
+    s"""AppContext(
        |  info = $info,
        |  args = $args,
        |  logger = $logger,

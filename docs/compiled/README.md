@@ -84,10 +84,10 @@ object Config {
 // Define service dependencies
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
-object AppDependencyServices {
-  def resource(res: AppResources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
+object AppDependencyServices:
+  def resource(res: AppContext[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(AppDependencyServices(KafkaConsumer.fake))
-}
+
 
 // A stubbed kafka consumer
 trait KafkaConsumer[F[_]] {

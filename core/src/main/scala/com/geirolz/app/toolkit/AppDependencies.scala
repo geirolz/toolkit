@@ -3,11 +3,11 @@ package com.geirolz.app.toolkit
 import cats.syntax.all.given
 
 final case class AppDependencies[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
-  private val _resources: AppContext[INFO, LOGGER, CONFIG, RESOURCES],
+  private val _context: AppContext[INFO, LOGGER, CONFIG, RESOURCES],
   private val _dependencies: DEPENDENCIES
 ):
 
-  export _resources.{args, config, info, logger, resources}
+  export _context.*
   val dependencies: DEPENDENCIES = _dependencies
 
   override def toString: String =
@@ -27,7 +27,7 @@ object AppDependencies:
     dependencies: DEPENDENCIES
   ): AppDependencies[INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES] =
     new AppDependencies[INFO, LOGGER, CONFIG, DEPENDENCIES, RESOURCES](
-      _resources    = resources,
+      _context      = resources,
       _dependencies = dependencies
     )
 

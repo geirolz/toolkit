@@ -76,25 +76,21 @@ import com.geirolz.app.toolkit.novalues.NoResources
 
 // Define config
 case class Config(host: String, port: Int)
-
-object Config {
-  implicit val show: Show[Config] = Show.fromToString
-}
+object Config:
+  given Show[Config] = Show.fromToString
 
 // Define service dependencies
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
-object AppDependencyServices {
-  def resource(res: AppResources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
+object AppDependencyServices:
+  def resource(res: AppContext[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(AppDependencyServices(KafkaConsumer.fake))
-}
 
 // A stubbed kafka consumer
-trait KafkaConsumer[F[_]] {
+trait KafkaConsumer[F[_]]:
   def consumeFrom(name: String): fs2.Stream[F, KafkaConsumer.KafkaRecord]
-}
 
-object KafkaConsumer {
+object KafkaConsumer:
 
   import scala.concurrent.duration.DurationInt
 
@@ -105,7 +101,6 @@ object KafkaConsumer {
       fs2.Stream
         .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
         .repeat
-}
 ```
 
 3. **Build Your Application:** Build your application using the Toolkit DSL and execute it. Toolkit
@@ -116,7 +111,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 
-object Main extends IOApp {
+object Main extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     App[IO]
       .withInfo(
@@ -141,7 +136,6 @@ object Main extends IOApp {
       )
       .onFinalizeSeq(_.logger.info("CUSTOM END"))
       .run(args)
-}
 ```
 
 Check a full example [here](https://github.com/geirolz/toolkit/tree/main/examples)

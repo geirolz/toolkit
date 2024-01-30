@@ -85,7 +85,7 @@ object Config {
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
 object AppDependencyServices {
-  def resource(res: AppResources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
+  def resource(res: AppContext[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
     Resource.pure(AppDependencyServices(KafkaConsumer.fake))
 }
 

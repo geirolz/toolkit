@@ -54,11 +54,11 @@ import com.geirolz.app.toolkit.config.pureconfig.*
 
 case class TestConfig(value: String)
 
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-  implicit val configReader: pureconfig.ConfigReader[TestConfig] =
+object TestConfig:
+  given Show[TestConfig] = Show.fromToString
+  given pureconfig.ConfigReader[TestConfig] =
     pureconfig.ConfigReader.forProduct1("value")(TestConfig.apply)
-}
+
 
 App[IO]
   .withInfo(
@@ -72,7 +72,8 @@ App[IO]
   .withConfigF(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
   .provideOne(_ => IO.unit)
-  .run_
+  .run()
+  .void
 ```
 
 ## [Log4cats](https://github.com/typelevel/log4cats)
@@ -159,9 +160,8 @@ import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-}
+object TestConfig:
+  given Show[TestConfig] = Show.fromToString
 
 App[IO]
   .withInfo(
@@ -188,5 +188,6 @@ App[IO]
     )
   )
   .provideOne(_ => IO.unit)
-  .run_
+  .run()
+  .void
 ```
