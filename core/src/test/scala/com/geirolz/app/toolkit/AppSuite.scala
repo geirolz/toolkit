@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit
 import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
 import com.geirolz.app.toolkit.App.ctx
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.ToolkitLogger
 import com.geirolz.app.toolkit.testing.{LabeledResource, *}
 

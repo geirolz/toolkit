@@ -5,6 +5,7 @@ import cats.syntax.all.given
 import cats.{Foldable, Parallel, Show}
 import com.geirolz.app.toolkit.App.*
 import com.geirolz.app.toolkit.AppBuilder.SelectResAndDeps
+import com.geirolz.app.toolkit.failure.FailureHandler
 import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
 import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
 import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoFailure, NoResources}
@@ -196,7 +197,7 @@ object AppBuilder:
     inline def beforeProvidingSeq[G[_]: Foldable](
       f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      copy(beforeProvidingF = f(_).sequence_)
+      copy(beforeProvidingF = d => this.beforeProvidingF(d) >> f(d).sequence_)
 
     // ------- PROVIDE -------
     def provideOne[FAILURE2 <: FAILURE: ClassTag](

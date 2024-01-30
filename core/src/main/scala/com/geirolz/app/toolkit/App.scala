@@ -3,10 +3,12 @@ package com.geirolz.app.toolkit
 import cats.effect.*
 import cats.syntax.all.given
 import cats.{Endo, Foldable, Parallel, Show}
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.failure.FailureHandler
+import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 import com.geirolz.app.toolkit.novalues.NoFailure
 import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
+
 import scala.reflect.ClassTag
 
 class App[
@@ -44,7 +46,7 @@ class App[
   inline def onFinalizeSeq[G[_]: Foldable](
     f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
   ): Self =
-    copyWith(onFinalizeTask = f(_).sequence_)
+    copyWith(onFinalizeTask = d => this.onFinalizeTask(d) >> f(d).sequence_)
 
   // compile and run
   inline def compile[R[_]](

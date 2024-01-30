@@ -1,10 +1,11 @@
-package com.geirolz.app.toolkit
+package com.geirolz.app.toolkit.failure
 
-import cats.{~>, Applicative, Functor, Monad, Show}
 import cats.data.NonEmptyList
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
-import com.geirolz.app.toolkit.logger.ToolkitLogger
 import cats.syntax.all.*
+import cats.{~>, Applicative, Functor, Monad, Show}
+import com.geirolz.app.toolkit.{\/, AppMessages}
+import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.logger.ToolkitLogger
 
 case class FailureHandler[F[_], FAILURE](
   onFailureF: FAILURE => F[OnFailureBehaviour],

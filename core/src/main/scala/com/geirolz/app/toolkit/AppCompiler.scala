@@ -5,7 +5,7 @@ import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
 import com.geirolz.app.toolkit.App.ctx
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 
 trait AppCompiler[F[+_]]:
