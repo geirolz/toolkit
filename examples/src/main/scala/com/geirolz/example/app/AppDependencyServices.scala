@@ -1,8 +1,7 @@
 package com.geirolz.example.app
 
 import cats.effect.{IO, Resource}
-import com.geirolz.app.toolkit.App.ctx
-import com.geirolz.app.toolkit.{App, AppContext}
+import com.geirolz.app.toolkit.{AppContext, ctx}
 import com.geirolz.example.app.provided.KafkaConsumer
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 

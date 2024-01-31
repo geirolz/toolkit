@@ -34,12 +34,11 @@ class App[
   type AppInfo       = INFO
   type Logger        = LOGGER_T[F]
   type Config        = CONFIG
-  type Self          = App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
   type ContextNoDeps = AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES]
 
   inline def onFinalize(
     f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[Unit]
-  ): Self =
+  ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
     copyWith(onFinalizeTask = deps => this.onFinalizeTask(deps) >> f(using deps))
 
   // compile and run
