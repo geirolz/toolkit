@@ -1,7 +1,7 @@
 package com.geirolz.app.toolkit
 
 import cats.effect.{IO, Resource}
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.logger.Logger
 import com.geirolz.app.toolkit.testing.{TestAppInfo, TestConfig}
 
 class AppContextAndDependenciesSuite extends munit.FunSuite:
@@ -10,7 +10,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
   test("AppContext unapply works as expected") {
     val res = App[IO]
       .withInfo(TestAppInfo.value)
-      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withConsoleLogger()
       .withPureConfig(TestConfig.defaultTest)
       .withoutResources
       .withoutDependencies
@@ -23,7 +23,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
   test("AppDependencies unapply works as expected") {
     App[IO]
       .withInfo(TestAppInfo.value)
-      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withConsoleLogger()
       .withPureConfig(TestConfig.defaultTest)
       .withoutDependencies
       .provideOne { case _ | AppDependencies(_, _, _, _, _, _) =>

@@ -117,9 +117,9 @@ sealed transparent trait AppFailureSyntax:
     FAILURE: NotNoFailure,
     INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
-    CONFIG: Show,
-    RESOURCES,
-    DEPENDENCIES
+    CONFIG: ClassTag: Show,
+    RESOURCES: ClassTag,
+    DEPENDENCIES: ClassTag
   ](app: App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES])
 
     // failures

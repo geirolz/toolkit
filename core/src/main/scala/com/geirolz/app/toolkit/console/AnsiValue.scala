@@ -24,6 +24,17 @@ import com.geirolz.app.toolkit.console.AnsiValue.AnsiText
   *      .withBackground(AnsiValue.B.BLACK)
   *      .withStyle(AnsiValue.S.BLINK)
   * }}}
+  *
+  * <table> <tr><th style="padding:4px 15px;text-decoration:underline">Foreground</th><th style="width:50%"></th><th style="padding:4px
+  * 15px;text-decoration:underline">Background</th></tr> <tr><td style="padding:4px 15px">BLACK </td><td style="background-color:#000"></td><td
+  * style="padding:4px 15px">BLACK_B </td></tr> <tr><td style="padding:4px 15px">RED </td><td style="background-color:#f00"></td><td
+  * style="padding:4px 15px">RED_B </td></tr> <tr><td style="padding:4px 15px">GREEN </td><td style="background-color:#0f0"></td><td
+  * style="padding:4px 15px">GREEN_B </td></tr> <tr><td style="padding:4px 15px">YELLOW </td><td style="background-color:#ff0"></td><td
+  * style="padding:4px 15px">YELLOW_B </td></tr> <tr><td style="padding:4px 15px">BLUE </td><td style="background-color:#00f"></td><td
+  * style="padding:4px 15px">BLUE_B </td></tr> <tr><td style="padding:4px 15px">MAGENTA</td><td style="background-color:#f0f"></td><td
+  * style="padding:4px 15px">MAGENTA_B</td></tr> <tr><td style="padding:4px 15px">CYAN </td><td style="background-color:#0ff"></td><td
+  * style="padding:4px 15px">CYAN_B </td></tr> <tr><td style="padding:4px 15px">WHITE </td><td style="background-color:#fff"></td><td
+  * style="padding:4px 15px">WHITE_B </td></tr> </table>
   */
 sealed trait AnsiValue:
 
@@ -136,6 +147,12 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax:
       */
     final val RED: AnsiValue.F = F(scala.Console.RED)
 
+    /** Foreground color for ANSI Bright Red
+      *
+      * @group color-bright-red
+      */
+    final val BRIGHT_RED: AnsiValue.F = F("\u001b[91m")
+
     /** Foreground color for ANSI green
       *
       * @group color-green
@@ -191,6 +208,12 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax:
       * @group color-red
       */
     final val RED = B(scala.Console.RED_B)
+
+    /** Background color for ANSI Bright Red
+      *
+      * @group color-bright-red
+      */
+    final val BRIGHT_RED: AnsiValue.B = B("\u001b[101m")
 
     /** Background color for ANSI green
       *

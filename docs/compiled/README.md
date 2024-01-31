@@ -71,7 +71,7 @@ libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.11"
 import cats.Show
 import cats.effect.{Resource, IO}
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.logger.Logger
 import com.geirolz.app.toolkit.novalues.NoResources
 
 // Define config
@@ -84,9 +84,11 @@ object Config {
 // Define service dependencies
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
-object AppDependencyServices:
-  def resource(res: AppContext[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
-    Resource.pure(AppDependencyServices(KafkaConsumer.fake))
+object AppDependencyServices
+
+:
+def resource(res: AppContext[SimpleAppInfo[String], Logger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
+  Resource.pure(AppDependencyServices(KafkaConsumer.fake))
 
 
 // A stubbed kafka consumer
@@ -114,7 +116,7 @@ object KafkaConsumer {
 ```scala
 import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.logger.Logger
 
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
@@ -127,7 +129,7 @@ object Main extends IOApp {
           sbtVersion = "1.8.0"
         )
       )
-      .withPureLogger(ToolkitLogger.console[IO](_))
+      .withPureLogger(Logger.console[IO](_))
       .withConfigF(_ => IO.pure(Config("localhost", 8080)))
       .dependsOn(AppDependencyServices.resource(_))
       .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))

@@ -6,7 +6,8 @@ import cats.{Foldable, Parallel, Show}
 import com.geirolz.app.toolkit.App.*
 import com.geirolz.app.toolkit.AppBuilder.SelectResAndDeps
 import com.geirolz.app.toolkit.failure.FailureHandler
-import com.geirolz.app.toolkit.logger.{LoggerAdapter, NoopLogger}
+import com.geirolz.app.toolkit.logger.Logger.Level
+import com.geirolz.app.toolkit.logger.{ConsoleLogger, Logger, LoggerAdapter, NoopLogger}
 import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
 import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoFailure, NoResources}
 
@@ -55,6 +56,9 @@ object AppBuilder:
     // ------- LOGGER -------
     inline def withNoopLogger: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, CONFIG, RESOURCES] =
       withPureLogger(logger = NoopLogger[F])
+
+    inline def withConsoleLogger(minLevel: Level = Level.Info): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, ConsoleLogger, CONFIG, RESOURCES] =
+      withPureLogger(logger = ConsoleLogger[F](info, minLevel))
 
     inline def withPureLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       logger: LOGGER_T2[F]
@@ -130,7 +134,7 @@ object AppBuilder:
     inline def withoutDependencies: AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, NoDependencies] =
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
-    def dependsOn[DEPENDENCIES: ClassTag, FAILURE2 <: FAILURE: ClassTag](
+    inline def dependsOn[DEPENDENCIES: ClassTag, FAILURE2 <: FAILURE: ClassTag](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOnE[DEPENDENCIES, FAILURE2](f.map {
@@ -142,18 +146,23 @@ object AppBuilder:
       f: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 \/ DEPENDENCIES]
     )(using DummyImplicit): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       AppBuilder.SelectProvide(
-        info               = info,
-        messages           = messages,
-        loggerBuilder      = loggerBuilder,
-        configLoader       = configLoader,
-        resourcesLoader    = resourcesLoader,
-        dependenciesLoader = ctx => { given AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] = ctx; f },
-        beforeProvidingF   = _ => ().pure[F]
+        info                = info,
+        messages            = messages,
+        loggerBuilder       = loggerBuilder,
+        configLoader        = configLoader,
+        resourcesLoader     = resourcesLoader,
+        dependenciesLoader  = ctx => { given AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] = ctx; f },
+        beforeProvidingTask = _ => ().pure[F]
       )
 
-    private def copyWith[G[+_]: Async: Parallel, FAILURE2: ClassTag, INFO2 <: SimpleAppInfo[?], LOGGER_T2[
-      _[_]
-    ]: LoggerAdapter, CONFIG2: Show, RESOURCES2](
+    private def copyWith[
+      G[+_]: Async: Parallel,
+      FAILURE2: ClassTag,
+      INFO2 <: SimpleAppInfo[?],
+      LOGGER_T2[_[_]]: LoggerAdapter,
+      CONFIG2: Show,
+      RESOURCES2
+    ](
       info: INFO2                              = this.info,
       messages: AppMessages                    = this.messages,
       loggerBuilder: G[LOGGER_T2[G]]           = this.loggerBuilder,
@@ -182,7 +191,7 @@ object AppBuilder:
     configLoader: Resource[F, CONFIG],
     resourcesLoader: Resource[F, RESOURCES],
     dependenciesLoader: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE \/ DEPENDENCIES],
-    beforeProvidingF: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    beforeProvidingTask: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ):
 
     // ------- BEFORE PROVIDING -------
@@ -197,7 +206,7 @@ object AppBuilder:
     inline def beforeProvidingSeq[G[_]: Foldable](
       f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      copy(beforeProvidingF = d => this.beforeProvidingF(d) >> f(d).sequence_)
+      copy(beforeProvidingTask = d => this.beforeProvidingTask(d) >> f(d).sequence_)
 
     // ------- PROVIDE -------
     def provideOne[FAILURE2 <: FAILURE: ClassTag](
@@ -260,7 +269,7 @@ object AppBuilder:
         ),
         loggerBuilder       = loggerBuilder,
         resourcesLoader     = resourcesLoader,
-        beforeProvidingTask = beforeProvidingF,
+        beforeProvidingTask = beforeProvidingTask,
         onFinalizeTask      = _ => ().pure[F],
         configLoader        = configLoader,
         depsLoader          = dependenciesLoader(ctx),

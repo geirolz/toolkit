@@ -5,7 +5,7 @@ import cats.syntax.all.*
 import cats.{~>, Applicative, Functor, Monad, Show}
 import com.geirolz.app.toolkit.{\/, AppMessages}
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.logger.Logger
 
 case class FailureHandler[F[_], FAILURE](
   onFailureF: FAILURE => F[OnFailureBehaviour],
@@ -35,8 +35,8 @@ object FailureHandler extends FailureHandlerSyntax:
 
   inline def apply[F[_], E](using ev: FailureHandler[F, E]): FailureHandler[F, E] = ev
 
-  def logAndCancelAll[F[_]: Monad, FAILURE](appMessages: AppMessages, logger: ToolkitLogger[F]): FailureHandler[F, FAILURE] =
-    doNothing[F, FAILURE]().onFailure(failure => logger.error(s"${appMessages.appAFailureOccurred} $failure").as(OnFailureBehaviour.CancelAll))
+  def logAndCancelAll[F[_]: Monad, FAILURE](appMessages: AppMessages, logger: Logger[F]): FailureHandler[F, FAILURE] =
+    doNothing[F, FAILURE]().onFailure(failure => logger.failure(s"${appMessages.appAFailureOccurred} $failure").as(OnFailureBehaviour.CancelAll))
 
   def cancelAll[F[_]: Applicative, FAILURE]: FailureHandler[F, FAILURE] =
     doNothing[F, FAILURE]().onFailure(_ => OnFailureBehaviour.CancelAll.pure[F])
