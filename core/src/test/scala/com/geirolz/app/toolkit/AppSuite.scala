@@ -5,6 +5,7 @@ import cats.effect.{IO, Ref, Resource}
 import com.geirolz.app.toolkit.App.ctx
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.Logger
+import com.geirolz.app.toolkit.novalues.NoFailure
 import com.geirolz.app.toolkit.testing.*
 
 import scala.concurrent.duration.DurationInt
@@ -23,7 +24,7 @@ class AppSuite extends munit.CatsEffectSuite {
           counter: Ref[IO, Int] <- IO.ref(0)
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
             .provideOne(_.dependencies.set(1))
@@ -66,9 +67,9 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
-            .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
+            .dependsOn(Resource.unit[IO].trace(LabeledResource.appDependencies))
             .provideOneF(_ => IO.raiseError(error"BOOM!"))
             .compile()
             .traceAsAppLoader
@@ -102,7 +103,7 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
             .provide(_ =>
@@ -144,7 +145,7 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
             .provideOne(_ => IO.sleep(1.second))
@@ -180,7 +181,7 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
             .provideF(_ =>
@@ -226,7 +227,7 @@ class AppSuite extends munit.CatsEffectSuite {
           _ <-
             App[IO]
               .withInfo(TestAppInfo.value)
-              .withPureLogger(Logger.console[IO](_))
+              .withConsoleLogger()
               .withPureConfig(TestConfig.defaultTest)
               .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
               .provideOne(_ => IO.raiseError(error"BOOM!"))
@@ -266,7 +267,7 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
             .beforeProvidingSeq(
@@ -327,7 +328,7 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withPureLogger(Logger.console[IO](_))
+            .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
             .beforeProvidingSeq(_ =>
@@ -390,7 +391,7 @@ class AppSuite extends munit.CatsEffectSuite {
       state <- IO.ref[Boolean](false)
       _ <- App[IO]
         .withInfo(TestAppInfo.value)
-        .withPureLogger(Logger.console[IO](_))
+        .withConsoleLogger()
         .withPureConfig(TestConfig.defaultTest)
         .withoutDependencies
         .provideOne(r =>
@@ -424,7 +425,7 @@ class AppSuite extends munit.CatsEffectSuite {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
           .withInfo(TestAppInfo.value)
-          .withPureLogger(Logger.console[IO](_))
+          .withConsoleLogger()
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
           .provideE(_ =>
@@ -462,7 +463,7 @@ class AppSuite extends munit.CatsEffectSuite {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
           .withInfo(TestAppInfo.value)
-          .withPureLogger(Logger.console[IO](_))
+          .withConsoleLogger()
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
           .provideE { _ =>

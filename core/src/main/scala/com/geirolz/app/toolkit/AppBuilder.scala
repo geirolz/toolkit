@@ -134,7 +134,7 @@ object AppBuilder:
     inline def withoutDependencies: AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, NoDependencies] =
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
-    inline def dependsOn[DEPENDENCIES: ClassTag, FAILURE2 <: FAILURE: ClassTag](
+    inline def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE: ClassTag](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOnE[DEPENDENCIES, FAILURE2](f.map {

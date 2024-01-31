@@ -3,7 +3,7 @@ package com.geirolz.example.app
 import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.App
 import com.geirolz.app.toolkit.config.pureconfig.*
-import com.geirolz.app.toolkit.logger.log4CatsLoggerAdapter
+import com.geirolz.app.toolkit.logger.given
 import com.geirolz.app.toolkit.novalues.NoResources
 import com.geirolz.example.app.provided.AppHttpServer
 import org.typelevel.log4cats.SelfAwareStructuredLogger

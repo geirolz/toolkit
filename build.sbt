@@ -203,6 +203,7 @@ def scalacSettings(scalaVersion: String): Seq[String] =
   Seq(
     "-encoding",
     "utf-8", // Specify character encoding used by source files.
+    "-explain",
     "-deprecation",
     "-feature", // Emit warning and location for usages of features that should be imported explicitly.
     "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
