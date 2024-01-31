@@ -4,9 +4,9 @@ import cats.data.{EitherT, NonEmptyList}
 import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
-import com.geirolz.app.toolkit.App.ctx
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
+import com.geirolz.app.toolkit.novalues.NoDependencies
 
 trait AppCompiler[F[+_]]:
 
@@ -55,20 +55,21 @@ object AppCompiler:
           otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
 
           // group resources
-          given AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] = AppContext(
-            info      = app.info,
-            messages  = app.messages,
-            args      = AppArgs(appArgs),
-            logger    = userLogger,
-            config    = appConfig,
-            resources = otherResources
-          )
+          given AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] =
+            AppContext.noDependencies(
+              info      = app.info,
+              messages  = app.messages,
+              args      = AppArgs(appArgs),
+              logger    = userLogger,
+              config    = appConfig,
+              resources = otherResources
+            )
 
           // ------------------- DEPENDENCIES -----------------
           _              <- toolkitResLogger.debug(app.messages.buildingServicesEnv)
           appDepServices <- EitherT(app.depsLoader)
           _              <- toolkitResLogger.info(app.messages.servicesEnvSuccessfullyBuilt)
-          appDependencies = AppDependencies(ctx, appDepServices)
+          appDependencies = ctx.withDependencies(appDepServices)
 
           // --------------------- SERVICES -------------------
           _               <- toolkitResLogger.debug(app.messages.buildingApp)

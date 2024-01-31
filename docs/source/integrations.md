@@ -71,7 +71,7 @@ App[IO]
   )
   .withConfigF(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
-  .provideOne(_ => IO.unit)
+  .provideOne(IO.unit)
   .run()
   .void
 ```
@@ -156,7 +156,7 @@ the whole app dependencies to provide a custom `Fly4s` instance you can use `bef
 import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.*
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+import com.geirolz.app.toolkit.*
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
@@ -181,13 +181,13 @@ App[IO]
   )
   .withoutDependencies
   .beforeProviding(
-    migrateDatabaseWithConfig(
-      url = _.dbUrl,
-      user = _.dbUser,
-      password = _.dbPassword
+    migrateDatabaseWith(
+      url = ctx.config.dbUrl,
+      user = ctx.config.dbUser,
+      password = ctx.config.dbPassword
     )
   )
-  .provideOne(_ => IO.unit)
+  .provideOne(IO.unit)
   .run()
   .void
 ```

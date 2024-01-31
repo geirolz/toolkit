@@ -1,7 +1,7 @@
 package com.geirolz.app.toolkit.logger
 
 import cats.kernel.Order
-import cats.{Show, ~>}
+import cats.{~>, Show}
 
 trait Logger[F[_]]:
   def error(message: => String): F[Unit]

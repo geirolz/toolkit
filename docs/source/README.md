@@ -70,8 +70,8 @@ libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
 ```scala mdoc:silent
 import cats.Show
 import cats.effect.{Resource, IO}
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.logger.Logger
+import com.geirolz.app.toolkit.*
+import com.geirolz.app.toolkit.logger.ConsoleLogger
 import com.geirolz.app.toolkit.novalues.NoResources
 
 // Define config
@@ -83,7 +83,7 @@ object Config:
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
 object AppDependencyServices:
-    def resource(res: AppContext[SimpleAppInfo[String], Logger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
+    def resource(using AppContext.NoDepsAndRes[SimpleAppInfo[String], ConsoleLogger[IO], Config]): Resource[IO, AppDependencyServices] =
       Resource.pure(AppDependencyServices(KafkaConsumer.fake))
 
 // A stubbed kafka consumer
@@ -108,7 +108,7 @@ object KafkaConsumer:
 
 ```scala mdoc:silent
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+import com.geirolz.app.toolkit.*
 import com.geirolz.app.toolkit.logger.Logger
 
 object Main extends IOApp:
@@ -122,19 +122,19 @@ object Main extends IOApp:
             sbtVersion = "1.8.0"
           )
         )
-        .withPureLogger(Logger.console[IO](_))
-        .withConfigF(_ => IO.pure(Config("localhost", 8080)))
-        .dependsOn(AppDependencyServices.resource(_))
-        .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
-        .provideOne(deps =>
+        .withConsoleLogger()
+        .withConfigF(IO.pure(Config("localhost", 8080)))
+        .dependsOn(AppDependencyServices.resource)
+        .beforeProviding(ctx.logger.info("CUSTOM PRE-PROVIDING"))
+        .provideOne(
           // Kafka consumer
-          deps.dependencies.kafkaConsumer
+          ctx.dependencies.kafkaConsumer
             .consumeFrom("test-topic")
-            .evalTap(record => deps.logger.info(s"Received record $record"))
+            .evalTap(record => ctx.logger.info(s"Received record $record"))
             .compile
             .drain
         )
-        .onFinalizeSeq(_.logger.info("CUSTOM END"))
+        .onFinalize(ctx.logger.info("CUSTOM END"))
         .run(args)
 ```
 

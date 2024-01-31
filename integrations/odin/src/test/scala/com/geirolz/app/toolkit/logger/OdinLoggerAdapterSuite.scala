@@ -20,7 +20,7 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
         )
         .withPureLogger(OdinLogger.noop[IO])
         .withoutDependencies
-        .provideOne(_ => IO.unit)
+        .provideOne(IO.unit)
         .run()
         .void
     )

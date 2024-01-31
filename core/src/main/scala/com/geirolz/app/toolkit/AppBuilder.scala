@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.effect.{Async, Resource}
 import cats.syntax.all.given
-import cats.{Foldable, Parallel, Show}
+import cats.{Parallel, Show}
 import com.geirolz.app.toolkit.App.*
 import com.geirolz.app.toolkit.AppBuilder.SelectResAndDeps
 import com.geirolz.app.toolkit.failure.FailureHandler
@@ -135,7 +135,7 @@ object AppBuilder:
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
     inline def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE: ClassTag](
-      f: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
+      f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOnE[DEPENDENCIES, FAILURE2](f.map {
         case deps: DEPENDENCIES => Right(deps)
@@ -143,7 +143,7 @@ object AppBuilder:
       })
 
     def dependsOnE[DEPENDENCIES, FAILURE2 <: FAILURE](
-      f: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 \/ DEPENDENCIES]
+      f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 \/ DEPENDENCIES]
     )(using DummyImplicit): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       AppBuilder.SelectProvide(
         info                = info,
@@ -151,7 +151,7 @@ object AppBuilder:
         loggerBuilder       = loggerBuilder,
         configLoader        = configLoader,
         resourcesLoader     = resourcesLoader,
-        dependenciesLoader  = ctx => { given AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] = ctx; f },
+        dependenciesLoader  = f(using _),
         beforeProvidingTask = _ => ().pure[F]
       )
 
@@ -190,74 +190,66 @@ object AppBuilder:
     loggerBuilder: F[LOGGER_T[F]],
     configLoader: Resource[F, CONFIG],
     resourcesLoader: Resource[F, RESOURCES],
-    dependenciesLoader: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE \/ DEPENDENCIES],
-    beforeProvidingTask: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
+    dependenciesLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE \/ DEPENDENCIES],
+    beforeProvidingTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ):
 
     // ------- BEFORE PROVIDING -------
-    // TODO: Add failure
-    inline def beforeProvidingSeq(
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
-      fN: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
+    inline def beforeProviding(
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[Unit]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      beforeProvidingSeq(deps => (f +: fN).map(_(deps)))
-
-    // TODO: Add failure
-    inline def beforeProvidingSeq[G[_]: Foldable](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
-    ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      copy(beforeProvidingTask = d => this.beforeProvidingTask(d) >> f(d).sequence_)
+      copy(beforeProvidingTask = d => this.beforeProvidingTask(d) >> f(using d))
 
     // ------- PROVIDE -------
     def provideOne[FAILURE2 <: FAILURE: ClassTag](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 | Unit]
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 | Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideOneE[FAILURE2](f.andThen(_.map {
+      provideOneE[FAILURE2](f.map {
+        case failure: FAILURE2 => Left(failure)
+        case _: Unit           => Right(())
+      })
+
+    inline def provideOneE[FAILURE2 <: FAILURE](
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ Unit]
+    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      provideE[FAILURE2](List(f))
+
+    inline def provideOneF[FAILURE2 <: FAILURE](
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ F[Unit]]
+    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      provideAttemptFE[FAILURE2](f.map(_.map(v => List(v.map(_.asRight[FAILURE2])))))
+
+    // provide
+    def provide[FAILURE2 <: FAILURE: ClassTag](
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> List[F[FAILURE2 | Unit]]
+    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      provideE(f.map(_.map {
         case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
       }))
 
-    inline def provideOneE[FAILURE2 <: FAILURE](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ Unit]
-    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideE[FAILURE2](f.andThen(List(_)))
+    inline def provideE[FAILURE2 <: FAILURE](
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> List[F[FAILURE2 \/ Unit]]
+    )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      provideFE[FAILURE2](f.pure[F])
 
-    inline def provideOneF[FAILURE2 <: FAILURE](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ F[Unit]]
-    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideAttemptFE[FAILURE2](f.andThen(_.map(_.map(v => List(v.map(_.asRight[FAILURE2]))))))
-
-    // provide
-    def provide[FAILURE2 <: FAILURE: ClassTag](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => List[F[FAILURE2 | Unit]]
-    ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideE(f.andThen(_.map(_.map {
+    // provideF
+    def provideF[FAILURE2 <: FAILURE: ClassTag](
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[List[F[FAILURE2 | Unit]]]
+    )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
+      provideFE(f.map(_.map(_.map {
         case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
       })))
 
-    inline def provideE[FAILURE2 <: FAILURE](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => List[F[FAILURE2 \/ Unit]]
-    )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideFE[FAILURE2](f.andThen(_.pure[F]))
-
-    // provideF
-    def provideF[FAILURE2 <: FAILURE: ClassTag](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[List[F[FAILURE2 | Unit]]]
-    )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideFE(f.andThen(_.map(_.map(_.map {
-        case failure: FAILURE2 => Left(failure)
-        case _: Unit           => Right(())
-      }))))
-
     inline def provideFE[FAILURE2 <: FAILURE](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[List[F[FAILURE2 \/ Unit]]]
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[List[F[FAILURE2 \/ Unit]]]
     )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideAttemptFE(f.andThen(_.map(Right(_))))
+      provideAttemptFE(f.map(Right(_)))
 
     // TODO Missing the union version
     def provideAttemptFE[FAILURE2 <: FAILURE](
-      f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE2 \/ List[F[FAILURE2 \/ Unit]]]
+      f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ List[F[FAILURE2 \/ Unit]]]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       // TODO Allow custom AppMessages
       new App(
@@ -273,5 +265,5 @@ object AppBuilder:
         onFinalizeTask      = _ => ().pure[F],
         configLoader        = configLoader,
         depsLoader          = dependenciesLoader(ctx),
-        servicesBuilder     = f
+        servicesBuilder     = f(using _)
       )

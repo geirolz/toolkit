@@ -14,7 +14,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
       .withPureConfig(TestConfig.defaultTest)
       .withoutResources
       .withoutDependencies
-      .provideOne(_ => IO.unit)
+      .provideOne(IO.unit)
       .run()
       .void
   }
@@ -26,9 +26,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
       .withConsoleLogger()
       .withPureConfig(TestConfig.defaultTest)
       .withoutDependencies
-      .provideOne { case _ | AppDependencies(_, _, _, _, _, _) =>
-        IO.unit
-      }
+      .provideOne(IO.unit)
       .run()
       .void
   }

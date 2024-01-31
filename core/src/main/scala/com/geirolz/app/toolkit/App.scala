@@ -2,12 +2,12 @@ package com.geirolz.app.toolkit
 
 import cats.effect.*
 import cats.syntax.all.given
-import cats.{Endo, Foldable, Parallel, Show}
+import cats.{Endo, Parallel, Show}
 import com.geirolz.app.toolkit.failure.FailureHandler
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
-import com.geirolz.app.toolkit.novalues.NoFailure
 import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
+import com.geirolz.app.toolkit.novalues.NoFailure
 
 import scala.reflect.ClassTag
 
@@ -25,28 +25,22 @@ class App[
   val loggerBuilder: F[LOGGER_T[F]],
   val configLoader: Resource[F, CONFIG],
   val resourcesLoader: Resource[F, RESOURCES],
-  val beforeProvidingTask: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
-  val onFinalizeTask: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
-  val failureHandlerLoader: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> FailureHandler[F, FAILURE],
-  val depsLoader: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE \/ DEPENDENCIES],
-  val servicesBuilder: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE \/ List[F[FAILURE \/ Unit]]]
+  val beforeProvidingTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
+  val onFinalizeTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
+  val failureHandlerLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> FailureHandler[F, FAILURE],
+  val depsLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE \/ DEPENDENCIES],
+  val servicesBuilder: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE \/ List[F[FAILURE \/ Unit]]]
 ):
-  type AppInfo = INFO
-  type Logger  = LOGGER_T[F]
-  type Config  = CONFIG
-  type Self    = App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
-  type Context = AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES]
+  type AppInfo       = INFO
+  type Logger        = LOGGER_T[F]
+  type Config        = CONFIG
+  type Self          = App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
+  type ContextNoDeps = AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES]
 
-  inline def onFinalizeSeq(
-    f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
-    fN: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]*
+  inline def onFinalize(
+    f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[Unit]
   ): Self =
-    onFinalizeSeq(deps => (f +: fN).map(_(deps)))
-
-  inline def onFinalizeSeq[G[_]: Foldable](
-    f: AppDependencies[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => G[F[Unit]]
-  ): Self =
-    copyWith(onFinalizeTask = d => this.onFinalizeTask(d) >> f(d).sequence_)
+    copyWith(onFinalizeTask = deps => this.onFinalizeTask(deps) >> f(using deps))
 
   // compile and run
   inline def compile[R[_]](
@@ -74,16 +68,16 @@ class App[
     RES2,
     DEPS2
   ](
-    appInfo: APP_INFO2                                                                                        = this.info,
-    appMessages: AppMessages                                                                                  = this.messages,
-    loggerBuilder: G[LOGGER_T2[G]]                                                                            = this.loggerBuilder,
-    configLoader: Resource[G, CONFIG2]                                                                        = this.configLoader,
-    resourcesLoader: Resource[G, RES2]                                                                        = this.resourcesLoader,
-    beforeProvidingTask: AppDependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]            = this.beforeProvidingTask,
-    onFinalizeTask: AppDependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]                 = this.onFinalizeTask,
-    failureHandlerLoader: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] ?=> FailureHandler[G, FAILURE2]  = this.failureHandlerLoader,
-    dependenciesLoader: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] ?=> Resource[G, FAILURE2 \/ DEPS2] = this.depsLoader,
-    provideBuilder: AppDependencies[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[FAILURE2 \/ List[G[FAILURE2 \/ Unit]]] = this.servicesBuilder
+    appInfo: APP_INFO2                                                                                                    = this.info,
+    appMessages: AppMessages                                                                                              = this.messages,
+    loggerBuilder: G[LOGGER_T2[G]]                                                                                        = this.loggerBuilder,
+    configLoader: Resource[G, CONFIG2]                                                                                    = this.configLoader,
+    resourcesLoader: Resource[G, RES2]                                                                                    = this.resourcesLoader,
+    beforeProvidingTask: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]                             = this.beforeProvidingTask,
+    onFinalizeTask: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]                                  = this.onFinalizeTask,
+    failureHandlerLoader: AppContext.NoDeps[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] ?=> FailureHandler[G, FAILURE2]       = this.failureHandlerLoader,
+    dependenciesLoader: AppContext.NoDeps[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] ?=> Resource[G, FAILURE2 \/ DEPS2]      = this.depsLoader,
+    provideBuilder: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[FAILURE2 \/ List[G[FAILURE2 \/ Unit]]] = this.servicesBuilder
   ): App[G, FAILURE2, APP_INFO2, LOGGER_T2, CONFIG2, RES2, DEPS2] =
     new App[G, FAILURE2, APP_INFO2, LOGGER_T2, CONFIG2, RES2, DEPS2](
       info                 = appInfo,
@@ -99,10 +93,6 @@ class App[
     )
 
 object App extends AppFailureSyntax:
-
-  inline def ctx[INFO <: SimpleAppInfo[?], LOGGER, CONFIG, RESOURCES](using
-    c: AppContext[INFO, LOGGER, CONFIG, RESOURCES]
-  ): AppContext[INFO, LOGGER, CONFIG, RESOURCES] = c
 
   inline def apply[F[+_]: Async: Parallel]: AppBuilder[F, NoFailure] =
     AppBuilder[F]
@@ -124,7 +114,7 @@ sealed transparent trait AppFailureSyntax:
 
     // failures
     inline def mapFailure[FAILURE2](
-      fhLoader: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> FailureHandler[F, FAILURE2]
+      fhLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> FailureHandler[F, FAILURE2]
     )(
       f: FAILURE => FAILURE2
     )(using NotNoFailure[FAILURE2]): App[F, FAILURE2, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
@@ -135,22 +125,22 @@ sealed transparent trait AppFailureSyntax:
       )
 
     inline def onFailure_(
-      f: app.Context ?=> FAILURE => F[Unit]
+      f: app.ContextNoDeps ?=> FAILURE => F[Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.onFailure(failure => f(failure) >> app.failureHandlerLoader.onFailureF(failure)))
 
     inline def onFailure(
-      f: app.Context ?=> FAILURE => F[OnFailureBehaviour]
+      f: app.ContextNoDeps ?=> FAILURE => F[OnFailureBehaviour]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.onFailure(f))
 
     inline def handleFailureWith(
-      f: app.Context ?=> FAILURE => F[FAILURE \/ Unit]
+      f: app.ContextNoDeps ?=> FAILURE => F[FAILURE \/ Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.handleFailureWith(f))
 
     private def _updateFailureHandlerLoader(
-      fh: AppContext[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Endo[FailureHandler[F, FAILURE]]
+      fh: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Endo[FailureHandler[F, FAILURE]]
     ): App[
       F,
       FAILURE,

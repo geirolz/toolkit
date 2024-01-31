@@ -21,7 +21,7 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
         )
         .withPureLogger(NoOpLogger[IO])
         .withoutDependencies
-        .provideOne(_ => IO.unit)
+        .provideOne(IO.unit)
         .run()
         .void
     )

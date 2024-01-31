@@ -3,6 +3,7 @@ package com.geirolz.app.toolkit.fly4s
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.testing.TestConfig
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+import com.geirolz.app.toolkit.App.ctx
 
 class Fly4sSupportSuite extends munit.CatsEffectSuite {
 
@@ -24,13 +25,13 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
         )
       )
       .withoutDependencies
-      .beforeProvidingSeq(
-        migrateDatabaseWithConfig(
-          url      = _.dbUrl,
-          user     = _.dbUser,
-          password = _.dbPassword
+      .beforeProviding(
+        migrateDatabaseWith(
+          url      = ctx.config.dbUrl,
+          user     = ctx.config.dbUser,
+          password = ctx.config.dbPassword
         )
       )
-      .provideOne(_ => IO.unit)
+      .provideOne(IO.unit)
   }
 }

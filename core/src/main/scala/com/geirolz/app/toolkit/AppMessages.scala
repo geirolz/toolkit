@@ -11,7 +11,8 @@ case class AppMessages(
   appWasStopped: String,
   appAnErrorOccurred: String,
   appAFailureOccurred: String,
-  shuttingDownApp: String
+  shuttingDownApp: String,
+  unmapped: Map[String, String] = Map.empty
 )
 object AppMessages:
 

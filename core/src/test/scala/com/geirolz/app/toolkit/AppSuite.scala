@@ -14,6 +14,7 @@ class AppSuite extends munit.CatsEffectSuite {
 
   import EventLogger.*
   import com.geirolz.app.toolkit.error.*
+  import cats.syntax.all.*
 
   test("Loader and App work as expected with dependsOn and logic fails") {
     EventLogger
@@ -27,7 +28,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
-            .provideOne(_.dependencies.set(1))
+            .provideOne(ctx.dependencies.set(1))
             .compile()
             .runFullTracedApp
 
@@ -70,7 +71,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .dependsOn(Resource.unit[IO].trace(LabeledResource.appDependencies))
-            .provideOneF(_ => IO.raiseError(error"BOOM!"))
+            .provideOneF(IO.raiseError(error"BOOM!"))
             .compile()
             .traceAsAppLoader
             .attempt
@@ -106,7 +107,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .provide(_ =>
+            .provide(
               List(
                 IO.sleep(300.millis),
                 IO.sleep(50.millis),
@@ -148,7 +149,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .provideOne(_ => IO.sleep(1.second))
+            .provideOne(IO.sleep(1.second))
             .compile()
             .runFullTracedApp
 
@@ -184,7 +185,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .provideF(_ =>
+            .provideF(
               IO(
                 List(
                   IO.sleep(300.millis),
@@ -230,7 +231,7 @@ class AppSuite extends munit.CatsEffectSuite {
               .withConsoleLogger()
               .withPureConfig(TestConfig.defaultTest)
               .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
-              .provideOne(_ => IO.raiseError(error"BOOM!"))
+              .provideOne(IO.raiseError(error"BOOM!"))
               .compile()
               .runFullTracedApp
               .attempt
@@ -259,68 +260,7 @@ class AppSuite extends munit.CatsEffectSuite {
       })
   }
 
-  test("beforeProviding and onFinalizeSeq with varargs work as expected") {
-    EventLogger
-      .create[IO]
-      .flatMap(logger => {
-        implicit val loggerImplicit: EventLogger[IO] = logger
-        for {
-          _ <- App[IO]
-            .withInfo(TestAppInfo.value)
-            .withConsoleLogger()
-            .withPureConfig(TestConfig.defaultTest)
-            .withoutDependencies
-            .beforeProvidingSeq(
-              _ => logger.append(Event.Custom("beforeProviding_1")),
-              _ => logger.append(Event.Custom("beforeProviding_2")),
-              _ => logger.append(Event.Custom("beforeProviding_3"))
-            )
-            .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalizeSeq(
-              _ => logger.append(Event.Custom("onFinalize_1")),
-              _ => logger.append(Event.Custom("onFinalize_2")),
-              _ => logger.append(Event.Custom("onFinalize_3"))
-            )
-            .compile()
-            .runFullTracedApp
-
-          // assert
-          _ <- assertIO(
-            obtained = logger.events,
-            returns = List(
-              // loading resources
-              LabeledResource.appLoader.starting,
-              LabeledResource.appLoader.succeeded,
-
-              // runtime
-              LabeledResource.appRuntime.starting,
-
-              // before providing
-              Event.Custom("beforeProviding_1"),
-              Event.Custom("beforeProviding_2"),
-              Event.Custom("beforeProviding_3"),
-
-              // providing
-              Event.Custom("provide"),
-
-              // on finalize
-              Event.Custom("onFinalize_1"),
-              Event.Custom("onFinalize_2"),
-              Event.Custom("onFinalize_3"),
-
-              // runtime
-              LabeledResource.appRuntime.succeeded,
-
-              // finalizing dependencies
-              LabeledResource.appRuntime.finalized,
-              LabeledResource.appLoader.finalized
-            )
-          )
-        } yield ()
-      })
-  }
-
-  test("beforeProviding and onFinalizeSeq with List work as expected") {
+  test("beforeProviding and onFinalize with List work as expected") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
@@ -331,20 +271,20 @@ class AppSuite extends munit.CatsEffectSuite {
             .withConsoleLogger()
             .withPureConfig(TestConfig.defaultTest)
             .withoutDependencies
-            .beforeProvidingSeq(_ =>
+            .beforeProviding(
               List(
                 logger.append(Event.Custom("beforeProviding_1")),
                 logger.append(Event.Custom("beforeProviding_2")),
                 logger.append(Event.Custom("beforeProviding_3"))
-              )
+              ).sequence_
             )
-            .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalizeSeq(_ =>
+            .provideOne(logger.append(Event.Custom("provide")))
+            .onFinalize(
               List(
                 logger.append(Event.Custom("onFinalize_1")),
                 logger.append(Event.Custom("onFinalize_2")),
                 logger.append(Event.Custom("onFinalize_3"))
-              )
+              ).sequence_
             )
             .compile()
             .runFullTracedApp
@@ -394,9 +334,9 @@ class AppSuite extends munit.CatsEffectSuite {
         .withConsoleLogger()
         .withPureConfig(TestConfig.defaultTest)
         .withoutDependencies
-        .provideOne(r =>
+        .provideOne(
           state.set(
-            r.args.exists(
+            ctx.args.exists(
               _.getVar[Int]("arg1").contains(1),
               _.hasFlags("verbose", "debug")
             )
@@ -428,7 +368,7 @@ class AppSuite extends munit.CatsEffectSuite {
           .withConsoleLogger()
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
-          .provideE(_ =>
+          .provideE(
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
@@ -466,7 +406,7 @@ class AppSuite extends munit.CatsEffectSuite {
           .withConsoleLogger()
           .withPureConfig(TestConfig.defaultTest)
           .withoutDependencies
-          .provideE { _ =>
+          .provideE {
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
