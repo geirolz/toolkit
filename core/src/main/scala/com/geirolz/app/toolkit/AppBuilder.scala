@@ -2,7 +2,8 @@ package com.geirolz.app.toolkit
 
 import cats.effect.{Async, Resource}
 import cats.syntax.all.given
-import cats.{Parallel, Show}
+import cats.{Endo, Parallel, Show}
+import com.geirolz.app.toolkit
 import com.geirolz.app.toolkit.App.*
 import com.geirolz.app.toolkit.AppBuilder.SelectResAndDeps
 import com.geirolz.app.toolkit.failure.FailureHandler
@@ -51,21 +52,24 @@ object AppBuilder:
 
     // ------- MESSAGES -------
     inline def withMessages(messages: AppMessages): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES] =
-      copyWith(messages = messages)
+      updateMessages(_ => messages)
+
+    inline def updateMessages(f: Endo[AppMessages]): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES] =
+      copyWith(messages = f(this.messages))
 
     // ------- LOGGER -------
     inline def withNoopLogger: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, CONFIG, RESOURCES] =
-      withPureLogger(logger = NoopLogger[F])
+      withLogger(logger = NoopLogger[F])
 
     inline def withConsoleLogger(minLevel: Level = Level.Info): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, ConsoleLogger, CONFIG, RESOURCES] =
-      withPureLogger(logger = ConsoleLogger[F](info, minLevel))
+      withLogger(logger = ConsoleLogger[F](info, minLevel))
 
-    inline def withPureLogger[LOGGER_T2[_[_]]: LoggerAdapter](
+    inline def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       logger: LOGGER_T2[F]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
-      withPureLogger[LOGGER_T2](f = (_: INFO) => logger)
+      withLogger[LOGGER_T2](f = (_: INFO) => logger)
 
-    inline def withPureLogger[LOGGER_T2[_[_]]: LoggerAdapter](
+    inline def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       f: INFO => LOGGER_T2[F]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
       withLoggerF(f = appInfo => f(appInfo).pure[F])
@@ -78,9 +82,9 @@ object AppBuilder:
 
     // ------- CONFIG -------
     inline def withoutConfig: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, NoConfig, RESOURCES] =
-      withPureConfig[NoConfig](NoConfig.value)
+      withConfig[NoConfig](NoConfig.value)
 
-    inline def withPureConfig[CONFIG2: Show](
+    inline def withConfig[CONFIG2: Show](
       config: CONFIG2
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
       withConfigF(config.pure[F])
@@ -89,31 +93,31 @@ object AppBuilder:
     inline def withConfigF[CONFIG2: Show](
       configLoader: INFO => F[CONFIG2]
     )(using DummyImplicit): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(i => Resource.eval(configLoader(i)))
+      withConfigResource(i => Resource.eval(configLoader(i)))
 
     // TODO: Add failure
     inline def withConfigF[CONFIG2: Show](
       configLoader: F[CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(Resource.eval(configLoader))
+      withConfigResource(Resource.eval(configLoader))
 
     // TODO: Add failure
-    inline def withConfig[CONFIG2: Show](
+    inline def withConfigResource[CONFIG2: Show](
       configLoader: Resource[F, CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(_ => configLoader)
+      withConfigResource(_ => configLoader)
 
     // TODO: Add failure
-    inline def withConfig[CONFIG2: Show](
+    inline def withConfigResource[CONFIG2: Show](
       configLoader: INFO => Resource[F, CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
       copyWith(configLoader = configLoader(this.info))
 
     // ------- RESOURCES -------
     inline def withoutResources: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, NoResources] =
-      withPureResources[NoResources](NoResources.value)
+      withResources[NoResources](NoResources.value)
 
-    inline def withPureResources[RESOURCES2](
+    inline def withResources[RESOURCES2](
       resources: RESOURCES2
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
       withResourcesF(resources.pure[F])
@@ -122,10 +126,10 @@ object AppBuilder:
     inline def withResourcesF[RESOURCES2](
       resourcesLoader: F[RESOURCES2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
-      withResources(Resource.eval(resourcesLoader))
+      withResourcesResource(Resource.eval(resourcesLoader))
 
     // TODO: Add failure
-    inline def withResources[RESOURCES2](
+    inline def withResourcesResource[RESOURCES2](
       resourcesLoader: Resource[F, RESOURCES2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
       copyWith(resourcesLoader = resourcesLoader)

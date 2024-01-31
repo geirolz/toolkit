@@ -14,7 +14,7 @@ object AppMain extends IOApp.Toolkit:
   val app: App[IO, NoFailure, AppInfo, SelfAwareStructuredLogger, AppConfig, NoResources, AppDependencyServices] =
     App[IO]
       .withInfo(AppInfo.fromBuildInfo)
-      .withPureLogger(Slf4jLogger.getLogger[IO])
+      .withLogger(Slf4jLogger.getLogger[IO])
       .withConfigF(pureconfigLoader[IO, AppConfig])
       .dependsOnE(AppDependencyServices.resource.map(_.asRight))
       .beforeProviding(ctx.logger.info("CUSTOM PRE-RUN"))

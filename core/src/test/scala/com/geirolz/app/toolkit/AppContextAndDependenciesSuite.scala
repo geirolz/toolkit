@@ -11,7 +11,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
     val res = App[IO]
       .withInfo(TestAppInfo.value)
       .withConsoleLogger()
-      .withPureConfig(TestConfig.defaultTest)
+      .withConfig(TestConfig.defaultTest)
       .withoutResources
       .withoutDependencies
       .provideOne(IO.unit)
@@ -24,7 +24,7 @@ class AppContextAndDependenciesSuite extends munit.FunSuite:
     App[IO]
       .withInfo(TestAppInfo.value)
       .withConsoleLogger()
-      .withPureConfig(TestConfig.defaultTest)
+      .withConfig(TestConfig.defaultTest)
       .withoutDependencies
       .provideOne(IO.unit)
       .run()

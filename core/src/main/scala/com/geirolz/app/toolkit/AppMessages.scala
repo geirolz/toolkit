@@ -11,9 +11,9 @@ case class AppMessages(
   appWasStopped: String,
   appAnErrorOccurred: String,
   appAFailureOccurred: String,
-  shuttingDownApp: String,
-  unmapped: Map[String, String] = Map.empty
+  shuttingDownApp: String
 )
+
 object AppMessages:
 
   inline def fromAppInfo[INFO <: SimpleAppInfo[?]](info: INFO)(
@@ -21,7 +21,7 @@ object AppMessages:
   ): AppMessages = f(info)
 
   def default(info: SimpleAppInfo[?]): AppMessages =
-    AppMessages.fromAppInfo(info)(info =>
+    fromAppInfo(info)(info =>
       AppMessages(
         loadingConfig                = "Loading configuration...",
         configSuccessfullyLoaded     = "Configuration successfully loaded.",

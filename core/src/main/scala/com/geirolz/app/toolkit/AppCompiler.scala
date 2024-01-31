@@ -4,6 +4,7 @@ import cats.data.{EitherT, NonEmptyList}
 import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
+import com.geirolz.app.toolkit.AppContext.NoDeps
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
 import com.geirolz.app.toolkit.novalues.NoDependencies
@@ -37,7 +38,7 @@ object AppCompiler:
       (
         for {
 
-          // -------------------- RESOURCES-------------------
+          // -------------------- CONTEXT -------------------
           // logger
           userLogger <- EitherT.right[FAILURE](Resource.eval(app.loggerBuilder))
           toolkitLogger = LoggerAdapter[LOGGER_T].toToolkit[F](userLogger)
@@ -51,29 +52,34 @@ object AppCompiler:
           _         <- toolkitResLogger.info(app.messages.configSuccessfullyLoaded)
           _         <- toolkitResLogger.info(appConfig.show)
 
-          // other resources
-          otherResources <- EitherT.right[FAILURE](app.resourcesLoader)
-
           // group resources
-          given AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] =
-            AppContext.noDependencies(
-              info      = app.info,
-              messages  = app.messages,
-              args      = AppArgs(appArgs),
-              logger    = userLogger,
-              config    = appConfig,
-              resources = otherResources
+          given AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] <-
+            EitherT.right[FAILURE](
+              Resource.eval(
+                app.resourcesLoader.use(otherResources =>
+                  AppContext
+                    .noDependencies(
+                      info      = app.info,
+                      messages  = app.messages,
+                      args      = AppArgs(appArgs),
+                      logger    = userLogger,
+                      config    = appConfig,
+                      resources = otherResources
+                    )
+                    .pure[F]
+                )
+              )
             )
 
           // ------------------- DEPENDENCIES -----------------
           _              <- toolkitResLogger.debug(app.messages.buildingServicesEnv)
           appDepServices <- EitherT(app.depsLoader)
           _              <- toolkitResLogger.info(app.messages.servicesEnvSuccessfullyBuilt)
-          appDependencies = ctx.withDependencies(appDepServices)
+          appContext = ctx.withDependencies(appDepServices)
 
           // --------------------- SERVICES -------------------
           _               <- toolkitResLogger.debug(app.messages.buildingApp)
-          appProvServices <- EitherT(Resource.eval(app.servicesBuilder(appDependencies)))
+          appProvServices <- EitherT(Resource.eval(app.servicesBuilder(appContext)))
           _               <- toolkitResLogger.info(app.messages.appSuccessfullyBuilt)
 
           // --------------------- APP ------------------------
@@ -111,12 +117,12 @@ object AppCompiler:
           } yield maybeReducedFailures.toLeft(())
         } yield {
           toolkitLogger.info(app.messages.startingApp) >>
-          app.beforeProvidingTask(appDependencies) >>
+          app.beforeProvidingTask(appContext) >>
           appLogic
             .onCancel(toolkitLogger.info(app.messages.appWasStopped))
             .onError(e => toolkitLogger.error(e)(app.messages.appAnErrorOccurred))
             .guarantee(
-              app.onFinalizeTask(appDependencies) >> toolkitLogger.info(app.messages.shuttingDownApp)
+              app.onFinalizeTask(appContext) >> toolkitLogger.info(app.messages.shuttingDownApp)
             )
         }
       ).value
