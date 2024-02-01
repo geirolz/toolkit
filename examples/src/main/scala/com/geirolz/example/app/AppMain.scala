@@ -11,14 +11,15 @@ import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object AppMain extends IOApp.Toolkit:
-  val app: App[IO, NoFailure, AppInfo, SelfAwareStructuredLogger, AppConfig, NoResources, AppDependencyServices] =
+  val app: App.Simple[IO, AppInfo, SelfAwareStructuredLogger, AppConfig, AppResources, AppDependencyServices] =
     App[IO]
       .withInfo(AppInfo.fromBuildInfo)
-      .withLogger(Slf4jLogger.getLogger[IO])
+      .withLoggerPure(Slf4jLogger.getLogger[IO])
       .withConfigF(pureconfigLoader[IO, AppConfig])
+      .withResources(AppResources.resource)
       .dependsOnE(AppDependencyServices.resource.map(_.asRight))
       .beforeProviding(ctx.logger.info("CUSTOM PRE-RUN"))
-      .provide(
+      .provideParallel(
         List(
           // HTTP server
           AppHttpServer.resource(ctx.config).useForever,

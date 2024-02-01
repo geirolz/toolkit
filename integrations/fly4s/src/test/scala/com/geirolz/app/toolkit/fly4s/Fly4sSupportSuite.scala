@@ -2,8 +2,7 @@ package com.geirolz.app.toolkit.fly4s
 
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.testing.TestConfig
-import com.geirolz.app.toolkit.{App, AppMessages, SimpleAppInfo}
-import com.geirolz.app.toolkit.App.ctx
+import com.geirolz.app.toolkit.{ctx, App, AppMessages, SimpleAppInfo}
 
 class Fly4sSupportSuite extends munit.CatsEffectSuite:
 
@@ -17,7 +16,7 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite:
           sbtVersion   = "1.8.0"
         )
       )
-      .withConfig(
+      .withConfigPure(
         TestConfig(
           dbUrl      = "jdbc:postgresql://localhost:5432/toolkit",
           dbUser     = Some("postgres"),

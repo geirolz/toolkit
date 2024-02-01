@@ -22,6 +22,9 @@ object Logger:
 
   import cats.implicits.*
 
+  export NoopLogger.apply as noop
+  export ConsoleLogger.apply as console
+
   sealed trait Level:
     def index: Int =
       this match

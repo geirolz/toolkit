@@ -29,10 +29,12 @@ final class AppBuilder[F[+_]: Async: Parallel, FAILURE: ClassTag]:
 
 object AppBuilder:
 
-  inline def apply[F[+_]: Async: Parallel]: AppBuilder[F, NoFailure] =
+  type Simple[F[+_]] = AppBuilder[F, NoFailure]
+
+  inline def simple[F[+_]: Async: Parallel]: AppBuilder.Simple[F] =
     new AppBuilder[F, NoFailure]
 
-  inline def apply[F[+_]: Async: Parallel, FAILURE: ClassTag: NotNoFailure]: AppBuilder[F, FAILURE] =
+  inline def withFailure[F[+_]: Async: Parallel, FAILURE: ClassTag: NotNoFailure]: AppBuilder[F, FAILURE] =
     new AppBuilder[F, FAILURE]
 
   final class SelectResAndDeps[
@@ -59,32 +61,32 @@ object AppBuilder:
 
     // ------- LOGGER -------
     inline def withNoopLogger: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, CONFIG, RESOURCES] =
-      withLogger(logger = NoopLogger[F])
+      withLoggerPure(logger = Logger.noop[F])
 
     inline def withConsoleLogger(minLevel: Level = Level.Info): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, ConsoleLogger, CONFIG, RESOURCES] =
-      withLogger(logger = ConsoleLogger[F](info, minLevel))
+      withLoggerPure(logger = ConsoleLogger[F](info, minLevel))
 
-    inline def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
+    inline def withLoggerPure[LOGGER_T2[_[_]]: LoggerAdapter](
       logger: LOGGER_T2[F]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
-      withLogger[LOGGER_T2](f = (_: INFO) => logger)
+      withLoggerPure[LOGGER_T2](f = (_: INFO) => logger)
 
-    inline def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
+    inline def withLoggerPure[LOGGER_T2[_[_]]: LoggerAdapter](
       f: INFO => LOGGER_T2[F]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
-      withLoggerF(f = appInfo => f(appInfo).pure[F])
+      withLogger(f = appInfo => f(appInfo).pure[F])
 
     // TODO: Add failure
-    inline def withLoggerF[LOGGER_T2[_[_]]: LoggerAdapter](
+    inline def withLogger[LOGGER_T2[_[_]]: LoggerAdapter](
       f: INFO => F[LOGGER_T2[F]]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
       copyWith(loggerBuilder = f(info))
 
     // ------- CONFIG -------
     inline def withoutConfig: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, NoConfig, RESOURCES] =
-      withConfig[NoConfig](NoConfig.value)
+      withConfigPure[NoConfig](NoConfig.value)
 
-    inline def withConfig[CONFIG2: Show](
+    inline def withConfigPure[CONFIG2: Show](
       config: CONFIG2
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
       withConfigF(config.pure[F])
@@ -93,43 +95,34 @@ object AppBuilder:
     inline def withConfigF[CONFIG2: Show](
       configLoader: INFO => F[CONFIG2]
     )(using DummyImplicit): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfigResource(i => Resource.eval(configLoader(i)))
+      withConfig(i => Resource.eval(configLoader(i)))
 
     // TODO: Add failure
     inline def withConfigF[CONFIG2: Show](
       configLoader: F[CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfigResource(Resource.eval(configLoader))
+      withConfig(Resource.eval(configLoader))
 
     // TODO: Add failure
-    inline def withConfigResource[CONFIG2: Show](
+    inline def withConfig[CONFIG2: Show](
       configLoader: Resource[F, CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfigResource(_ => configLoader)
+      withConfig(_ => configLoader)
 
     // TODO: Add failure
-    inline def withConfigResource[CONFIG2: Show](
+    inline def withConfig[CONFIG2: Show](
       configLoader: INFO => Resource[F, CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
       copyWith(configLoader = configLoader(this.info))
 
     // ------- RESOURCES -------
     inline def withoutResources: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, NoResources] =
-      withResources[NoResources](NoResources.value)
+      withResources[NoResources](Resource.pure(NoResources.value))
 
+    // TODO: Add failure
+
+    /** Resources are loaded into context and released before providing the services. */
     inline def withResources[RESOURCES2](
-      resources: RESOURCES2
-    ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
-      withResourcesF(resources.pure[F])
-
-    // TODO: Add failure
-    inline def withResourcesF[RESOURCES2](
-      resourcesLoader: F[RESOURCES2]
-    ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
-      withResourcesResource(Resource.eval(resourcesLoader))
-
-    // TODO: Add failure
-    inline def withResourcesResource[RESOURCES2](
       resourcesLoader: Resource[F, RESOURCES2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
       copyWith(resourcesLoader = resourcesLoader)
@@ -138,6 +131,7 @@ object AppBuilder:
     inline def withoutDependencies: AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, NoDependencies] =
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
+    /** Dependencies are loaded into context and released at he end of the application. */
     inline def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE: ClassTag](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
@@ -146,6 +140,7 @@ object AppBuilder:
         case failure: FAILURE2  => Left(failure)
       })
 
+    /** Dependencies are loaded into context and released at he end of the application. */
     def dependsOnE[DEPENDENCIES, FAILURE2 <: FAILURE](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 \/ DEPENDENCIES]
     )(using DummyImplicit): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
@@ -216,43 +211,43 @@ object AppBuilder:
     inline def provideOneE[FAILURE2 <: FAILURE](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideE[FAILURE2](List(f))
+      provideParallelE[FAILURE2](List(f))
 
     inline def provideOneF[FAILURE2 <: FAILURE](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ F[Unit]]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideAttemptFE[FAILURE2](f.map(_.map(v => List(v.map(_.asRight[FAILURE2])))))
+      provideParallelAttemptFE[FAILURE2](f.map(_.map(v => List(v.map(_.asRight[FAILURE2])))))
 
     // provide
-    def provide[FAILURE2 <: FAILURE: ClassTag](
+    def provideParallel[FAILURE2 <: FAILURE: ClassTag](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> List[F[FAILURE2 | Unit]]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideE(f.map(_.map {
+      provideParallelE(f.map(_.map {
         case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
       }))
 
-    inline def provideE[FAILURE2 <: FAILURE](
+    inline def provideParallelE[FAILURE2 <: FAILURE](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> List[F[FAILURE2 \/ Unit]]
     )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideFE[FAILURE2](f.pure[F])
+      provideParallelFE[FAILURE2](f.pure[F])
 
     // provideF
-    def provideF[FAILURE2 <: FAILURE: ClassTag](
+    def provideParallelF[FAILURE2 <: FAILURE: ClassTag](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[List[F[FAILURE2 | Unit]]]
     )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideFE(f.map(_.map(_.map {
+      provideParallelFE(f.map(_.map(_.map {
         case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
       })))
 
-    inline def provideFE[FAILURE2 <: FAILURE](
+    inline def provideParallelFE[FAILURE2 <: FAILURE](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[List[F[FAILURE2 \/ Unit]]]
     )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
-      provideAttemptFE(f.map(Right(_)))
+      provideParallelAttemptFE(f.map(Right(_)))
 
     // TODO Missing the union version
-    def provideAttemptFE[FAILURE2 <: FAILURE](
+    def provideParallelAttemptFE[FAILURE2 <: FAILURE](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 \/ List[F[FAILURE2 \/ Unit]]]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       // TODO Allow custom AppMessages

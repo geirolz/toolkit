@@ -93,11 +93,14 @@ class App[
 
 object App extends AppFailureSyntax:
 
-  inline def apply[F[+_]: Async: Parallel]: AppBuilder[F, NoFailure] =
-    AppBuilder[F]
+  type Simple[F[+_], INFO <: SimpleAppInfo[?], LOGGER_T[_[_]], CONFIG, RESOURCES, DEPENDENCIES] =
+    App[F, NoFailure, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES]
+
+  inline def apply[F[+_]: Async: Parallel]: AppBuilder.Simple[F] =
+    AppBuilder.simple[F]
 
   inline def apply[F[+_]: Async: Parallel, FAILURE: ClassTag]: AppBuilder[F, FAILURE] =
-    AppBuilder[F, FAILURE]
+    AppBuilder.withFailure[F, FAILURE]
 
 sealed transparent trait AppFailureSyntax:
 
