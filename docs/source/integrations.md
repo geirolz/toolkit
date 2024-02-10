@@ -172,7 +172,7 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withPureConfig(
+  .withConfigPure(
     TestConfig(
       dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
       dbUser = Some("postgres"),

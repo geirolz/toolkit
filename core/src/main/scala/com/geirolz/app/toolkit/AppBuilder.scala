@@ -120,7 +120,6 @@ object AppBuilder:
       withResources[NoResources](Resource.pure(NoResources.value))
 
     // TODO: Add failure
-
     /** Resources are loaded into context and released before providing the services. */
     inline def withResources[RESOURCES2](
       resourcesLoader: Resource[F, RESOURCES2]
@@ -131,7 +130,7 @@ object AppBuilder:
     inline def withoutDependencies: AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, NoDependencies] =
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
-    /** Dependencies are loaded into context and released at he end of the application. */
+    /** Dependencies are loaded into context and released at the end of the application. */
     inline def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE: ClassTag](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
@@ -140,7 +139,7 @@ object AppBuilder:
         case failure: FAILURE2  => Left(failure)
       })
 
-    /** Dependencies are loaded into context and released at he end of the application. */
+    /** Dependencies are loaded into context and released at the end of the application. */
     def dependsOnE[DEPENDENCIES, FAILURE2 <: FAILURE](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 \/ DEPENDENCIES]
     )(using DummyImplicit): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
