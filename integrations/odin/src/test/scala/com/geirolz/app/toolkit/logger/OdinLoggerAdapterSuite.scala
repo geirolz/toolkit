@@ -3,7 +3,7 @@ package com.geirolz.app.toolkit.logger
 import cats.effect.IO
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.error.*
-import io.odin.Logger
+import io.odin.Logger as OdinLogger
 
 class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
 
@@ -18,19 +18,20 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
             sbtVersion   = "1.8.0"
           )
         )
-        .withLogger(Logger.noop[IO])
+        .withLoggerPure(OdinLogger.noop[IO])
         .withoutDependencies
-        .provideOne(_ => IO.unit)
-        .run_
+        .provideOne(IO.unit)
+        .run()
+        .void
     )
   }
 
   test("Implicit conversion with Logger") {
-    val adapterLogger: LoggerAdapter[Logger] = implicitly[LoggerAdapter[Logger]]
-    val tkLogger                             = adapterLogger.toToolkit(Logger.noop[IO])
+    val adapterLogger: LoggerAdapter[OdinLogger] = summon[LoggerAdapter[OdinLogger]]
+    val tkLogger                                 = adapterLogger.toToolkit(OdinLogger.noop[IO])
 
     assertIO_(
-      tkLogger.info("msg") >> tkLogger.error(ex"BOOM!")("msg")
+      tkLogger.info("msg") >> tkLogger.error(error"BOOM!")("msg")
     )
   }
 }

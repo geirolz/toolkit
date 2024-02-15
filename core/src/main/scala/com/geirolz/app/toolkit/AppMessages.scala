@@ -9,27 +9,30 @@ case class AppMessages(
   appSuccessfullyBuilt: String,
   startingApp: String,
   appWasStopped: String,
-  appEnErrorOccurred: String,
+  appAnErrorOccurred: String,
+  appAFailureOccurred: String,
   shuttingDownApp: String
 )
-object AppMessages {
 
-  def fromAppInfo[APP_INFO <: SimpleAppInfo[?]](info: APP_INFO)(
-    f: APP_INFO => AppMessages
+object AppMessages:
+
+  inline def fromAppInfo[INFO <: SimpleAppInfo[?]](info: INFO)(
+    f: INFO => AppMessages
   ): AppMessages = f(info)
 
-  def default(info: SimpleAppInfo[?]): AppMessages = AppMessages.fromAppInfo(info)(info =>
-    AppMessages(
-      loadingConfig                = "Loading configuration...",
-      configSuccessfullyLoaded     = "Configuration successfully loaded.",
-      buildingServicesEnv          = "Building services environment...",
-      servicesEnvSuccessfullyBuilt = "Services environment successfully built.",
-      buildingApp                  = "Building App...",
-      appSuccessfullyBuilt         = "App successfully built.",
-      startingApp                  = s"Starting ${info.buildRefName}...",
-      appWasStopped                = s"${info.name} was stopped.",
-      appEnErrorOccurred           = s"${info.name} was stopped due an error.",
-      shuttingDownApp              = s"Shutting down ${info.name}..."
+  def default(info: SimpleAppInfo[?]): AppMessages =
+    fromAppInfo(info)(info =>
+      AppMessages(
+        loadingConfig                = "Loading configuration...",
+        configSuccessfullyLoaded     = "Configuration successfully loaded.",
+        buildingServicesEnv          = "Building services environment...",
+        servicesEnvSuccessfullyBuilt = "Services environment successfully built.",
+        buildingApp                  = "Building App...",
+        appSuccessfullyBuilt         = "App successfully built.",
+        startingApp                  = s"Starting ${info.buildRefName}...",
+        appWasStopped                = s"${info.name} was stopped.",
+        appAnErrorOccurred           = s"Error occurred.",
+        appAFailureOccurred          = s"Failure occurred.",
+        shuttingDownApp              = s"Shutting down ${info.name}..."
+      )
     )
-  )
-}

@@ -2,9 +2,10 @@ package com.geirolz.app.toolkit
 
 import cats.data.NonEmptyList
 import cats.effect.{IO, Ref, Resource}
-import com.geirolz.app.toolkit.FailureHandler.OnFailureBehaviour
-import com.geirolz.app.toolkit.logger.ToolkitLogger
-import com.geirolz.app.toolkit.testing.{LabeledResource, *}
+import com.geirolz.app.toolkit.*
+import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
+import com.geirolz.app.toolkit.novalues.NoFailure
+import com.geirolz.app.toolkit.testing.*
 
 import scala.concurrent.duration.DurationInt
 
@@ -12,6 +13,55 @@ class AppSuite extends munit.CatsEffectSuite {
 
   import EventLogger.*
   import com.geirolz.app.toolkit.error.*
+  import cats.syntax.all.*
+
+  test("App releases resources once app compiled") {
+    EventLogger
+      .create[IO]
+      .flatMap(logger => {
+        implicit val loggerImplicit: EventLogger[IO] = logger
+        for {
+          counter: Ref[IO, Int] <- IO.ref(0)
+          _ <- App[IO]
+            .withInfo(TestAppInfo.value)
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
+            .withResources(Resource.unit.trace(LabeledResource.appResources))
+            .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
+            .provideOne(ctx.dependencies.set(1))
+            .compile()
+            .runFullTracedApp
+
+          // assert
+          _ <- assertIO(
+            obtained = logger.events,
+            returns = List(
+              // loading resources and dependencies
+              LabeledResource.appLoader.starting,
+              LabeledResource.appResources.starting,
+              LabeledResource.appResources.succeeded,
+              LabeledResource.appResources.finalized,
+              LabeledResource.appDependencies.starting,
+              LabeledResource.appDependencies.succeeded,
+              LabeledResource.appLoader.succeeded,
+
+              // runtime
+              LabeledResource.appRuntime.starting,
+              LabeledResource.appRuntime.succeeded,
+
+              // finalizing dependencies
+              LabeledResource.appRuntime.finalized,
+              LabeledResource.appDependencies.finalized,
+              LabeledResource.appLoader.finalized
+            )
+          )
+          _ <- assertIO(
+            obtained = counter.get,
+            returns  = 1
+          )
+        } yield ()
+      })
+  }
 
   test("Loader and App work as expected with dependsOn and logic fails") {
     EventLogger
@@ -22,10 +72,10 @@ class AppSuite extends munit.CatsEffectSuite {
           counter: Ref[IO, Int] <- IO.ref(0)
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
-            .dependsOn(_ => Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
-            .provideOne(_.dependencies.set(1))
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
+            .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
+            .provideOne(ctx.dependencies.set(1))
             .compile()
             .runFullTracedApp
 
@@ -65,10 +115,10 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
-            .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
-            .provideOneF(_ => IO.raiseError(ex"BOOM!"))
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
+            .dependsOn(Resource.unit[IO].trace(LabeledResource.appDependencies))
+            .provideOneF(IO.raiseError(error"BOOM!"))
             .compile()
             .traceAsAppLoader
             .attempt
@@ -101,10 +151,10 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
             .withoutDependencies
-            .provide(_ =>
+            .provideParallel(
               List(
                 IO.sleep(300.millis),
                 IO.sleep(50.millis),
@@ -143,10 +193,10 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
             .withoutDependencies
-            .provideOne(_ => IO.sleep(1.second))
+            .provideOne(IO.sleep(1.second))
             .compile()
             .runFullTracedApp
 
@@ -179,10 +229,10 @@ class AppSuite extends munit.CatsEffectSuite {
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
             .withoutDependencies
-            .provideF(_ =>
+            .provideParallelF(
               IO(
                 List(
                   IO.sleep(300.millis),
@@ -225,10 +275,10 @@ class AppSuite extends munit.CatsEffectSuite {
           _ <-
             App[IO]
               .withInfo(TestAppInfo.value)
-              .withLogger(ToolkitLogger.console[IO](_))
-              .withConfig(TestConfig.defaultTest)
-              .dependsOn(_ => Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
-              .provideOne(_ => IO.raiseError(ex"BOOM!"))
+              .withConsoleLogger()
+              .withConfigPure(TestConfig.defaultTest)
+              .dependsOn(Resource.pure[IO, Unit](()).trace(LabeledResource.appDependencies))
+              .provideOne(IO.raiseError(error"BOOM!"))
               .compile()
               .runFullTracedApp
               .attempt
@@ -257,92 +307,31 @@ class AppSuite extends munit.CatsEffectSuite {
       })
   }
 
-  test("beforeProviding and onFinalizeSeq with varargs work as expected") {
+  test("beforeProviding and onFinalize with List work as expected") {
     EventLogger
       .create[IO]
       .flatMap(logger => {
-        implicit val loggerImplicit: EventLogger[IO] = logger
+        given EventLogger[IO] = logger
         for {
           _ <- App[IO]
             .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
+            .withConsoleLogger()
+            .withConfigPure(TestConfig.defaultTest)
             .withoutDependencies
-            .beforeProvidingSeq(
-              _ => logger.append(Event.Custom("beforeProviding_1")),
-              _ => logger.append(Event.Custom("beforeProviding_2")),
-              _ => logger.append(Event.Custom("beforeProviding_3"))
-            )
-            .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalizeSeq(
-              _ => logger.append(Event.Custom("onFinalize_1")),
-              _ => logger.append(Event.Custom("onFinalize_2")),
-              _ => logger.append(Event.Custom("onFinalize_3"))
-            )
-            .compile()
-            .runFullTracedApp
-
-          // assert
-          _ <- assertIO(
-            obtained = logger.events,
-            returns = List(
-              // loading resources
-              LabeledResource.appLoader.starting,
-              LabeledResource.appLoader.succeeded,
-
-              // runtime
-              LabeledResource.appRuntime.starting,
-
-              // before providing
-              Event.Custom("beforeProviding_1"),
-              Event.Custom("beforeProviding_2"),
-              Event.Custom("beforeProviding_3"),
-
-              // providing
-              Event.Custom("provide"),
-
-              // on finalize
-              Event.Custom("onFinalize_1"),
-              Event.Custom("onFinalize_2"),
-              Event.Custom("onFinalize_3"),
-
-              // runtime
-              LabeledResource.appRuntime.succeeded,
-
-              // finalizing dependencies
-              LabeledResource.appRuntime.finalized,
-              LabeledResource.appLoader.finalized
-            )
-          )
-        } yield ()
-      })
-  }
-
-  test("beforeProviding and onFinalizeSeq with List work as expected") {
-    EventLogger
-      .create[IO]
-      .flatMap(logger => {
-        implicit val loggerImplicit: EventLogger[IO] = logger
-        for {
-          _ <- App[IO]
-            .withInfo(TestAppInfo.value)
-            .withLogger(ToolkitLogger.console[IO](_))
-            .withConfig(TestConfig.defaultTest)
-            .withoutDependencies
-            .beforeProvidingSeq(_ =>
+            .beforeProviding(
               List(
                 logger.append(Event.Custom("beforeProviding_1")),
                 logger.append(Event.Custom("beforeProviding_2")),
                 logger.append(Event.Custom("beforeProviding_3"))
-              )
+              ).sequence_
             )
-            .provideOne(_ => logger.append(Event.Custom("provide")))
-            .onFinalizeSeq(_ =>
+            .provideOne(logger.append(Event.Custom("provide")))
+            .onFinalize(
               List(
                 logger.append(Event.Custom("onFinalize_1")),
                 logger.append(Event.Custom("onFinalize_2")),
                 logger.append(Event.Custom("onFinalize_3"))
-              )
+              ).sequence_
             )
             .compile()
             .runFullTracedApp
@@ -389,12 +378,12 @@ class AppSuite extends munit.CatsEffectSuite {
       state <- IO.ref[Boolean](false)
       _ <- App[IO]
         .withInfo(TestAppInfo.value)
-        .withLogger(ToolkitLogger.console[IO](_))
-        .withConfig(TestConfig.defaultTest)
+        .withConsoleLogger()
+        .withConfigPure(TestConfig.defaultTest)
         .withoutDependencies
-        .provideOne(r =>
+        .provideOne(
           state.set(
-            r.args.exists(
+            ctx.args.exists(
               _.getVar[Int]("arg1").contains(1),
               _.hasFlags("verbose", "debug")
             )
@@ -418,34 +407,30 @@ class AppSuite extends munit.CatsEffectSuite {
       case class Boom() extends AppError
     }
 
-    val test: IO[(Boolean, NonEmptyList[AppError] \/ Unit)] =
+    val test =
       for {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
           .withInfo(TestAppInfo.value)
-          .withLogger(ToolkitLogger.console[IO](_))
-          .withConfig(TestConfig.defaultTest)
+          .withConsoleLogger()
+          .withConfigPure(TestConfig.defaultTest)
           .withoutDependencies
-          .provide(_ =>
+          .provideParallelE(
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
               IO.sleep(5.seconds) >> state.set(true).as(Right(()))
             )
           )
-          .onFailure_(res =>
-            res.useTupledAll[IO[Unit]] { case (_, _, logger, _, failures) =>
-              logger.error(failures.toString)
-            }
-          )
+          .onFailure_(failures => ctx.logger.error(failures.toString))
           .runRaw()
         finalState <- state.get
       } yield (finalState, app)
 
     assertIO_(
-      test.map { case (state, appResult) =>
+      test.map { case (finalState, appResult) =>
         assertEquals(
-          obtained = state,
+          obtained = finalState,
           expected = false
         )
         assert(cond = appResult.isLeft)
@@ -465,19 +450,17 @@ class AppSuite extends munit.CatsEffectSuite {
         state <- IO.ref[Boolean](false)
         app <- App[IO, AppError]
           .withInfo(TestAppInfo.value)
-          .withLogger(ToolkitLogger.console[IO](_))
-          .withConfig(TestConfig.defaultTest)
+          .withConsoleLogger()
+          .withConfigPure(TestConfig.defaultTest)
           .withoutDependencies
-          .provide { _ =>
+          .provideParallelE {
             List(
               IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> IO(Left(AppError.Boom())),
               IO.sleep(1.seconds) >> state.set(true).as(Right(()))
             )
           }
-          .onFailure(_.useTupledAll { case (_, _, logger: ToolkitLogger[IO], _, failure: AppError) =>
-            logger.error(failure.toString).as(OnFailureBehaviour.DoNothing)
-          })
+          .onFailure((failure: AppError) => ctx.logger.error(failure.toString).as(OnFailureBehaviour.DoNothing))
           .runRaw()
         finalState <- state.get
       } yield (finalState, app)

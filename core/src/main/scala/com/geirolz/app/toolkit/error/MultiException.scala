@@ -10,7 +10,7 @@ import scala.util.control.NoStackTrace
 final class MultiException(override val errors: NonEmptyList[Throwable])
     extends Throwable(MultiException.buildThrowMessage(errors))
     with NoStackTrace
-    with MultiError[Throwable] {
+    with MultiError[Throwable]:
 
   override type Self = MultiException
 
@@ -23,13 +23,12 @@ final class MultiException(override val errors: NonEmptyList[Throwable])
   override def printStackTrace(s: PrintStream): Unit =
     printStackTrace(new PrintWriter(s))
 
-  override def printStackTrace(s: PrintWriter): Unit = {
+  override def printStackTrace(s: PrintWriter): Unit =
     errors.toList.foreach(e => {
       e.printStackTrace(s)
       s.print(s"\n${(0 to 70).map(_ => "#").mkString("")}\n")
     })
     s.close()
-  }
 
   override protected def copyWith(errors: NonEmptyList[Throwable]): MultiException =
     new MultiException(errors)
@@ -42,20 +41,18 @@ final class MultiException(override val errors: NonEmptyList[Throwable])
   @Deprecated
   override def setStackTrace(stackTrace: Array[StackTraceElement]): Unit =
     throw new UnsupportedOperationException
-}
 
-object MultiException {
+object MultiException:
 
-  private def buildThrowMessage(errors: NonEmptyList[Throwable]): String = {
+  private def buildThrowMessage(errors: NonEmptyList[Throwable]): String =
     s"""
        |Multiple [${errors.size}] exceptions.
        |${errors.toList
         .map(ex => s" -${ex.getMessage} [${ex.getStackTrace.headOption.map(_.toString).getOrElse("")}]")
         .mkString("\n")}""".stripMargin
-  }
 
   def fromFoldable[F[_]: Foldable](errors: F[Throwable]): Option[MultiException] =
-    NonEmptyList.fromFoldable(errors).map(fromNel(_))
+    NonEmptyList.fromFoldable(errors).map(fromNel)
 
   def fromNel(errors: NonEmptyList[Throwable]): MultiException =
     new MultiException(errors)
@@ -63,8 +60,7 @@ object MultiException {
   def of(e1: Throwable, eN: Throwable*): MultiException =
     MultiException.fromNel(NonEmptyList.of(e1, eN*))
 
-  implicit val semigroup: Semigroup[MultiException] =
+  given Semigroup[MultiException] =
     (x: MultiException, y: MultiException) => x + y
 
-  implicit val show: Show[MultiException] = Show.fromToString
-}
+  given Show[MultiException] = Show.fromToString

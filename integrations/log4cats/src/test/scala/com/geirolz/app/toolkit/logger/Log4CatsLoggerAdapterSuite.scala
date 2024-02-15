@@ -19,10 +19,11 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
             sbtVersion   = "1.8.0"
           )
         )
-        .withLogger(NoOpLogger[IO])
+        .withLoggerPure(NoOpLogger[IO])
         .withoutDependencies
-        .provideOne(_ => IO.unit)
-        .run_
+        .provideOne(IO.unit)
+        .run()
+        .void
     )
   }
 
@@ -31,7 +32,7 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
     val tkLogger                             = adapterLogger.toToolkit(NoOpLogger[IO])
 
     assertIO_(
-      tkLogger.info("msg") >> tkLogger.error(ex"BOOM!")("msg")
+      tkLogger.info("msg") >> tkLogger.error(error"BOOM!")("msg")
     )
   }
 }

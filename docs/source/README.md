@@ -35,6 +35,8 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
 
 ## Features
 
+> Resources --build--> Dependencies --> [Finalize Resources] --build--> App Logic -> [Finalize Dependencies]
+
 - **Resource Management:** Toolkit simplifies the management of application resources, such as configuration
   settings, logging, and custom resources. By abstracting away the resource handling, it reduces boilerplate code and
   provides a clean and concise syntax for managing resources.
@@ -47,10 +49,8 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
   about, and maintain.
 
 ## Notes
-
-- All dependencies and resources are released at the end of the app execution as defined as `Resource[F, *]`.
-- If you need to release a resource before the end of the app execution you should use `Resource.use` or equivalent to
-  build what you need as dependency.
+- Resources are released before providing the app execution.
+- Dependencies are released at the end of the app execution as defined as `Resource[F, *]`.
 - If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
 
 ## Getting Started
@@ -70,31 +70,27 @@ libraryDependencies += "com.github.geirolz" %% "toolkit" % "@VERSION@"
 ```scala mdoc:silent
 import cats.Show
 import cats.effect.{Resource, IO}
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.*
+import com.geirolz.app.toolkit.logger.ConsoleLogger
 import com.geirolz.app.toolkit.novalues.NoResources
 
 // Define config
 case class Config(host: String, port: Int)
-
-object Config {
-  implicit val show: Show[Config] = Show.fromToString
-}
+object Config:
+  given Show[Config] = Show.fromToString
 
 // Define service dependencies
 case class AppDependencyServices(kafkaConsumer: KafkaConsumer[IO])
 
-object AppDependencyServices {
-  def resource(res: App.Resources[SimpleAppInfo[String], ToolkitLogger[IO], Config, NoResources]): Resource[IO, AppDependencyServices] =
-    Resource.pure(AppDependencyServices(KafkaConsumer.fake))
-}
+object AppDependencyServices:
+    def resource(using AppContext.NoDepsAndRes[SimpleAppInfo[String], ConsoleLogger[IO], Config]): Resource[IO, AppDependencyServices] =
+      Resource.pure(AppDependencyServices(KafkaConsumer.fake))
 
 // A stubbed kafka consumer
-trait KafkaConsumer[F[_]] {
+trait KafkaConsumer[F[_]]:
   def consumeFrom(name: String): fs2.Stream[F, KafkaConsumer.KafkaRecord]
-}
 
-object KafkaConsumer {
+object KafkaConsumer:
 
   import scala.concurrent.duration.DurationInt
 
@@ -105,7 +101,6 @@ object KafkaConsumer {
       fs2.Stream
         .eval(IO.randomUUID.map(t => KafkaRecord(t.toString)).flatTap(_ => IO.sleep(5.seconds)))
         .repeat
-}
 ```
 
 3. **Build Your Application:** Build your application using the Toolkit DSL and execute it. Toolkit
@@ -113,35 +108,34 @@ object KafkaConsumer {
 
 ```scala mdoc:silent
 import cats.effect.{ExitCode, IO, IOApp}
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
-import com.geirolz.app.toolkit.logger.ToolkitLogger
+import com.geirolz.app.toolkit.*
+import com.geirolz.app.toolkit.logger.Logger
 
-object Main extends IOApp {
-  override def run(args: List[String]): IO[ExitCode] =
-    App[IO]
-      .withInfo(
-        SimpleAppInfo.string(
-          name = "toolkit",
-          version = "0.0.1",
-          scalaVersion = "2.13.10",
-          sbtVersion = "1.8.0"
+object Main extends IOApp:
+    override def run(args: List[String]): IO[ExitCode] =
+      App[IO]
+        .withInfo(
+          SimpleAppInfo.string(
+            name = "toolkit",
+            version = "0.0.1",
+            scalaVersion = "2.13.10",
+            sbtVersion = "1.8.0"
+          )
         )
-      )
-      .withLogger(ToolkitLogger.console[IO](_))
-      .withConfigLoader(_ => IO.pure(Config("localhost", 8080)))
-      .dependsOn(AppDependencyServices.resource(_))
-      .beforeProviding(_.logger.info("CUSTOM PRE-PROVIDING"))
-      .provideOne(deps =>
-        // Kafka consumer
-        deps.dependencies.kafkaConsumer
-          .consumeFrom("test-topic")
-          .evalTap(record => deps.logger.info(s"Received record $record"))
-          .compile
-          .drain
-      )
-      .onFinalize(_.logger.info("CUSTOM END"))
-      .run(args)
-}
+        .withConsoleLogger()
+        .withConfigF(IO.pure(Config("localhost", 8080)))
+        .dependsOn(AppDependencyServices.resource)
+        .beforeProviding(ctx.logger.info("CUSTOM PRE-PROVIDING"))
+        .provideOne(
+          // Kafka consumer
+          ctx.dependencies.kafkaConsumer
+            .consumeFrom("test-topic")
+            .evalTap(record => ctx.logger.info(s"Received record $record"))
+            .compile
+            .drain
+        )
+        .onFinalize(ctx.logger.info("CUSTOM END"))
+        .run(args)
 ```
 
 Check a full example [here](https://github.com/geirolz/toolkit/tree/main/examples)

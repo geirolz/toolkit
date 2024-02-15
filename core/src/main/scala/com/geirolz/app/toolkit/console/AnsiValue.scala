@@ -24,31 +24,42 @@ import com.geirolz.app.toolkit.console.AnsiValue.AnsiText
   *      .withBackground(AnsiValue.B.BLACK)
   *      .withStyle(AnsiValue.S.BLINK)
   * }}}
+  *
+  * <table> <tr><th style="padding:4px 15px;text-decoration:underline">Foreground</th><th style="width:50%"></th><th style="padding:4px
+  * 15px;text-decoration:underline">Background</th></tr> <tr><td style="padding:4px 15px">BLACK </td><td style="background-color:#000"></td><td
+  * style="padding:4px 15px">BLACK_B </td></tr> <tr><td style="padding:4px 15px">RED </td><td style="background-color:#f00"></td><td
+  * style="padding:4px 15px">RED_B </td></tr> <tr><td style="padding:4px 15px">GREEN </td><td style="background-color:#0f0"></td><td
+  * style="padding:4px 15px">GREEN_B </td></tr> <tr><td style="padding:4px 15px">YELLOW </td><td style="background-color:#ff0"></td><td
+  * style="padding:4px 15px">YELLOW_B </td></tr> <tr><td style="padding:4px 15px">BLUE </td><td style="background-color:#00f"></td><td
+  * style="padding:4px 15px">BLUE_B </td></tr> <tr><td style="padding:4px 15px">MAGENTA</td><td style="background-color:#f0f"></td><td
+  * style="padding:4px 15px">MAGENTA_B</td></tr> <tr><td style="padding:4px 15px">CYAN </td><td style="background-color:#0ff"></td><td
+  * style="padding:4px 15px">CYAN_B </td></tr> <tr><td style="padding:4px 15px">WHITE </td><td style="background-color:#fff"></td><td
+  * style="padding:4px 15px">WHITE_B </td></tr> </table>
   */
-sealed trait AnsiValue {
+sealed trait AnsiValue:
 
   val value: String
 
-  def apply[T](msg: T)(implicit s: Show[T] = Show.fromToString[T]): AnsiText =
+  def apply[T](msg: T)(using s: Show[T] = Show.fromToString[T]): AnsiText =
     show"$value$msg${AnsiValue.S.RESET}"
 
-  lazy val foreground: AnsiValue.F = this match {
-    case AnsiValue.Rich(fg, _, _) => fg
-    case bg: AnsiValue.F          => bg
-    case _                        => AnsiValue.F.NONE
-  }
+  lazy val foreground: AnsiValue.F =
+    this match
+      case AnsiValue.Rich(fg, _, _) => fg
+      case bg: AnsiValue.F          => bg
+      case _                        => AnsiValue.F.NONE
 
-  lazy val background: AnsiValue.B = this match {
-    case AnsiValue.Rich(_, bg, _) => bg
-    case bg: AnsiValue.B          => bg
-    case _                        => AnsiValue.B.NONE
-  }
+  lazy val background: AnsiValue.B =
+    this match
+      case AnsiValue.Rich(_, bg, _) => bg
+      case bg: AnsiValue.B          => bg
+      case _                        => AnsiValue.B.NONE
 
-  lazy val style: AnsiValue.S = this match {
-    case AnsiValue.Rich(_, _, s) => s
-    case s: AnsiValue.S          => s
-    case _                       => AnsiValue.S.NONE
-  }
+  lazy val style: AnsiValue.S =
+    this match
+      case AnsiValue.Rich(_, _, s) => s
+      case s: AnsiValue.S          => s
+      case _                       => AnsiValue.S.NONE
 
   def withForeground(fg: AnsiValue.F): AnsiValue =
     withValue(fg)
@@ -69,7 +80,7 @@ sealed trait AnsiValue {
     withStyle(AnsiValue.S.NONE)
 
   def withValue(value: AnsiValue): AnsiValue =
-    (this, value) match {
+    (this, value) match
       case (_: AnsiValue.F, b: AnsiValue.F)       => b
       case (_: AnsiValue.B, b: AnsiValue.B)       => b
       case (_: AnsiValue.S, b: AnsiValue.S)       => b
@@ -77,11 +88,10 @@ sealed trait AnsiValue {
       case (a: AnsiValue.Rich, b: AnsiValue)      => a.withEvalValue(b)
       case (a, b: AnsiValue.Rich)                 => b.withEvalValue(a)
       case (a, b)                                 => AnsiValue.Rich().withEvalValue(a).withEvalValue(b)
-    }
 
   override def toString: String = value
-}
-object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
+
+object AnsiValue extends AnsiValueInstances with AnsiValueSyntax:
 
   type AnsiText = String
 
@@ -99,29 +109,26 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
     fg: AnsiValue.F,
     bg: AnsiValue.B,
     s: AnsiValue.S
-  ) extends AnsiValue {
+  ) extends AnsiValue:
 
-    private[AnsiValue] def withEvalValue(value: AnsiValue): AnsiValue.Rich = {
-      value match {
+    private[AnsiValue] def withEvalValue(value: AnsiValue): AnsiValue.Rich =
+      value match
         case value: AnsiValue.Rich => value
         case value: AnsiValue.F    => copy(fg = value)
         case value: AnsiValue.B    => copy(bg = value)
         case value: AnsiValue.S    => copy(s = value)
-      }
-    }
 
     override val value: AnsiText = List(s, bg, fg).mkString
-  }
-  object Rich {
+
+  object Rich:
     private[AnsiValue] def apply(
       foreground: AnsiValue.F = AnsiValue.F.NONE,
       background: AnsiValue.B = AnsiValue.B.NONE,
       style: AnsiValue.S      = AnsiValue.S.NONE
     ): AnsiValue.Rich = new Rich(foreground, background, style)
-  }
 
   case class F(value: String) extends AnsiValue
-  object F {
+  object F:
 
     private[F] def apply(value: String): AnsiValue.F =
       new F(value)
@@ -139,6 +146,12 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       * @group color-red
       */
     final val RED: AnsiValue.F = F(scala.Console.RED)
+
+    /** Foreground color for ANSI Bright Red
+      *
+      * @group color-bright-red
+      */
+    final val BRIGHT_RED: AnsiValue.F = F("\u001b[91m")
 
     /** Foreground color for ANSI green
       *
@@ -175,10 +188,9 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       * @group color-white
       */
     final val WHITE: AnsiValue.F = F(scala.Console.WHITE)
-  }
 
   case class B(value: String) extends AnsiValue
-  object B {
+  object B:
 
     private[B] def apply(value: String): AnsiValue.B =
       new B(value)
@@ -196,6 +208,12 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       * @group color-red
       */
     final val RED = B(scala.Console.RED_B)
+
+    /** Background color for ANSI Bright Red
+      *
+      * @group color-bright-red
+      */
+    final val BRIGHT_RED: AnsiValue.B = B("\u001b[101m")
 
     /** Background color for ANSI green
       *
@@ -232,10 +250,9 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       * @group color-white
       */
     final val WHITE: AnsiValue.B = B(scala.Console.WHITE)
-  }
 
   case class S(value: String) extends AnsiValue
-  object S {
+  object S:
 
     private[S] def apply(value: String): AnsiValue.S = new S(value)
 
@@ -276,31 +293,25 @@ object AnsiValue extends AnsiValueInstances with AnsiValueSyntax {
       * @group style-control
       */
     final val INVISIBLE: AnsiValue.S = S(scala.Console.INVISIBLE)
-  }
-}
-private[toolkit] sealed trait AnsiValueInstances {
+end AnsiValue
 
-  implicit val monoid: Monoid[AnsiValue] = new Monoid[AnsiValue] {
+private[toolkit] sealed transparent trait AnsiValueInstances:
+
+  given Monoid[AnsiValue] = new Monoid[AnsiValue]:
     override def empty: AnsiValue                               = AnsiValue.empty
     override def combine(x: AnsiValue, y: AnsiValue): AnsiValue = x.withValue(y)
-  }
 
-  implicit val show: Show[AnsiValue] = Show.fromToString
-}
-private[toolkit] sealed trait AnsiValueSyntax {
+  given Show[AnsiValue] = Show.fromToString
 
-  implicit class AnsiTextOps(t: AnsiText) {
+private[toolkit] sealed transparent trait AnsiValueSyntax:
 
-    def print[F[_]: Console]: F[Unit] = Console[F].print(t)
-
+  extension (t: AnsiText)
+    def print[F[_]: Console]: F[Unit]   = Console[F].print(t)
     def println[F[_]: Console]: F[Unit] = Console[F].println(t)
-
-    def error[F[_]: Console]: F[Unit] = Console[F].error(t)
-
+    def error[F[_]: Console]: F[Unit]   = Console[F].error(t)
     def errorln[F[_]: Console]: F[Unit] = Console[F].errorln(t)
-  }
 
-  implicit class AnyShowableOps[T](t: T)(implicit s: Show[T] = Show.fromToString[T]) {
+  extension [T](t: T)(using show: Show[T] = Show.fromToString[T])
 
     def ansiValue(value: AnsiValue): AnsiText = value(t)
 
@@ -325,5 +336,3 @@ private[toolkit] sealed trait AnsiValueSyntax {
     def ansiBlink: AnsiText                                         = ansiStyle(_.BLINK)
     def ansiReversed: AnsiText                                      = ansiStyle(_.REVERSED)
     def ansiInvisible: AnsiText                                     = ansiStyle(_.INVISIBLE)
-  }
-}

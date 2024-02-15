@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import com.geirolz.app.toolkit.console.AnsiValue
 
-class AnsiValueSuite extends munit.FunSuite {
+class AnsiValueSuite extends munit.FunSuite:
 
   import AnsiValue.*
 
@@ -44,10 +44,9 @@ class AnsiValueSuite extends munit.FunSuite {
   }
 
   test("Test syntax") {
-    implicit val runtime: IORuntime = cats.effect.unsafe.IORuntime.global
+    given IORuntime = cats.effect.unsafe.IORuntime.global
     "MY MESSAGE"
       .ansi(fg = _.RED, bg = _.BLUE, s = _.UNDERLINED)
       .println[IO]
       .unsafeRunSync()
   }
-}

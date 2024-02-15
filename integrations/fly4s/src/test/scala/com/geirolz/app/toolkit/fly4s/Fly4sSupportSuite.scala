@@ -2,9 +2,9 @@ package com.geirolz.app.toolkit.fly4s
 
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.testing.TestConfig
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+import com.geirolz.app.toolkit.{ctx, App, AppMessages, SimpleAppInfo}
 
-class Fly4sSupportSuite extends munit.CatsEffectSuite {
+class Fly4sSupportSuite extends munit.CatsEffectSuite:
 
   test("Syntax works as expected") {
     App[IO]
@@ -16,7 +16,7 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
           sbtVersion   = "1.8.0"
         )
       )
-      .withConfig(
+      .withConfigPure(
         TestConfig(
           dbUrl      = "jdbc:postgresql://localhost:5432/toolkit",
           dbUser     = Some("postgres"),
@@ -25,12 +25,11 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite {
       )
       .withoutDependencies
       .beforeProviding(
-        migrateDatabaseWithConfig(
-          url      = _.dbUrl,
-          user     = _.dbUser,
-          password = _.dbPassword
+        migrateDatabaseWith(
+          url      = ctx.config.dbUrl,
+          user     = ctx.config.dbUser,
+          password = ctx.config.dbPassword
         )
       )
-      .provideOne(_ => IO.unit)
+      .provideOne(IO.unit)
   }
-}

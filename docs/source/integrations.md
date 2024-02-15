@@ -54,11 +54,11 @@ import com.geirolz.app.toolkit.config.pureconfig.*
 
 case class TestConfig(value: String)
 
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-  implicit val configReader: pureconfig.ConfigReader[TestConfig] =
+object TestConfig:
+  given Show[TestConfig] = Show.fromToString
+  given pureconfig.ConfigReader[TestConfig] =
     pureconfig.ConfigReader.forProduct1("value")(TestConfig.apply)
-}
+
 
 App[IO]
   .withInfo(
@@ -69,10 +69,11 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withConfigLoader(pureconfigLoader[IO, TestConfig])
+  .withConfigF(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
-  .provideOne(_ => IO.unit)
-  .run_
+  .provideOne(IO.unit)
+  .run()
+  .void
 ```
 
 ## [Log4cats](https://github.com/typelevel/log4cats)
@@ -155,13 +156,12 @@ the whole app dependencies to provide a custom `Fly4s` instance you can use `bef
 import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.*
-import com.geirolz.app.toolkit.{App, SimpleAppInfo}
+import com.geirolz.app.toolkit.*
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
-object TestConfig {
-  implicit val show: Show[TestConfig] = Show.fromToString
-}
+object TestConfig:
+  given Show[TestConfig] = Show.fromToString
 
 App[IO]
   .withInfo(
@@ -172,7 +172,7 @@ App[IO]
       sbtVersion = "1.8.0"
     )
   )
-  .withConfig(
+  .withConfigPure(
     TestConfig(
       dbUrl = "jdbc:postgresql://localhost:5432/toolkit",
       dbUser = Some("postgres"),
@@ -181,12 +181,13 @@ App[IO]
   )
   .withoutDependencies
   .beforeProviding(
-    migrateDatabaseWithConfig(
-      url = _.dbUrl,
-      user = _.dbUser,
-      password = _.dbPassword
+    migrateDatabaseWith(
+      url = ctx.config.dbUrl,
+      user = ctx.config.dbUser,
+      password = ctx.config.dbPassword
     )
   )
-  .provideOne(_ => IO.unit)
-  .run_
+  .provideOne(IO.unit)
+  .run()
+  .void
 ```
