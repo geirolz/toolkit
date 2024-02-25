@@ -12,7 +12,7 @@ object ProjectDependencies {
   private val fly4sVersion             = "0.0.19"
   private val munitVersion             = "0.7.29"
   private val munitEffectVersion       = "1.0.7"
-  private val slf4Version              = "2.0.10"
+  private val slf4Version              = "2.0.12"
   private val log4catsVersion          = "2.6.0"
   private val odinVersion              = "0.13.0"
   private val http4sVersion            = "0.23.25"
@@ -24,10 +24,10 @@ object ProjectDependencies {
     "org.typelevel" %% "cats-core" % catsVersion,
 
     // test
-    "org.scalameta" %% "munit" % munitVersion % Test,
-    "org.scalameta" %% "munit-scalacheck" % munitVersion % Test,
-    "org.typelevel" %% "munit-cats-effect-3" % munitEffectVersion % Test,
-    "org.scalacheck" %% "scalacheck" % scalacheck % Test
+    "org.scalameta"  %% "munit"               % munitVersion       % Test,
+    "org.scalameta"  %% "munit-scalacheck"    % munitVersion       % Test,
+    "org.typelevel"  %% "munit-cats-effect-3" % munitEffectVersion % Test,
+    "org.scalacheck" %% "scalacheck"          % scalacheck         % Test
   )
 
   object Core {
@@ -52,7 +52,7 @@ object ProjectDependencies {
 
     lazy val dedicated: Seq[ModuleID] = Seq(
       // http
-      "org.http4s" %% "http4s-dsl" % http4sVersion,
+      "org.http4s" %% "http4s-dsl"          % http4sVersion,
       "org.http4s" %% "http4s-ember-server" % http4sVersion,
 
       // streaming
@@ -60,15 +60,15 @@ object ProjectDependencies {
 
       // logging
       "org.typelevel" %% "log4cats-slf4j" % log4catsVersion,
-      "org.slf4j" % "slf4j-api" % slf4Version,
-      "org.slf4j" % "slf4j-simple" % slf4Version,
+      "org.slf4j"      % "slf4j-api"      % slf4Version,
+      "org.slf4j"      % "slf4j-simple"   % slf4Version,
 
       // config
       "com.github.pureconfig" %% "pureconfig-http4s" % pureConfigVersion,
-      "com.github.pureconfig" %% "pureconfig-ip4s" % pureConfigVersion,
+      "com.github.pureconfig" %% "pureconfig-ip4s"   % pureConfigVersion,
 
       // json
-      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-core"    % circeVersion,
       "io.circe" %% "circe-refined" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion
     )
@@ -107,6 +107,6 @@ object ProjectDependencies {
   }
 
   object Docs {
-    lazy val dedicated: Seq[ModuleID]  = Examples.dedicated
+    lazy val dedicated: Seq[ModuleID] = Examples.dedicated
   }
 }
