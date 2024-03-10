@@ -15,7 +15,7 @@ object ProjectDependencies {
   private val slf4Version              = "2.0.12"
   private val log4catsVersion          = "2.6.0"
   private val odinVersion              = "0.13.0"
-  private val http4sVersion            = "0.23.25"
+  private val http4sVersion            = "0.23.26"
   private val fs2Version               = "3.9.4"
   private val scalacheck               = "1.17.0"
 
