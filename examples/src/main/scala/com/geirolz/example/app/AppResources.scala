@@ -14,4 +14,3 @@ object AppResources:
       .fromAutoCloseable(IO(Source.fromResource("host-table.txt")))
       .map(_.getLines().toList)
       .map(AppResources(_))
-
