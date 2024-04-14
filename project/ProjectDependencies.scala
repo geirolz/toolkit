@@ -12,7 +12,7 @@ object ProjectDependencies {
   private val fly4sVersion             = "1.0.1"
   private val munitVersion             = "0.7.29"
   private val munitEffectVersion       = "1.0.7"
-  private val slf4Version              = "2.0.12"
+  private val slf4Version              = "2.0.13"
   private val log4catsVersion          = "2.6.0"
   private val odinVersion              = "0.13.0"
   private val http4sVersion            = "0.23.25"
