@@ -35,6 +35,8 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
 
 ## Features
 
+> Resources --build--> Dependencies --> [Finalize Resources] --build--> App Logic -> [Finalize Dependencies]
+
 - **Resource Management:** Toolkit simplifies the management of application resources, such as configuration
   settings, logging, and custom resources. By abstracting away the resource handling, it reduces boilerplate code and
   provides a clean and concise syntax for managing resources.
@@ -47,10 +49,8 @@ Please, drop a ⭐️ if you are interested in this project and you want to supp
   about, and maintain.
 
 ## Notes
-
-- All dependencies and resources are released at the end of the app execution as defined as `Resource[F, *]`.
-- If you need to release a resource before the end of the app execution you should use `Resource.use` or equivalent to
-  build what you need as dependency.
+- Resources are released before providing the app execution.
+- Dependencies are released at the end of the app execution as defined as `Resource[F, *]`.
 - If you need to run an infinite task using `provide*` you should use `F.never` or equivalent to keep the task running.
 
 ## Getting Started

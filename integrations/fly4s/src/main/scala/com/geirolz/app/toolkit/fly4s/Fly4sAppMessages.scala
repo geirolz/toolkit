@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.fly4s
 
-import fly4s.core.data.MigrateResult
+import fly4s.data.MigrateResult
 
 case class Fly4sAppMessages(
   applyingMigrations: String                   = "Applying migrations to the database...",

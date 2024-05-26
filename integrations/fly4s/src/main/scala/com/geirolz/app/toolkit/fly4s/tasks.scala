@@ -1,6 +1,6 @@
 package com.geirolz.app.toolkit.fly4s
-import _root_.fly4s.core.Fly4s
-import _root_.fly4s.core.data.Fly4sConfig
+import _root_.fly4s.Fly4s
+import _root_.fly4s.data.Fly4sConfig
 import cats.effect.Resource
 import cats.effect.kernel.Async
 import cats.syntax.all.*
