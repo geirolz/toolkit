@@ -14,7 +14,7 @@ object AppMain extends IOApp.Toolkit:
   val app: App.Simple[IO, AppInfo, SelfAwareStructuredLogger, AppConfig, AppResources, AppDependencyServices] =
     App[IO]
       .withInfo(AppInfo.fromBuildInfo)
-      .withLoggerPure(Slf4jLogger.getLogger[IO])
+      .withLogger(Slf4jLogger.create[IO])
       .withConfigF(pureconfigLoader[IO, AppConfig])
       .withResources(AppResources.resource)
       .dependsOnE(AppDependencyServices.resource.map(_.asRight))
