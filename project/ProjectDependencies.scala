@@ -5,29 +5,29 @@ import scala.language.postfixOps
 object ProjectDependencies {
 
   private val catsVersion              = "2.10.0"
-  private val catsEffectVersion        = "3.5.3"
+  private val catsEffectVersion        = "3.5.4"
   private val circeVersion             = "0.14.6"
   private val circeGenericExtraVersion = "0.14.3"
   private val pureConfigVersion        = "0.17.6"
   private val fly4sVersion             = "1.0.1"
-  private val munitVersion             = "0.7.29"
-  private val munitEffectVersion       = "1.0.7"
-  private val slf4Version              = "2.0.12"
+  private val munitVersion             = "1.0.0"
+  private val munitEffectVersion       = "2.0.0"
+  private val slf4Version              = "2.0.13"
   private val log4catsVersion          = "2.6.0"
   private val odinVersion              = "0.13.0"
   private val http4sVersion            = "0.23.27"
-  private val fs2Version               = "3.9.4"
-  private val scalacheck               = "1.17.0"
+  private val fs2Version               = "3.10.2"
+  private val scalacheck               = "1.17.1"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
     "org.typelevel" %% "cats-core" % catsVersion,
 
     // test
-    "org.scalameta"  %% "munit"               % munitVersion       % Test,
-    "org.scalameta"  %% "munit-scalacheck"    % munitVersion       % Test,
-    "org.typelevel"  %% "munit-cats-effect-3" % munitEffectVersion % Test,
-    "org.scalacheck" %% "scalacheck"          % scalacheck         % Test
+    "org.scalameta"  %% "munit"             % munitVersion       % Test,
+    "org.scalameta"  %% "munit-scalacheck"  % munitVersion       % Test,
+    "org.typelevel"  %% "munit-cats-effect" % munitEffectVersion % Test,
+    "org.scalacheck" %% "scalacheck"        % scalacheck         % Test
   )
 
   object Core {
