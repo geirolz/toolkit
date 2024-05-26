@@ -17,7 +17,8 @@ object ProjectDependencies {
   private val odinVersion              = "0.13.0"
   private val http4sVersion            = "0.23.25"
   private val fs2Version               = "3.10.2"
-  private val scalacheck               = "1.17.0"
+  private val scalacheck               = "1.17.1"
+
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
