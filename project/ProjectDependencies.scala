@@ -14,7 +14,7 @@ object ProjectDependencies {
   private val munitEffectVersion       = "2.0.0"
   private val slf4Version              = "2.0.16"
   private val log4catsVersion          = "2.7.0"
-  private val odinVersion              = "0.13.0"
+  private val odinVersion              = "0.14.0"
   private val http4sVersion            = "0.23.27"
   private val fs2Version               = "3.11.0"
   private val scalacheck               = "1.18.0"
@@ -85,7 +85,7 @@ object ProjectDependencies {
 
     object Odin {
       lazy val dedicated: Seq[ModuleID] = List(
-        "com.github.valskalla" %% "odin-core" % odinVersion
+        "dev.scalafreaks" %% "odin-core" % odinVersion
       )
     }
 
