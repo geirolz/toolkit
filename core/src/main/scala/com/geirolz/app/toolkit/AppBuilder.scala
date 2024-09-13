@@ -12,19 +12,37 @@ import com.geirolz.app.toolkit.logger.{ConsoleLogger, Logger, LoggerAdapter, Noo
 import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
 import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoFailure, NoResources}
 
+import java.time.LocalDateTime
 import scala.reflect.ClassTag
 
 final class AppBuilder[F[+_]: Async: Parallel, FAILURE: ClassTag]:
+
+  inline def withInfo(
+    name: String           = "",
+    version: String        = "",
+    scalaVersion: String   = "",
+    sbtVersion: String     = "",
+    builtOn: LocalDateTime = LocalDateTime.now()
+  ): AppBuilder.SelectResAndDeps[F, FAILURE, SimpleAppInfo[String], NoopLogger, NoConfig, NoResources] =
+    withInfo(
+      SimpleAppInfo.string(
+        name         = name,
+        version      = version,
+        scalaVersion = scalaVersion,
+        sbtVersion   = sbtVersion,
+        builtOn      = builtOn
+      )
+    )
 
   def withInfo[INFO <: SimpleAppInfo[?]](
     appInfo: INFO
   ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, NoConfig, NoResources] =
     new AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, NoConfig, NoResources](
-      info            = appInfo,
-      messages        = AppMessages.default(appInfo),
-      loggerBuilder   = NoopLogger[F].pure[F],
-      configLoader    = Resource.pure(NoConfig.value),
-      resourcesLoader = Resource.pure(NoResources.value)
+      info             = appInfo,
+      messages         = AppMessages.default(appInfo),
+      loggerBuilder    = NoopLogger[F].pure[F],
+      configBuilder    = NoConfig.value.pure[F],
+      resourcesBuilder = NoResources.value.pure[F]
     )
 
 object AppBuilder:
@@ -48,8 +66,8 @@ object AppBuilder:
     info: INFO,
     messages: AppMessages,
     loggerBuilder: F[LOGGER_T[F]],
-    configLoader: Resource[F, CONFIG],
-    resourcesLoader: Resource[F, RESOURCES]
+    configBuilder: F[CONFIG],
+    resourcesBuilder: F[RESOURCES]
   ):
 
     // ------- MESSAGES -------
@@ -61,15 +79,10 @@ object AppBuilder:
 
     // ------- LOGGER -------
     inline def withNoopLogger: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, NoopLogger, CONFIG, RESOURCES] =
-      withLoggerPure(logger = Logger.noop[F])
+      withLoggerPure(_ => Logger.noop[F])
 
     inline def withConsoleLogger(minLevel: Level = Level.Info): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, ConsoleLogger, CONFIG, RESOURCES] =
-      withLoggerPure(logger = ConsoleLogger[F](info, minLevel))
-
-    inline def withLoggerPure[LOGGER_T2[_[_]]: LoggerAdapter](
-      logger: LOGGER_T2[F]
-    ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T2, CONFIG, RESOURCES] =
-      withLoggerPure[LOGGER_T2](f = (_: INFO) => logger)
+      withLoggerPure(_ => ConsoleLogger[F](info, minLevel))
 
     inline def withLoggerPure[LOGGER_T2[_[_]]: LoggerAdapter](
       f: INFO => LOGGER_T2[F]
@@ -89,42 +102,29 @@ object AppBuilder:
     inline def withConfigPure[CONFIG2: Show](
       config: CONFIG2
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfigF(config.pure[F])
-
-    // TODO: Add failure
-    inline def withConfigF[CONFIG2: Show](
-      configLoader: INFO => F[CONFIG2]
-    )(using DummyImplicit): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(i => Resource.eval(configLoader(i)))
-
-    // TODO: Add failure
-    inline def withConfigF[CONFIG2: Show](
-      configLoader: F[CONFIG2]
-    ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(Resource.eval(configLoader))
+      withConfig(config.pure[F])
 
     // TODO: Add failure
     inline def withConfig[CONFIG2: Show](
-      configLoader: Resource[F, CONFIG2]
+      loader: F[CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      withConfig(_ => configLoader)
+      withConfig(_ => loader)
 
     // TODO: Add failure
     inline def withConfig[CONFIG2: Show](
-      configLoader: INFO => Resource[F, CONFIG2]
+      loader: INFO => F[CONFIG2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG2, RESOURCES] =
-      copyWith(configLoader = configLoader(this.info))
+      copyWith(configLoader = loader(this.info))
 
     // ------- RESOURCES -------
     inline def withoutResources: AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, NoResources] =
-      withResources[NoResources](Resource.pure(NoResources.value))
+      withResources[NoResources](NoResources.value.pure[F])
 
     // TODO: Add failure
-    /** Resources are loaded into context and released before providing the services. */
     inline def withResources[RESOURCES2](
-      resourcesLoader: Resource[F, RESOURCES2]
+      loader: F[RESOURCES2]
     ): AppBuilder.SelectResAndDeps[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES2] =
-      copyWith(resourcesLoader = resourcesLoader)
+      copyWith(resourcesLoader = loader)
 
     // ------- DEPENDENCIES -------
     inline def withoutDependencies: AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, NoDependencies] =
@@ -147,8 +147,8 @@ object AppBuilder:
         info                = info,
         messages            = messages,
         loggerBuilder       = loggerBuilder,
-        configLoader        = configLoader,
-        resourcesLoader     = resourcesLoader,
+        configBuilder       = configBuilder,
+        resourcesBuilder    = resourcesBuilder,
         dependenciesLoader  = f(using _),
         beforeProvidingTask = _ => ().pure[F]
       )
@@ -161,17 +161,17 @@ object AppBuilder:
       CONFIG2: Show,
       RESOURCES2
     ](
-      info: INFO2                              = this.info,
-      messages: AppMessages                    = this.messages,
-      loggerBuilder: G[LOGGER_T2[G]]           = this.loggerBuilder,
-      configLoader: Resource[G, CONFIG2]       = this.configLoader,
-      resourcesLoader: Resource[G, RESOURCES2] = this.resourcesLoader
+      info: INFO2                    = this.info,
+      messages: AppMessages          = this.messages,
+      loggerBuilder: G[LOGGER_T2[G]] = this.loggerBuilder,
+      configLoader: G[CONFIG2]       = this.configBuilder,
+      resourcesLoader: G[RESOURCES2] = this.resourcesBuilder
     ) = new AppBuilder.SelectResAndDeps[G, FAILURE2, INFO2, LOGGER_T2, CONFIG2, RESOURCES2](
-      info            = info,
-      messages        = messages,
-      loggerBuilder   = loggerBuilder,
-      configLoader    = configLoader,
-      resourcesLoader = resourcesLoader
+      info             = info,
+      messages         = messages,
+      loggerBuilder    = loggerBuilder,
+      configBuilder    = configLoader,
+      resourcesBuilder = resourcesLoader
     )
 
   final case class SelectProvide[
@@ -186,8 +186,8 @@ object AppBuilder:
     info: INFO,
     messages: AppMessages,
     loggerBuilder: F[LOGGER_T[F]],
-    configLoader: Resource[F, CONFIG],
-    resourcesLoader: Resource[F, RESOURCES],
+    configBuilder: F[CONFIG],
+    resourcesBuilder: F[RESOURCES],
     dependenciesLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] => Resource[F, FAILURE \/ DEPENDENCIES],
     beforeProvidingTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit]
   ):
@@ -258,10 +258,10 @@ object AppBuilder:
           logger      = LoggerAdapter[LOGGER_T].toToolkit(ctx.logger)
         ),
         loggerBuilder       = loggerBuilder,
-        resourcesLoader     = resourcesLoader,
+        configBuilder       = configBuilder,
+        resourcesBuilder    = resourcesBuilder,
         beforeProvidingTask = beforeProvidingTask,
         onFinalizeTask      = _ => ().pure[F],
-        configLoader        = configLoader,
         depsLoader          = dependenciesLoader(ctx),
         servicesBuilder     = f(using _)
       )

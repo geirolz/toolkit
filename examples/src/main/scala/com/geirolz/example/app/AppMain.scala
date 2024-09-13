@@ -14,9 +14,9 @@ object AppMain extends IOApp.Toolkit:
   val app: App.Simple[IO, AppInfo, SelfAwareStructuredLogger, AppConfig, AppResources, AppDependencyServices] =
     App[IO]
       .withInfo(AppInfo.fromBuildInfo)
-      .withLogger(Slf4jLogger.create[IO])
-      .withConfigF(pureconfigLoader[IO, AppConfig])
-      .withResources(AppResources.resource)
+      .withLogger(_ => Slf4jLogger.create[IO])
+      .withConfig(pureconfigLoader[IO, AppConfig])
+      .withResources(AppResources.load)
       .dependsOnE(AppDependencyServices.resource.map(_.asRight))
       .beforeProviding(ctx.logger.info("CUSTOM PRE-RUN"))
       .provideParallel(

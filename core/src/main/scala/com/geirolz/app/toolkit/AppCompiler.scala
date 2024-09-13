@@ -2,6 +2,7 @@ package com.geirolz.app.toolkit
 
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
+import cats.effect.syntax.all.*
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
 import com.geirolz.app.toolkit.AppContext.NoDeps
@@ -48,7 +49,7 @@ object AppCompiler:
 
           // config
           _         <- toolkitResLogger.debug(app.messages.loadingConfig)
-          appConfig <- EitherT.right[FAILURE](app.configLoader)
+          appConfig <- EitherT.right[FAILURE](app.configBuilder.toResource)
           _         <- toolkitResLogger.info(app.messages.configSuccessfullyLoaded)
           _         <- toolkitResLogger.info(appConfig.show)
 
@@ -56,17 +57,15 @@ object AppCompiler:
           given AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] <-
             EitherT.right[FAILURE](
               Resource.eval(
-                app.resourcesLoader.use(otherResources =>
-                  AppContext
-                    .noDependencies(
-                      info      = app.info,
-                      messages  = app.messages,
-                      args      = AppArgs(appArgs),
-                      logger    = userLogger,
-                      config    = appConfig,
-                      resources = otherResources
-                    )
-                    .pure[F]
+                app.resourcesBuilder.map(otherResources =>
+                  AppContext.noDependencies(
+                    info      = app.info,
+                    messages  = app.messages,
+                    args      = AppArgs(appArgs),
+                    logger    = userLogger,
+                    config    = appConfig,
+                    resources = otherResources
+                  )
                 )
               )
             )

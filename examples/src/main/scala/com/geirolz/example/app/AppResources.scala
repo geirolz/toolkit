@@ -9,8 +9,7 @@ case class AppResources(
 )
 
 object AppResources:
-  def resource: Resource[IO, AppResources] =
+  def load: IO[AppResources] =
     Resource
       .fromAutoCloseable(IO(Source.fromResource("host-table.txt")))
-      .map(_.getLines().toList)
-      .map(AppResources(_))
+      .use(file => IO(AppResources(file.getLines().toList)))

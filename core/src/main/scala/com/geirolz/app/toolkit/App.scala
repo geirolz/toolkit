@@ -23,18 +23,19 @@ class App[
   val info: INFO,
   val messages: AppMessages,
   val loggerBuilder: F[LOGGER_T[F]],
-  val configLoader: Resource[F, CONFIG],
-  val resourcesLoader: Resource[F, RESOURCES],
+  val configBuilder: F[CONFIG],
+  val resourcesBuilder: F[RESOURCES],
   val beforeProvidingTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val onFinalizeTask: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[Unit],
   val failureHandlerLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> FailureHandler[F, FAILURE],
   val depsLoader: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE \/ DEPENDENCIES],
   val servicesBuilder: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] => F[FAILURE \/ List[F[FAILURE \/ Unit]]]
 ):
-  type AppInfo       = INFO
-  type Logger        = LOGGER_T[F]
-  type Config        = CONFIG
-  type ContextNoDeps = AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES]
+  type AppInfo   = INFO
+  type Logger    = LOGGER_T[F]
+  type Config    = CONFIG
+  type Ctx       = AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES]
+  type CtxNoDeps = AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES]
 
   inline def onFinalize(
     f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[Unit]
@@ -70,8 +71,8 @@ class App[
     appInfo: APP_INFO2                                                                                                    = this.info,
     appMessages: AppMessages                                                                                              = this.messages,
     loggerBuilder: G[LOGGER_T2[G]]                                                                                        = this.loggerBuilder,
-    configLoader: Resource[G, CONFIG2]                                                                                    = this.configLoader,
-    resourcesLoader: Resource[G, RES2]                                                                                    = this.resourcesLoader,
+    configBuilder: G[CONFIG2]                                                                                             = this.configBuilder,
+    resourcesBuilder: G[RES2]                                                                                             = this.resourcesBuilder,
     beforeProvidingTask: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]                             = this.beforeProvidingTask,
     onFinalizeTask: AppContext[APP_INFO2, LOGGER_T2[G], CONFIG2, DEPS2, RES2] => G[Unit]                                  = this.onFinalizeTask,
     failureHandlerLoader: AppContext.NoDeps[APP_INFO2, LOGGER_T2[G], CONFIG2, RES2] ?=> FailureHandler[G, FAILURE2]       = this.failureHandlerLoader,
@@ -82,8 +83,8 @@ class App[
       info                 = appInfo,
       messages             = appMessages,
       loggerBuilder        = loggerBuilder,
-      configLoader         = configLoader,
-      resourcesLoader      = resourcesLoader,
+      configBuilder        = configBuilder,
+      resourcesBuilder     = resourcesBuilder,
       beforeProvidingTask  = beforeProvidingTask,
       onFinalizeTask       = onFinalizeTask,
       failureHandlerLoader = failureHandlerLoader,
@@ -127,17 +128,17 @@ sealed transparent trait AppFailureSyntax:
       )
 
     inline def onFailure_(
-      f: app.ContextNoDeps ?=> FAILURE => F[Unit]
+      f: app.CtxNoDeps ?=> FAILURE => F[Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.onFailure(failure => f(failure) >> app.failureHandlerLoader.onFailureF(failure)))
 
     inline def onFailure(
-      f: app.ContextNoDeps ?=> FAILURE => F[OnFailureBehaviour]
+      f: app.CtxNoDeps ?=> FAILURE => F[OnFailureBehaviour]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.onFailure(f))
 
     inline def handleFailureWith(
-      f: app.ContextNoDeps ?=> FAILURE => F[FAILURE \/ Unit]
+      f: app.CtxNoDeps ?=> FAILURE => F[FAILURE \/ Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       _updateFailureHandlerLoader(_.handleFailureWith(f))
 

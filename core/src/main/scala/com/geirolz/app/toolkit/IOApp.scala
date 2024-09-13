@@ -4,6 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 
 object IOApp:
   trait Toolkit extends IOApp:
+    export app.{Ctx, CtxNoDeps}
     export com.geirolz.app.toolkit.ctx
     val app: App[IO, ?, ?, ?, ?, ?, ?]
     def run(args: List[String]): IO[ExitCode] = app.run(args)

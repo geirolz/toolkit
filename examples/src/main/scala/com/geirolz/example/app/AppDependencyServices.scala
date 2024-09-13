@@ -11,9 +11,7 @@ case class AppDependencyServices(
 )
 object AppDependencyServices:
 
-  def resource(using
-    AppContext.NoDeps[AppInfo, SelfAwareStructuredLogger[IO], AppConfig, AppResources]
-  ): Resource[IO, AppDependencyServices] =
+  def resource(using AppMain.CtxNoDeps): Resource[IO, AppDependencyServices] =
     Resource.pure(
       AppDependencyServices(
         kafkaConsumer = KafkaConsumer.fake(ctx.config.kafkaBroker.host),

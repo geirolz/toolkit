@@ -14,9 +14,9 @@ object AppWithFailures extends IOApp.Toolkit:
   val app: App[IO, AppError, AppInfo, SelfAwareStructuredLogger, AppConfig, AppResources, AppDependencyServices] =
     App[IO, AppError]
       .withInfo(AppInfo.fromBuildInfo)
-      .withLoggerPure(Slf4jLogger.getLogger[IO])
-      .withConfigF(pureconfigLoader[IO, AppConfig])
-      .withResources(AppResources.resource)
+      .withLogger(_ => Slf4jLogger.create[IO])
+      .withConfig(pureconfigLoader[IO, AppConfig])
+      .withResources(AppResources.load)
       .dependsOnE(AppDependencyServices.resource.map(_.asRight))
       .beforeProviding(ctx.logger.info("CUSTOM PRE-RUN"))
       .provideParallel(

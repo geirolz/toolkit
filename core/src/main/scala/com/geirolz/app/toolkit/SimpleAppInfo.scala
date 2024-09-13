@@ -54,7 +54,7 @@ object SimpleAppInfo:
     version: String,
     scalaVersion: String,
     sbtVersion: String,
-    builtOn: LocalDateTime = LocalDateTime.now()
+    builtOn: LocalDateTime
   ): SimpleAppInfo[String] =
     SimpleAppInfo.of[String](
       name         = name,
