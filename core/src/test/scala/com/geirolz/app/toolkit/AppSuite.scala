@@ -26,7 +26,7 @@ class AppSuite extends munit.CatsEffectSuite {
             .withInfo(TestAppInfo.value)
             .withConsoleLogger()
             .withConfigPure(TestConfig.defaultTest)
-            .withResources(Resource.unit.trace(LabeledResource.appResources))
+            .withResources(IO.unit)
             .dependsOn(Resource.pure[IO, Ref[IO, Int]](counter).trace(LabeledResource.appDependencies))
             .provideOne(ctx.dependencies.set(1))
             .compile()
@@ -38,9 +38,6 @@ class AppSuite extends munit.CatsEffectSuite {
             returns = List(
               // loading resources and dependencies
               LabeledResource.appLoader.starting,
-              LabeledResource.appResources.starting,
-              LabeledResource.appResources.succeeded,
-              LabeledResource.appResources.finalized,
               LabeledResource.appDependencies.starting,
               LabeledResource.appDependencies.succeeded,
               LabeledResource.appLoader.succeeded,

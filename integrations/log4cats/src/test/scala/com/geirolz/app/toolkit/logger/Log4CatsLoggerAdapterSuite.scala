@@ -6,6 +6,8 @@ import com.geirolz.app.toolkit.error.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
+import java.time.LocalDateTime
+
 class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
 
   test("Syntax works as expected") {
@@ -16,10 +18,11 @@ class Log4CatsLoggerAdapterSuite extends munit.CatsEffectSuite {
             name         = "toolkit",
             version      = "0.0.1",
             scalaVersion = "2.13.10",
-            sbtVersion   = "1.8.0"
+            sbtVersion   = "1.8.0",
+            builtOn      = LocalDateTime.now()
           )
         )
-        .withLoggerPure(NoOpLogger[IO])
+        .withLoggerPure(_ => NoOpLogger[IO])
         .withoutDependencies
         .provideOne(IO.unit)
         .run()

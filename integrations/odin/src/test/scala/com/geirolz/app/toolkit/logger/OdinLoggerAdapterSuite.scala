@@ -5,6 +5,8 @@ import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.error.*
 import io.odin.Logger as OdinLogger
 
+import java.time.LocalDateTime
+
 class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
 
   test("Syntax works as expected") {
@@ -15,10 +17,11 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
             name         = "toolkit",
             version      = "0.0.1",
             scalaVersion = "2.13.10",
-            sbtVersion   = "1.8.0"
+            sbtVersion   = "1.8.0",
+            builtOn      = LocalDateTime.now()
           )
         )
-        .withLoggerPure(OdinLogger.noop[IO])
+        .withLoggerPure(_ => OdinLogger.noop[IO])
         .withoutDependencies
         .provideOne(IO.unit)
         .run()
