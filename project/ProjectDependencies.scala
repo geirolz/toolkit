@@ -4,20 +4,20 @@ import scala.language.postfixOps
 
 object ProjectDependencies {
 
-  private val catsVersion              = "2.10.0"
+  private val catsVersion              = "2.12.0"
   private val catsEffectVersion        = "3.5.4"
   private val circeVersion             = "0.14.9"
   private val circeGenericExtraVersion = "0.14.3"
-  private val pureConfigVersion        = "0.17.6"
-  private val fly4sVersion             = "1.0.4"
+  private val pureConfigVersion        = "0.17.7"
+  private val fly4sVersion             = "1.0.8"
   private val munitVersion             = "1.0.0"
   private val munitEffectVersion       = "2.0.0"
-  private val slf4Version              = "2.0.13"
+  private val slf4Version              = "2.0.16"
   private val log4catsVersion          = "2.7.0"
-  private val odinVersion              = "0.13.0"
+  private val odinVersion              = "0.14.0"
   private val http4sVersion            = "0.23.27"
-  private val fs2Version               = "3.10.2"
-  private val scalacheck               = "1.17.1"
+  private val fs2Version               = "3.11.0"
+  private val scalacheck               = "1.18.0"
 
   lazy val common: Seq[ModuleID] = Seq(
     // runtime
@@ -85,7 +85,7 @@ object ProjectDependencies {
 
     object Odin {
       lazy val dedicated: Seq[ModuleID] = List(
-        "com.github.valskalla" %% "odin-core" % odinVersion
+        "dev.scalafreaks" %% "odin-core" % odinVersion
       )
     }
 
