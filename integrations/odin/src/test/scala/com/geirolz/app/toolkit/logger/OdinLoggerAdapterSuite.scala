@@ -13,13 +13,11 @@ class OdinLoggerAdapterSuite extends munit.CatsEffectSuite {
     assertIO_(
       App[IO]
         .withInfo(
-          SimpleAppInfo.string(
-            name         = "toolkit",
-            version      = "0.0.1",
-            scalaVersion = "2.13.10",
-            sbtVersion   = "1.8.0",
-            builtOn      = LocalDateTime.now()
-          )
+          name         = "toolkit",
+          version      = "0.0.1",
+          scalaVersion = "2.13.10",
+          sbtVersion   = "1.8.0",
+          builtOn      = LocalDateTime.now()
         )
         .withLoggerPure(_ => OdinLogger.noop[IO])
         .withoutDependencies

@@ -3,9 +3,8 @@ import sbt.project
 lazy val prjName                = "toolkit"
 lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
 lazy val org                    = "com.github.geirolz"
-lazy val scala33                = "3.3.3"
-lazy val scala34                = "3.5.0"
-lazy val supportedScalaVersions = List(scala33, scala34)
+lazy val scala35                = "3.5.0"
+lazy val supportedScalaVersions = List(scala35)
 
 //## global project to no publish ##
 val copyReadMe = taskKey[Unit]("Copy generated README to main folder.")
@@ -45,7 +44,7 @@ lazy val docs: Project =
     .settings(
       baseSettings,
       noPublishSettings,
-      libraryDependencies ++= ProjectDependencies.Docs.dedicated,
+      libraryDependencies ++= PrjDependencies.Docs.dedicated,
       // config
       scalacOptions --= Seq("-Werror", "-Xfatal-warnings"),
       mdocIn  := file("docs/source"),
@@ -193,10 +192,10 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
   scalacOptions ++= scalacSettings(scalaVersion.value),
   versionScheme := Some("early-semver"),
   // dependencies
-  resolvers ++= ProjectResolvers.all,
+  resolvers ++= PrjResolvers.all,
   libraryDependencies ++= Seq(
-    ProjectDependencies.common,
-    ProjectDependencies.Plugins.compilerPlugins
+    PrjDependencies.common,
+    PrjDependencies.Plugins.compilerPlugins
   ).flatten
 )
 

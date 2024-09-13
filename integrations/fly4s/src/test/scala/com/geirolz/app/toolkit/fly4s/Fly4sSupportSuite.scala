@@ -2,7 +2,7 @@ package com.geirolz.app.toolkit.fly4s
 
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.testing.TestConfig
-import com.geirolz.app.toolkit.{App, AppMessages, SimpleAppInfo, ctx}
+import com.geirolz.app.toolkit.{ctx, App, AppMessages, SimpleAppInfo}
 
 import java.time.LocalDateTime
 
@@ -11,13 +11,11 @@ class Fly4sSupportSuite extends munit.CatsEffectSuite:
   test("Syntax works as expected") {
     App[IO]
       .withInfo(
-        SimpleAppInfo.string(
-          name         = "toolkit",
-          version      = "0.0.1",
-          scalaVersion = "2.13.10",
-          sbtVersion   = "1.8.0",
-          builtOn      = LocalDateTime.now()
-        )
+        name         = "toolkit",
+        version      = "0.0.1",
+        scalaVersion = "2.13.10",
+        sbtVersion   = "1.8.0",
+        builtOn      = LocalDateTime.now()
       )
       .withConfigPure(
         TestConfig(
