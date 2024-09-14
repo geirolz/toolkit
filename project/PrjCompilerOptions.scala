@@ -1,4 +1,4 @@
-import org.typelevel.scalacoptions.{ScalaVersion, ScalacOption, ScalacOptions}
+import org.typelevel.scalacoptions.{ScalacOption, ScalacOptions}
 
 object PrjCompilerOptions {
 
@@ -9,7 +9,7 @@ object PrjCompilerOptions {
     ScalacOptions.deprecation,
     ScalacOptions.feature,
     ScalacOptions.unchecked,
-    ScalacOptions.other("-Ykind-projector"),
+    ScalacOptions.advancedKindProjector,
 
     // language
     ScalacOptions.languageStrictEquality,
