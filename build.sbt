@@ -1,10 +1,12 @@
+import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
 import sbt.project
 
-lazy val prjName                = "toolkit"
-lazy val prjDescription         = "A small toolkit to build functional app with managed resources"
-lazy val org                    = "com.github.geirolz"
-lazy val scala35                = "3.5.0"
-lazy val supportedScalaVersions = List(scala35)
+lazy val prjName        = "toolkit"
+lazy val prjDescription = "A small toolkit to build functional app with managed resources"
+lazy val prjOrg         = "com.github.geirolz"
+lazy val supportedScalaVersions: Set[ScalaVersion] = Set(
+  ScalaVersion.V3_5_0
+)
 
 //## global project to no publish ##
 val copyReadMe = taskKey[Unit]("Copy generated README to main folder.")
@@ -53,7 +55,7 @@ lazy val docs: Project =
         "VERSION"  -> previousStableVersion.value.getOrElse("<version>"),
         "DOC_OUT"  -> mdocOut.value.getPath,
         "PRJ_NAME" -> prjName,
-        "ORG"      -> org
+        "ORG"      -> prjOrg
       )
     )
 
@@ -62,7 +64,7 @@ lazy val core: Project =
     folder    = "./core",
     publishAs = Some(prjName)
   ).settings(
-    libraryDependencies ++= ProjectDependencies.Core.dedicated
+    libraryDependencies ++= PrjDependencies.Core.dedicated
   ).dependsOn(testing)
 
 lazy val testing: Project =
@@ -70,7 +72,7 @@ lazy val testing: Project =
     folder    = "./testing",
     publishAs = Some(subProjectName("testing"))
   ).settings(
-    libraryDependencies ++= ProjectDependencies.Testing.dedicated
+    libraryDependencies ++= PrjDependencies.Testing.dedicated
   )
 
 lazy val examples: Project = {
@@ -81,7 +83,7 @@ lazy val examples: Project = {
     .settings(
       noPublishSettings,
       Compile / mainClass := Some(s"$appPackage.AppMain"),
-      libraryDependencies ++= ProjectDependencies.Examples.dedicated,
+      libraryDependencies ++= PrjDependencies.Examples.dedicated,
       buildInfoKeys ++= List[BuildInfoKey](
         name,
         description,
@@ -108,7 +110,7 @@ lazy val log4cats: Project =
     publishAs = Some(subProjectName("log4cats"))
   ).dependsOn(core)
     .settings(
-      libraryDependencies ++= ProjectDependencies.Integrations.Log4cats.dedicated
+      libraryDependencies ++= PrjDependencies.Integrations.Log4cats.dedicated
     )
 
 lazy val odin: Project =
@@ -117,7 +119,7 @@ lazy val odin: Project =
     publishAs = Some(subProjectName("odin"))
   ).dependsOn(core)
     .settings(
-      libraryDependencies ++= ProjectDependencies.Integrations.Odin.dedicated
+      libraryDependencies ++= PrjDependencies.Integrations.Odin.dedicated
     )
 
 lazy val pureconfig: Project =
@@ -126,7 +128,7 @@ lazy val pureconfig: Project =
     publishAs = Some(subProjectName("pureconfig"))
   ).dependsOn(core)
     .settings(
-      libraryDependencies ++= ProjectDependencies.Integrations.Pureconfig.dedicated
+      libraryDependencies ++= PrjDependencies.Integrations.Pureconfig.dedicated
     )
 
 lazy val fly4s: Project =
@@ -135,7 +137,7 @@ lazy val fly4s: Project =
     publishAs = Some(subProjectName("fly4s"))
   ).dependsOn(core)
     .settings(
-      libraryDependencies ++= ProjectDependencies.Integrations.Fly4s.dedicated
+      libraryDependencies ++= PrjDependencies.Integrations.Fly4s.dedicated
     )
 
 //=============================== MODULES UTILS ===============================
@@ -185,11 +187,14 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
   // project
   name         := prjName,
   description  := prjDescription,
-  organization := org,
+  organization := prjOrg,
   // scala
-  crossScalaVersions := supportedScalaVersions,
-  scalaVersion       := supportedScalaVersions.head,
-  scalacOptions ++= scalacSettings(scalaVersion.value),
+  crossScalaVersions := supportedScalaVersions.map(v => s"${v.major}.${v.minor}.${v.patch}").toSeq,
+  scalaVersion       := supportedScalaVersions.headOption.map(v => s"${v.major}.${v.minor}.${v.patch}").get,
+  scalacOptions ++= ScalacOptions.tokensForVersion(
+    scalaVersion          = supportedScalaVersions.head,
+    proposedScalacOptions = PrjCompilerOptions.common
+  ),
   versionScheme := Some("early-semver"),
   // dependencies
   resolvers ++= PrjResolvers.all,
@@ -198,22 +203,6 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
     PrjDependencies.Plugins.compilerPlugins
   ).flatten
 )
-
-def scalacSettings(scalaVersion: String): Seq[String] =
-  Seq(
-    "-encoding",
-    "utf-8", // Specify character encoding used by source files.
-    "-explain",
-    "-deprecation",
-    "-feature", // Emit warning and location for usages of features that should be imported explicitly.
-    "-language:existentials", // Existential types (besides wildcard types) can be written and inferred
-    "-language:higherKinds", // Allow higher-kinded types
-    "-language:implicitConversions", // Allow definition of implicit functions called views
-    "-language:dynamics",
-    "-Ykind-projector",
-    "-explain-types", // Explain type errors in more detail.
-    "-Xfatal-warnings" // Fail the compilation if there are any warnings.
-  )
 
 //=============================== ALIASES ===============================
 addCommandAlias("check", "scalafmtAll;clean;coverage;test;coverageAggregate")

@@ -1,4 +1,4 @@
-import sbt.addSbtPlugin
+ThisBuild / libraryDependencies += "org.typelevel" %% "scalac-options" % "0.1.7"
 
 addSbtPlugin("org.scalameta"  % "sbt-scalafmt"           % "2.5.2")
 addSbtPlugin("org.scoverage"  % "sbt-scoverage"          % "2.2.0")

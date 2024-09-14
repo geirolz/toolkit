@@ -1,6 +1,6 @@
 import sbt.*
-
 import scala.language.postfixOps
+import org.typelevel.scalacoptions.ScalaVersion
 
 object PrjDependencies {
 
