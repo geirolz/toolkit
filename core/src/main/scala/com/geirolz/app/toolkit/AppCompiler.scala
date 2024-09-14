@@ -1,14 +1,11 @@
 package com.geirolz.app.toolkit
 
 import cats.data.{EitherT, NonEmptyList}
-import cats.effect.implicits.{genSpawnOps, monadCancelOps_}
 import cats.effect.syntax.all.*
 import cats.effect.{Async, Fiber, Ref, Resource}
 import cats.{Parallel, Show}
-import com.geirolz.app.toolkit.AppContext.NoDeps
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.LoggerAdapter
-import com.geirolz.app.toolkit.novalues.NoDependencies
 
 trait AppCompiler[F[+_]]:
 

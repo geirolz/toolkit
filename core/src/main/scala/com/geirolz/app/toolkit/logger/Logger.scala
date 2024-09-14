@@ -25,7 +25,7 @@ object Logger:
   export NoopLogger.apply as noop
   export ConsoleLogger.apply as console
 
-  sealed trait Level:
+  sealed trait Level derives CanEqual:
     def index: Int =
       this match
         case Level.Error   => 5

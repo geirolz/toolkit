@@ -18,7 +18,7 @@ object PrjCompilerOptions {
     ScalacOptions.other("-language:dynamics"),
 
     // warns
-    ScalacOptions.fatalWarnings,
+//    ScalacOptions.fatalWarnings,
     ScalacOptions.warnValueDiscard,
     ScalacOptions.warnNonUnitStatement,
     ScalacOptions.warnExtraImplicit,

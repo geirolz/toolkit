@@ -2,10 +2,10 @@ package com.geirolz.app.toolkit.failure
 
 import cats.data.NonEmptyList
 import cats.syntax.all.*
-import cats.{~>, Applicative, Functor, Monad, Show}
-import com.geirolz.app.toolkit.{\/, AppMessages}
+import cats.{Applicative, Functor, Monad, ~>}
 import com.geirolz.app.toolkit.failure.FailureHandler.OnFailureBehaviour
 import com.geirolz.app.toolkit.logger.Logger
+import com.geirolz.app.toolkit.{AppMessages, \/}
 
 case class FailureHandler[F[_], FAILURE](
   onFailureF: FAILURE => F[OnFailureBehaviour],
@@ -47,7 +47,7 @@ object FailureHandler extends FailureHandlerSyntax:
       handleFailureWithF = (e: FAILURE) => Applicative[F].pure(Left(e))
     )
 
-  sealed trait OnFailureBehaviour
+  sealed trait OnFailureBehaviour derives CanEqual
   object OnFailureBehaviour:
     case object CancelAll extends OnFailureBehaviour
     case object DoNothing extends OnFailureBehaviour
