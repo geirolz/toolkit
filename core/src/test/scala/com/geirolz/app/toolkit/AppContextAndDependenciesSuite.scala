@@ -1,14 +1,13 @@
 package com.geirolz.app.toolkit
 
 import cats.effect.{IO, Resource}
-import com.geirolz.app.toolkit.logger.Logger
 import com.geirolz.app.toolkit.testing.{TestAppInfo, TestConfig}
 
 class AppContextAndDependenciesSuite extends munit.FunSuite:
 
   // false positive not exhaustive pattern matching ? TODO: investigate
   test("AppContext unapply works as expected") {
-    val res = App[IO]
+    App[IO]
       .withInfo(TestAppInfo.value)
       .withConsoleLogger()
       .withConfigPure(TestConfig.defaultTest)

@@ -34,7 +34,7 @@ and YAML.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.0.11"
+libraryDependencies += "com.github.geirolz" %% "toolkit-pureconfig" % "0.1.0-RC3"
 ```
 
 Import the integration module in your application:
@@ -51,6 +51,7 @@ import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.config.pureconfig.*
+import java.time.LocalDateTime
 
 case class TestConfig(value: String)
 
@@ -66,10 +67,11 @@ App[IO]
       name = "toolkit",
       version = "0.0.1",
       scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
+      sbtVersion = "1.8.0",
+      builtOn = LocalDateTime.now()
     )
   )
-  .withConfigF(pureconfigLoader[IO, TestConfig])
+  .withConfig(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
   .provideOne(IO.unit)
   .run()
@@ -94,7 +96,7 @@ configuration options to suit your needs.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.0.11"
+libraryDependencies += "com.github.geirolz" %% "toolkit-log4cats" % "0.1.0-RC3"
 ```
 
 And just use the `withLogger` method to configure the logger.
@@ -116,7 +118,7 @@ Odin provides flexible configuration options to meet your logging requirements.
 Include this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.0.11"
+libraryDependencies += "com.github.geirolz" %% "toolkit-odin" % "0.1.0-RC3"
 ```
 
 And just use the `withLogger` method to configure the logger.
@@ -137,7 +139,7 @@ ensuring that your application operates with the correct database schema.
 Import this module in your project by adding the following dependency:
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.0.11"
+libraryDependencies += "com.github.geirolz" %% "toolkit-fly4s" % "0.1.0-RC3"
 ```
 
 Import the tasks
@@ -157,6 +159,7 @@ import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.*
 import com.geirolz.app.toolkit.*
+import java.time.LocalDateTime
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
@@ -169,7 +172,8 @@ App[IO]
       name = "toolkit",
       version = "0.0.1",
       scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
+      sbtVersion = "1.8.0",
+      builtOn = LocalDateTime.now()
     )
   )
   .withConfigPure(

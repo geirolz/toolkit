@@ -61,7 +61,7 @@ To get started with Toolkit, follow these steps:
    installation instructions in the [Toolkit GitHub repository](https://github.com/geirolz/toolkit).
 
 ```sbt
-libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.0.11"
+libraryDependencies += "com.github.geirolz" %% "toolkit" % "0.1.0-RC3"
 ```
 
 2. **Define Your Application:** Create a new Scala objects or classes that represents your application dependencies and
@@ -110,6 +110,7 @@ object KafkaConsumer:
 import cats.effect.{ExitCode, IO, IOApp}
 import com.geirolz.app.toolkit.*
 import com.geirolz.app.toolkit.logger.Logger
+import java.time.LocalDateTime
 
 object Main extends IOApp:
     override def run(args: List[String]): IO[ExitCode] =
@@ -119,11 +120,12 @@ object Main extends IOApp:
             name = "toolkit",
             version = "0.0.1",
             scalaVersion = "2.13.10",
-            sbtVersion = "1.8.0"
+            sbtVersion = "1.8.0",
+            builtOn = LocalDateTime.now()
           )
         )
         .withConsoleLogger()
-        .withConfigF(IO.pure(Config("localhost", 8080)))
+        .withConfig(IO.pure(Config("localhost", 8080)))
         .dependsOn(AppDependencyServices.resource)
         .beforeProviding(ctx.logger.info("CUSTOM PRE-PROVIDING"))
         .provideOne(

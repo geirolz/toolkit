@@ -15,7 +15,7 @@ import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoFailure, No
 import java.time.LocalDateTime
 import scala.reflect.Typeable
 
-final class AppBuilder[F[+_]: Async: Parallel, FAILURE <: Matchable]:
+final class AppBuilder[F[+_]: Async: Parallel, FAILURE <: Matchable: Typeable]:
 
   inline def withInfo(
     name: String           = "",
@@ -52,12 +52,12 @@ object AppBuilder:
   inline def simple[F[+_]: Async: Parallel]: AppBuilder.Simple[F] =
     new AppBuilder[F, NoFailure]
 
-  inline def withFailure[F[+_]: Async: Parallel, FAILURE <: Matchable: NotNoFailure]: AppBuilder[F, FAILURE] =
+  inline def withFailure[F[+_]: Async: Parallel, FAILURE <: Matchable: NotNoFailure: Typeable]: AppBuilder[F, FAILURE] =
     new AppBuilder[F, FAILURE]
 
   final class SelectResAndDeps[
     F[+_]: Async: Parallel,
-    FAILURE <: Matchable,
+    FAILURE <: Matchable: Typeable,
     INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
     CONFIG: Show,
@@ -131,7 +131,7 @@ object AppBuilder:
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
     /** Dependencies are loaded into context and released at the end of the application. */
-    inline def dependsOn[DEPENDENCIES <: Matchable: Typeable, FAILURE2 <: FAILURE & Matchable: Typeable](
+    inline def dependsOn[DEPENDENCIES <: Matchable, FAILURE2 <: FAILURE & Matchable](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOnE[DEPENDENCIES, FAILURE2](f.map {
@@ -155,7 +155,7 @@ object AppBuilder:
 
     private def copyWith[
       G[+_]: Async: Parallel,
-      FAILURE2 <: Matchable,
+      FAILURE2 <: Matchable: Typeable,
       INFO2 <: SimpleAppInfo[?],
       LOGGER_T2[_[_]]: LoggerAdapter,
       CONFIG2: Show,
