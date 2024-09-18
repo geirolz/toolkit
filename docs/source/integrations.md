@@ -51,6 +51,7 @@ import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.{App, SimpleAppInfo}
 import com.geirolz.app.toolkit.config.pureconfig.*
+import java.time.LocalDateTime
 
 case class TestConfig(value: String)
 
@@ -66,10 +67,11 @@ App[IO]
       name = "toolkit",
       version = "0.0.1",
       scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
+      sbtVersion = "1.8.0",
+      builtOn = LocalDateTime.now()
     )
   )
-  .withConfigF(pureconfigLoader[IO, TestConfig])
+  .withConfig(pureconfigLoader[IO, TestConfig])
   .withoutDependencies
   .provideOne(IO.unit)
   .run()
@@ -157,6 +159,7 @@ import cats.Show
 import cats.effect.IO
 import com.geirolz.app.toolkit.fly4s.*
 import com.geirolz.app.toolkit.*
+import java.time.LocalDateTime
 
 case class TestConfig(dbUrl: String, dbUser: Option[String], dbPassword: Option[Array[Char]])
 
@@ -169,7 +172,8 @@ App[IO]
       name = "toolkit",
       version = "0.0.1",
       scalaVersion = "2.13.10",
-      sbtVersion = "1.8.0"
+      sbtVersion = "1.8.0",
+      builtOn = LocalDateTime.now()
     )
   )
   .withConfigPure(

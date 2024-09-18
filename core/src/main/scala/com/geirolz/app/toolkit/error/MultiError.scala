@@ -2,6 +2,7 @@ package com.geirolz.app.toolkit.error
 
 import cats.data.NonEmptyList
 import cats.kernel.Semigroup
+import scala.reflect.Typeable
 
 trait MultiError[E]:
 
@@ -22,7 +23,7 @@ trait MultiError[E]:
 
 object MultiError:
 
-  def semigroup[E, ME <: E & MultiError[E]](f: NonEmptyList[E] => ME): Semigroup[E] =
+  def semigroup[E <: Matchable, ME <: E & MultiError[E]: Typeable](f: NonEmptyList[E] => ME): Semigroup[E] =
     (x: E, y: E) =>
       (x, y) match
         case (m1: MultiError[?], m2: MultiError[?]) =>

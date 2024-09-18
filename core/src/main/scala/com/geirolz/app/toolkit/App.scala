@@ -100,7 +100,7 @@ object App extends AppFailureSyntax:
   inline def apply[F[+_]: Async: Parallel]: AppBuilder.Simple[F] =
     AppBuilder.simple[F]
 
-  inline def apply[F[+_]: Async: Parallel, FAILURE: ClassTag]: AppBuilder[F, FAILURE] =
+  inline def apply[F[+_]: Async: Parallel, FAILURE <: Matchable: ClassTag]: AppBuilder[F, FAILURE] =
     AppBuilder.withFailure[F, FAILURE]
 
 sealed transparent trait AppFailureSyntax:

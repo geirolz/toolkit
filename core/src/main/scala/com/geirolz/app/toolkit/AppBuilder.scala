@@ -13,9 +13,9 @@ import com.geirolz.app.toolkit.novalues.NoFailure.NotNoFailure
 import com.geirolz.app.toolkit.novalues.{NoConfig, NoDependencies, NoFailure, NoResources}
 
 import java.time.LocalDateTime
-import scala.reflect.ClassTag
+import scala.reflect.Typeable
 
-final class AppBuilder[F[+_]: Async: Parallel, FAILURE: ClassTag]:
+final class AppBuilder[F[+_]: Async: Parallel, FAILURE <: Matchable]:
 
   inline def withInfo(
     name: String           = "",
@@ -52,12 +52,12 @@ object AppBuilder:
   inline def simple[F[+_]: Async: Parallel]: AppBuilder.Simple[F] =
     new AppBuilder[F, NoFailure]
 
-  inline def withFailure[F[+_]: Async: Parallel, FAILURE: ClassTag: NotNoFailure]: AppBuilder[F, FAILURE] =
+  inline def withFailure[F[+_]: Async: Parallel, FAILURE <: Matchable: NotNoFailure]: AppBuilder[F, FAILURE] =
     new AppBuilder[F, FAILURE]
 
   final class SelectResAndDeps[
     F[+_]: Async: Parallel,
-    FAILURE: ClassTag,
+    FAILURE <: Matchable,
     INFO <: SimpleAppInfo[?],
     LOGGER_T[_[_]]: LoggerAdapter,
     CONFIG: Show,
@@ -131,7 +131,7 @@ object AppBuilder:
       dependsOn[NoDependencies, FAILURE](Resource.pure(NoDependencies.value))
 
     /** Dependencies are loaded into context and released at the end of the application. */
-    inline def dependsOn[DEPENDENCIES, FAILURE2 <: FAILURE: ClassTag](
+    inline def dependsOn[DEPENDENCIES <: Matchable: Typeable, FAILURE2 <: FAILURE & Matchable: Typeable](
       f: AppContext.NoDeps[INFO, LOGGER_T[F], CONFIG, RESOURCES] ?=> Resource[F, FAILURE2 | DEPENDENCIES]
     ): AppBuilder.SelectProvide[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       dependsOnE[DEPENDENCIES, FAILURE2](f.map {
@@ -155,7 +155,7 @@ object AppBuilder:
 
     private def copyWith[
       G[+_]: Async: Parallel,
-      FAILURE2: ClassTag,
+      FAILURE2 <: Matchable,
       INFO2 <: SimpleAppInfo[?],
       LOGGER_T2[_[_]]: LoggerAdapter,
       CONFIG2: Show,
@@ -199,7 +199,7 @@ object AppBuilder:
       copy(beforeProvidingTask = d => this.beforeProvidingTask(d) >> f(using d))
 
     // ------- PROVIDE -------
-    def provideOne[FAILURE2 <: FAILURE: ClassTag](
+    def provideOne[FAILURE2 <: FAILURE & Matchable: Typeable](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[FAILURE2 | Unit]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideOneE[FAILURE2](f.map {
@@ -218,12 +218,12 @@ object AppBuilder:
       provideParallelAttemptFE[FAILURE2](f.map(_.map(v => List(v.map(_.asRight[FAILURE2])))))
 
     // provide
-    def provideParallel[FAILURE2 <: FAILURE: ClassTag](
+    def provideParallel[FAILURE2 <: FAILURE & Matchable: Typeable](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> List[F[FAILURE2 | Unit]]
     ): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideParallelE(f.map(_.map {
-        case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
+        case failure: FAILURE2 => Left(failure)
       }))
 
     inline def provideParallelE[FAILURE2 <: FAILURE](
@@ -232,12 +232,12 @@ object AppBuilder:
       provideParallelFE[FAILURE2](f.pure[F])
 
     // provideF
-    def provideParallelF[FAILURE2 <: FAILURE: ClassTag](
+    def provideParallelF[FAILURE2 <: FAILURE & Matchable: Typeable](
       f: AppContext[INFO, LOGGER_T[F], CONFIG, DEPENDENCIES, RESOURCES] ?=> F[List[F[FAILURE2 | Unit]]]
     )(using DummyImplicit): App[F, FAILURE, INFO, LOGGER_T, CONFIG, RESOURCES, DEPENDENCIES] =
       provideParallelFE(f.map(_.map(_.map {
-        case failure: FAILURE2 => Left(failure)
         case _: Unit           => Right(())
+        case failure: FAILURE2 => Left(failure)
       })))
 
     inline def provideParallelFE[FAILURE2 <: FAILURE](
