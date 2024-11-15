@@ -27,7 +27,7 @@ jobs:
       matrix:
         # supported scala versions
         include:
-          - scala: 3.5.0
+          - scala: 3.5.2
             name: Scala3_5
             test-tasks: scalafmtCheck gen-doc coverage test coverageReport
 
