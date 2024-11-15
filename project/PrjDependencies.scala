@@ -7,7 +7,7 @@ object PrjDependencies {
   object Versions {
     type Version = String
     val cats: Version              = "2.12.0"
-    val catsEffect: Version        = "3.5.4"
+    val catsEffect: Version        = "3.5.5"
     val circe: Version             = "0.14.9"
     val circeGenericExtra: Version = "0.14.3"
     val pureConfig: Version        = "0.17.7"
