@@ -19,7 +19,7 @@ object PrjDependencies {
     val odin: Version              = "0.15.0"
     val http4s: Version            = "0.23.27"
     val fs2: Version               = "3.11.0"
-    val scalacheck: Version        = "1.18.0"
+    val scalacheck: Version        = "1.18.1"
   }
 
   lazy val common: Seq[ModuleID] = Seq(
