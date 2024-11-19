@@ -1,5 +1,5 @@
 import org.typelevel.scalacoptions.{ScalaVersion, ScalacOptions}
-import sbt.project
+import sbt.{addCommandAlias, project}
 
 lazy val prjName        = "toolkit"
 lazy val prjDescription = "A small toolkit to build functional app with managed resources"
@@ -13,6 +13,12 @@ val copyReadMe = taskKey[Unit]("Copy generated README to main folder.")
 lazy val root: Project = project
   .in(file("."))
   .settings(
+    // =============================== ALIASES ===============================
+    addCommandAlias("testAll", "test;examples/test"),
+    addCommandAlias("compileAll", "compile;examples/compile"),
+    addCommandAlias("check", "scalafmtAll;clean;coverage;test;coverageAggregate"),
+    addCommandAlias("gen-doc", "mdoc;copyReadMe;"),
+    addCommandAlias("coverage-test", "coverage;test;coverageReport"),
     inThisBuild(
       List(
         homepage := Some(url(s"https://github.com/geirolz/$prjName")),
@@ -203,8 +209,3 @@ lazy val baseSettings: Seq[Def.Setting[_]] = Seq(
     PrjDependencies.Plugins.compilerPlugins
   ).flatten
 )
-
-//=============================== ALIASES ===============================
-addCommandAlias("check", "scalafmtAll;clean;coverage;test;coverageAggregate")
-addCommandAlias("gen-doc", "mdoc;copyReadMe;")
-addCommandAlias("coverage-test", "coverage;test;coverageReport")

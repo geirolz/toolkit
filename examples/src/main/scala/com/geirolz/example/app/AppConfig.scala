@@ -5,33 +5,26 @@ import com.comcast.ip4s.{Hostname, Port}
 import io.circe.Encoder
 import pureconfig.*
 import pureconfig.generic.derivation.default.*
+import io.circe.syntax.*
+import io.circe.generic.semiauto.*
+import pureconfig.module.ip4s.*
 
 case class AppConfig(
   httpServer: HttpServerConfig,
   kafkaBroker: KafkaBrokerSetting
-) derives ConfigReader
+) derives ConfigReader,
+      Encoder.AsObject
 
 object AppConfig:
-
-  import io.circe.syntax.*
-  import io.circe.generic.semiauto.*
-  import pureconfig.module.ip4s.*
-
-  // ------------------- CIRCE -------------------
-  given Encoder[Hostname] =
-    Encoder.encodeString.contramap(_.toString)
-
-  given Encoder[Port] =
-    Encoder.encodeInt.contramap(_.value)
-
-  given Encoder[AppConfig] =
-    deriveEncoder[AppConfig]
-
   given Show[AppConfig] =
     Show.show(_.asJson.toString())
 
-end AppConfig
+case class HttpServerConfig(port: Port, host: Hostname) derives ConfigReader, Encoder.AsObject
 
-case class HttpServerConfig(port: Port, host: Hostname)
+case class KafkaBrokerSetting(host: Hostname) derives ConfigReader, Encoder.AsObject
 
-case class KafkaBrokerSetting(host: Hostname)
+given Encoder[Hostname] =
+  Encoder.encodeString.contramap(_.toString)
+
+given Encoder[Port] =
+  Encoder.encodeInt.contramap(_.value)

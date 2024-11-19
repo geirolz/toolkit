@@ -3,7 +3,6 @@ package com.geirolz.example.app
 import cats.effect.{IO, Resource}
 import com.geirolz.app.toolkit.{ctx, AppContext}
 import com.geirolz.example.app.provided.{HostTable, KafkaConsumer}
-import org.typelevel.log4cats.SelfAwareStructuredLogger
 
 case class AppDependencyServices(
   kafkaConsumer: KafkaConsumer[IO],
