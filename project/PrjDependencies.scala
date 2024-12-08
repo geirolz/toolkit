@@ -12,7 +12,7 @@ object PrjDependencies {
     val circeGenericExtra: Version = "0.14.3"
     val pureConfig: Version        = "0.17.7"
     val fly4s: Version             = "1.1.0"
-    val munit: Version             = "1.0.0"
+    val munit: Version             = "1.0.3"
     val munitEffect: Version       = "2.0.0"
     val slf4: Version              = "2.0.16"
     val log4cats: Version          = "2.7.0"
