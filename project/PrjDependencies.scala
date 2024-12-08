@@ -17,7 +17,7 @@ object PrjDependencies {
     val slf4: Version              = "2.0.16"
     val log4cats: Version          = "2.7.0"
     val odin: Version              = "0.15.0"
-    val http4s: Version            = "0.23.29"
+    val http4s: Version            = "0.23.30"
     val fs2: Version               = "3.11.0"
     val scalacheck: Version        = "1.18.1"
   }
