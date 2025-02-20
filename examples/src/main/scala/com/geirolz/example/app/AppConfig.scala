@@ -4,7 +4,6 @@ import cats.Show
 import com.comcast.ip4s.{Hostname, Port}
 import io.circe.Encoder
 import pureconfig.*
-import pureconfig.generic.derivation.default.*
 import io.circe.syntax.*
 import io.circe.generic.semiauto.*
 import pureconfig.module.ip4s.*
