@@ -27,8 +27,8 @@ jobs:
       matrix:
         # supported scala versions
         include:
-          - scala: 3.5.2
-            name: Scala3_5
+          - scala: 3.6.3
+            name: Scala3_6
             test-tasks: scalafmtCheck gen-doc coverage testAll coverageReport
 
     steps:
@@ -41,7 +41,10 @@ jobs:
           distribution: "liberica"
           java-version: 17
 
-      #----------- CACHE -----------
+      #----------- SBT -----------
+      - name: Setup SBT
+        uses: sbt/setup-sbt@v1
+
       - name: Cache SBT
         uses: actions/cache@v4
         with:

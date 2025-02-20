@@ -6,20 +6,20 @@ object PrjDependencies {
 
   object Versions {
     type Version = String
-    val cats: Version              = "2.13.0"
-    val catsEffect: Version        = "3.5.7"
-    val circe: Version             = "0.14.9"
-    val circeGenericExtra: Version = "0.14.3"
-    val pureConfig: Version        = "0.17.8"
-    val fly4s: Version             = "1.1.0"
-    val munit: Version             = "1.0.4"
-    val munitEffect: Version       = "2.0.0"
-    val slf4: Version              = "2.0.16"
-    val log4cats: Version          = "2.7.0"
-    val odin: Version              = "0.15.0"
-    val http4s: Version            = "0.23.30"
-    val fs2: Version               = "3.11.0"
-    val scalacheck: Version        = "1.18.1"
+    val cats: Version         = "2.13.0"
+    val catsEffect: Version   = "3.5.7"
+    val circe: Version        = "0.14.10"
+    val circeRefined: Version = "0.15.1"
+    val pureConfig: Version   = "0.17.8"
+    val fly4s: Version        = "1.1.0"
+    val munit: Version        = "1.1.0"
+    val munitEffect: Version  = "2.0.0"
+    val slf4: Version         = "2.0.16"
+    val log4cats: Version     = "2.7.0"
+    val odin: Version         = "0.15.0"
+    val http4s: Version       = "0.23.30"
+    val fs2: Version          = "3.11.0"
+    val scalacheck: Version   = "1.18.1"
   }
 
   lazy val common: Seq[ModuleID] = Seq(
@@ -72,7 +72,7 @@ object PrjDependencies {
 
       // json
       "io.circe" %% "circe-core"    % Versions.circe,
-      "io.circe" %% "circe-refined" % Versions.circe,
+      "io.circe" %% "circe-refined" % Versions.circeRefined,
       "io.circe" %% "circe-generic" % Versions.circe
     )
   }

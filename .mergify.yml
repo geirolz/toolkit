@@ -4,7 +4,7 @@ pull_request_rules:
       - "#approved-reviews-by>=1"
       - check-success=codecov/patch
       - check-success=codecov/project
-      - check-success=build (Scala3_5)
+      - check-success=build (Scala3_6)
       - base=main
       - label!=work-in-progress
     actions:
@@ -13,7 +13,7 @@ pull_request_rules:
   - name: automatic merge for master when CI passes and author is steward
     conditions:
       - author=scala-steward-geirolz[bot]
-      - check-success=build (Scala3_5)
+      - check-success=build (Scala3_6)
       - base=main
     actions:
       merge:
@@ -21,7 +21,7 @@ pull_request_rules:
   - name: automatic merge for master when CI passes and author is dependabot
     conditions:
       - author=dependabot[bot]
-      - check-success=build (Scala3_5)
+      - check-success=build (Scala3_6)
       - base=main
     actions:
       merge:
